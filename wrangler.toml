@@ -3,6 +3,8 @@ main = "src/index.ts"
 compatibility_date = "2026-09-01"
 # Merkt, wenn die App die Verbindung beendet, damit Claude dann auch aufhört
 compatibility_flags = ["enable_request_signal"]
+# Variablen, die nur im Cloudflare-Dashboard stehen, bleiben beim Deploy erhalten
+keep_vars = true
 
 # Die App selbst (index.html usw.)
 [assets]

@@ -190,6 +190,27 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .acts svg{width:16px;height:16px}
 .empty{text-align:center;padding:28px 12px;color:var(--ink-soft);display:flex;flex-direction:column;align-items:center;gap:10px}
 .empty svg{width:56px;height:56px;color:var(--line)}
+/* Alle Notizen in einer */
+.seg.nv{margin:0;align-self:flex-start}
+.allnote{background:var(--sheet);border-radius:8px;box-shadow:var(--shadow);padding:16px 18px 20px;display:flex;flex-direction:column;gap:12px;line-height:1.55;overflow-wrap:anywhere;min-width:0}
+.ad-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.ad-head h2{font:800 20px/1.2 var(--f-display);color:var(--ink);margin:0}
+.ad-head .btn{padding:8px 12px;font-size:14px}
+.ad-head .btn svg{width:16px;height:16px}
+.ad-toc{display:flex;flex-wrap:wrap;gap:6px}
+.ad-toc button{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:3px 10px;font-size:13px;color:var(--ink-soft);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ad-sec{scroll-margin-top:12px;min-width:0}
+.ad-sec h3{font:700 17px/1.3 var(--f-body);color:var(--ink);margin:4px 0 6px;padding-bottom:3px;border-bottom:2px solid var(--marker)}
+.ad-sec p{margin:0 0 .5em}
+.ad-sec ul{margin:.2em 0 .5em;padding-left:1.2em}
+.ad-sec li{margin:.15em 0}
+.ad-src{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:12px;color:var(--ink-soft);margin:2px 0 0!important}
+.ad-src button{border:0;background:none;padding:0;color:var(--ink-soft);text-decoration:underline;text-underline-offset:2px;font-size:12px;text-align:left}
+.ad-note{margin:8px 0 0;padding:2px 0 2px 10px;border-left:3px solid var(--line)}
+.ad-note .ad-t{display:block;border:0;background:none;padding:0;font-weight:700;color:var(--ink);text-align:left}
+.ad-note p{margin:0;white-space:pre-wrap}
+.ad-note .inkthumb{max-height:120px}
+.ad-new h3{border-bottom-color:var(--line)}
 
 /* Dateien */
 .drop{border:2px dashed var(--ink-soft);border-radius:16px;padding:22px 16px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;background:var(--sheet);color:var(--ink-soft)}
@@ -333,9 +354,10 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .seg button{border:0;background:none;border-radius:9px;padding:6px 12px;font-weight:700;color:var(--ink-soft);display:flex;align-items:center;gap:6px}
 .seg button svg{width:16px;height:16px}
 .seg button[aria-pressed="true"]{background:var(--sheet);color:var(--ink);box-shadow:var(--shadow)}
-@media (max-width:480px){.seg button svg{display:none}}
-@media (max-width:400px){.pad-bar{gap:4px;padding-left:6px;padding-right:6px}.pad-bar .iconbtn.plain{width:36px}.seg button{padding:6px 9px}.pad-bar .btn{padding:8px 11px}}
-@media (max-width:350px){#padBack{display:none}.seg button{padding:6px 8px}}
+@media (max-width:560px){.seg button svg{display:none}}
+/* Schmales Handy: "Fertig" macht dasselbe wie der Zurück-Pfeil, der Pfeil macht Platz für "Frag Merki" */
+@media (max-width:480px){#padBack{display:none}.pad-bar{gap:4px;padding-left:6px;padding-right:6px}.pad-bar .iconbtn.plain{width:36px}.seg button{padding:6px 9px}.pad-bar .btn{padding:8px 11px}}
+@media (max-width:360px){.pad-bar{gap:3px}.pad-bar .seg button{padding:6px 7px;font-size:14px}.pad-bar .btn{padding:8px 9px;font-size:14px}.pad-bar .iconbtn.plain,.pad-bar .askbtn{width:32px;height:32px}}
 .pad-tools{display:flex;align-items:center;gap:2px;padding:4px 8px;border-bottom:1px solid var(--line);background:var(--sheet);overflow-x:auto}
 .pad-tools button{flex:none;width:40px;height:40px;border-radius:10px;border:0;background:none;color:var(--ink);display:grid;place-items:center;padding:0}
 .pad-tools button svg{width:22px;height:22px}
@@ -360,6 +382,25 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .ink-hint{position:absolute;left:0;right:0;top:calc(var(--u,.36) * 60px);margin:0;text-align:center;color:var(--ink-soft);font-size:14px;pointer-events:none;padding:0 28px}
 .pad-foot{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 16px 4px}
 .pad-read{align-self:stretch;margin:0 0 0 18px;font-size:14px;color:var(--ink-soft);white-space:pre-wrap;overflow-wrap:anywhere}
+/* Fragebot neben der Notiz: Handy unten als Blatt, Tablet hochkant rechts darüber, Tablet quer daneben */
+.askbtn{flex:none;display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:7px 12px;font-weight:700}
+.askbtn svg{width:18px;height:18px}
+.askbtn[aria-pressed="true"]{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+@media (max-width:560px){.askbtn span{display:none}.askbtn{width:40px;height:40px;padding:0;justify-content:center}}
+@media (max-width:480px){.askbtn{width:36px;height:36px}}
+.pad-body{flex:1;min-height:0;display:flex;position:relative}
+.pad-body .pad-scroll{flex:1;min-width:0}
+.pad-ask{position:absolute;z-index:3;left:0;right:0;bottom:0;height:min(76%,620px);display:flex;flex-direction:column;background:var(--paper);border-top:1px solid var(--line);border-radius:18px 18px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.18)}
+@media (min-width:600px){.pad-ask{top:0;left:auto;height:auto;width:min(380px,85%);border-top:0;border-left:1px solid var(--line);border-radius:0;box-shadow:-8px 0 30px rgba(0,0,0,.14)}}
+@media (min-width:900px){.pad-ask{position:static;flex:none;width:360px;box-shadow:none}}
+.ask-head{display:flex;align-items:center;gap:8px;padding:8px 6px 8px 14px;border-bottom:1px solid var(--line)}
+.ask-head b{flex:1;min-width:0;display:flex;align-items:center;gap:8px;font:800 16px/1.2 var(--f-display);color:var(--ink)}
+.ask-head b svg{flex:none;width:18px;height:18px}
+.ask-log{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:10px;padding:12px}
+.ask-log .msg{max-width:94%;font-size:15px}
+.pad-ask .suggest{padding:0 12px 8px}
+.pad-ask .suggest button{font-size:13px}
+.pad-ask .composer{position:static;padding:8px 12px calc(10px + env(safe-area-inset-bottom,0px))}
 
 /* Gespräch mit Merki: eigener Bildschirm wie bei einem Anruf */
 .call{position:fixed;inset:0;z-index:23;display:flex;flex-direction:column;align-items:center;gap:10px;padding:calc(18px + env(safe-area-inset-top,0px)) 16px calc(14px + env(safe-area-inset-bottom,0px));
@@ -412,6 +453,19 @@ input[type=range]{accent-color:var(--ink);width:100%}
 .seg.look button{flex:1 1 auto;flex-direction:column;justify-content:center;gap:3px;padding:8px 6px;font-size:14px;min-width:0}
 .seg.look button svg{display:block;width:20px;height:20px}
 .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
+/* So soll Merki dir helfen */
+.helpbox{display:flex;flex-direction:column;gap:10px;background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.hrow{display:flex;align-items:center;justify-content:space-between;gap:6px 10px;flex-wrap:wrap}
+.hrow>span{font-size:15px;font-weight:700;color:var(--text)}
+.seg.hs{margin:0}
+.seg.hs button{padding:6px 10px;font-size:14px}
+.htog{display:flex;flex-wrap:wrap;gap:6px}
+.htog button{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:5px 12px;font-size:14px;color:var(--ink-soft);display:inline-flex;align-items:center;gap:5px}
+.htog button svg{width:14px;height:14px;display:none}
+.htog button[aria-pressed="true"]{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+.htog button[aria-pressed="true"] svg{display:block}
+.helpbox textarea{border:1px solid var(--line);background:var(--paper);border-radius:12px;padding:10px 12px;width:100%;min-height:84px;resize:vertical}
+.helpbox label{font-size:13px;color:var(--ink-soft);font-weight:700;letter-spacing:.03em}
 .swatch{display:flex;flex-direction:column;align-items:center;gap:6px;border:1px solid var(--line);background:var(--sheet);color:var(--text);border-radius:14px;padding:10px 4px 8px;font-size:14px;min-width:0}
 .swatch i{position:relative;width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--ink) 0 50%,var(--marker) 50% 100%);box-shadow:0 0 0 1px var(--line)}
 .swatch[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink),var(--shadow);font-weight:700}
@@ -493,6 +547,10 @@ input[type=range]{accent-color:var(--ink);width:100%}
 
       <!-- NOTIZEN -->
       <section class="view" id="v-notes" hidden>
+        <div class="seg nv" role="group" aria-label="Ansicht der Notizen" id="noteView">
+          <button type="button" data-v="cards" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>Einzeln</button>
+          <button type="button" data-v="all" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 10h7M9 14h7M9 18h4"/></svg>Alles in einer</button>
+        </div>
         <div class="toolbar">
           <input id="search" type="search" placeholder="Notizen durchsuchen" aria-label="Notizen durchsuchen">
           <button class="btn" type="button" id="newNote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Neu</button>
@@ -500,6 +558,7 @@ input[type=range]{accent-color:var(--ink);width:100%}
         </div>
         <div class="filters" id="filters"></div>
         <div class="cards" id="cards"></div>
+        <div class="allnote" id="allNote" hidden></div>
       </section>
 
       <!-- DATEIEN -->
@@ -636,6 +695,9 @@ const ICON = {
   eraser: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M8.5 20 3.7 15.2a2 2 0 0 1 0-2.8l8.5-8.5a2 2 0 0 1 2.8 0l5.3 5.3a2 2 0 0 1 0 2.8L12.5 20z"/><path d="M8 11.5l6 6M8.5 20H21"/></svg>',
   undo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>',
   type: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 6h14M12 6v13M9 19h6"/></svg>',
+  ask: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M10 9a2 2 0 1 1 2.6 1.9c-.4.2-.6.5-.6 1.1M12 14.2v.1"/></svg>',
+  close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 3v5h5"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 21v-5h-5"/></svg>',
 };
 
 // ---------- Wo läuft die App? ----------
@@ -644,10 +706,10 @@ const ICON = {
 const MODE = window.claude && typeof window.claude.use === 'function' ? 'artifact' : 'server';
 
 // ---------- Zustand ----------
-const state = { projects: [], notes: [], chats: [], files: [], parts: [], cards: [], plans: [], progress: [], inks: [], stats: { xp: 0, streak: 0, lastDay: '', name: '', theme: '', palette: '' }, legacyChat: null };
-const normStats = d => ({ xp: d.xp || 0, streak: d.streak || 0, lastDay: d.lastDay || '', name: d.name || '', theme: d.theme || '', palette: d.palette || '' });
-const ui = { pid: null, cid: null, tab: 'chat', filter: 'all' };
-const LISTS = { project: 'projects', note: 'notes', chat: 'chats', file: 'files', part: 'parts', card: 'cards', plan: 'plans', progress: 'progress', ink: 'inks' };
+const state = { projects: [], notes: [], chats: [], files: [], parts: [], cards: [], plans: [], progress: [], inks: [], notedocs: [], stats: { xp: 0, streak: 0, lastDay: '', name: '', theme: '', palette: '', help: {} }, legacyChat: null };
+const normStats = d => ({ xp: d.xp || 0, streak: d.streak || 0, lastDay: d.lastDay || '', name: d.name || '', theme: d.theme || '', palette: d.palette || '', help: d.help && typeof d.help === 'object' ? d.help : {} });
+const ui = { pid: null, cid: null, tab: 'chat', filter: 'all', noteView: 'cards' };
+const LISTS = { project: 'projects', note: 'notes', chat: 'chats', file: 'files', part: 'parts', card: 'cards', plan: 'plans', progress: 'progress', ink: 'inks', notedoc: 'notedocs' };
 let db = null, coll = null, sample = null, connecting = true, busy = false, migrated = false;
 let code = null, serverAi = false, serverTts = false;
 const SYNC = { rev: 0, outbox: {}, timer: 0, flushing: false, pulling: false, backoff: 0, single: false };
@@ -687,7 +749,7 @@ async function loadLocal() {
   }
   if (d) {
     for (const k of Object.values(LISTS)) if (Array.isArray(d[k])) state[k] = d[k];
-    if (d.stats) state.stats = d.stats;
+    if (d.stats) state.stats = normStats(d.stats);
     if (d.sync && MODE === 'server') { SYNC.rev = d.sync.rev || 0; SYNC.outbox = d.sync.outbox || {}; }
   }
 }
@@ -1023,6 +1085,7 @@ const SCHEMA = {
   plan: obj({ tage: arr(obj({ datum: S, titel: S, aufgaben: arr(S) })) }),
   tip: obj({ tipp: S }),
   ink: obj({ titel: S, text: S }),
+  notedoc: obj({ abschnitte: arr(obj({ titel: S, text: S, notizen: arr(I) })) }),
 };
 async function imageBlock(blob) {
   const bmp = await createImageBitmap(blob).catch(() => null);
@@ -1178,6 +1241,18 @@ function visible(text) {
   if (last && (last.startsWith('NOTIZ') || 'NOTIZ:'.startsWith(last))) t = t.slice(0, Math.max(i, 0));
   return t.trim();
 }
+// NOTIZ-Zeilen aus Merkis Antwort als Notizen speichern; gibt die Titel der neuen Notizen zurück
+function saveNoteLines(full, pid, skip = '') {
+  const saved = [];
+  if (!pid) return saved;
+  for (const m of full.matchAll(NOTE_RE)) {
+    const title = m[1].trim().slice(0, 120), body = m[2].trim().slice(0, 1500), low = title.toLowerCase();
+    if ((skip && low === skip.toLowerCase()) || pNotes(pid).some(n => n.title.toLowerCase() === low)) continue;
+    put('note', { id: 'n-' + uid8(), projectId: pid, title, text: body, source: 'chat', createdAt: Date.now() }, false);
+    saved.push(title);
+  }
+  return saved;
+}
 function trimTurns(turns) { let t = turns.slice(-60); while (t.length > 2 && JSON.stringify(t).length > 150000) t = t.slice(2); return t; }
 function chatTurnHtml(t) {
   if (t.role === 'user') return `<div class="msg me">${esc(t.content).replace(/\n/g, '<br>')}</div>`;
@@ -1205,9 +1280,9 @@ function getOrCreateChat(title) {
 }
 function saveChat(c) { c.turns = trimTurns(c.turns); c.updatedAt = Date.now(); put('chat', { ...c }, false); }
 
-const NOTE_RULE = `Merke Wichtiges: Wenn im Gespräch etwas Lernrelevantes vorkommt (Definition, Regel, Formel, Fakt, Datum, Vokabel, Lernziel, Prüfungstermin), hänge GANZ AM ENDE deiner Antwort pro Punkt eine eigene Zeile in genau diesem Format an:
-NOTIZ: <kurzer Titel> :: <Inhalt in 1 bis 3 klaren Sätzen>
-Höchstens 3 solcher Zeilen. Keine für Smalltalk, keine doppelten zu vorhandenen Notizen. Erwähne diese Zeilen nicht im Text.`;
+const NOTE_RULE = `Merke Wichtiges, und zwar großzügig: Immer wenn im Gespräch etwas Lernrelevantes vorkommt oder du etwas erklärst (Definition, Regel, Formel, Fakt, Datum, Vokabel, Beispiel, Eselsbrücke, Zusammenhang, typischer Fehler, Lernziel, Prüfungstermin), hänge GANZ AM ENDE deiner Antwort pro Punkt eine eigene Zeile in genau diesem Format an:
+NOTIZ: <kurzer Titel> :: <Inhalt in 1 bis 4 klaren Sätzen>
+Jede Antwort, die etwas erklärt oder abfragt, bekommt mindestens eine solche Zeile, höchstens 6. Keine für reinen Smalltalk, keine doppelten zu vorhandenen Notizen. Erwähne diese Zeilen nicht im Text.`;
 const RULES = `Du bist "Merki", ein freundlicher, geduldiger Lernbegleiter in der Lern-App "Merkheft". Antworte immer auf Deutsch, locker und leicht verständlich, eher kurz, mit Beispielen und Eselsbrücken. Formatierung: **fett** für Schlüsselbegriffe, Listen mit "- ". Keine Überschriften, keine Tabellen.
 Nutze die Dateien und Notizen des Projekts. Wenn du etwas daraus hast, sag aus welcher Datei. Wenn du abfragst: immer nur eine Frage, warte auf die Antwort, lobe ehrlich und korrigiere freundlich.
 
@@ -1223,7 +1298,39 @@ So redest du:
 - Nutze die Dateien und Notizen des Projekts, wenn sie passen.
 
 ` + NOTE_RULE;
-const who = () => myName() ? `\n\nDie Person, mit der du lernst, heißt ${myName()}. Sprich sie ab und zu mit ihrem Namen an.` : '';
+// Fragebot neben einer Notiz
+const ASK_RULES = `Du bist "Merki", ein freundlicher, geduldiger Lernbegleiter in der Lern-App "Merkheft". Gerade schaut sich die Person eine einzelne Notiz an und stellt dir Fragen dazu. Beziehe dich vor allem auf diese Notiz und nutze die Dateien und anderen Notizen des Projekts, wenn sie helfen. Antworte immer auf Deutsch, locker, eher kurz und leicht verständlich, mit Beispielen und Eselsbrücken. Formatierung: **fett** für Schlüsselbegriffe, Listen mit "- ". Keine Überschriften, keine Tabellen.
+Wenn in der Notiz etwas falsch oder unklar ist, sag es freundlich. Wenn du abfragst: immer nur eine Frage, warte auf die Antwort, lobe ehrlich und korrigiere freundlich.
+
+` + NOTE_RULE;
+// Wie Merki helfen soll (Einstellungen). Steht in stats, gilt also auf allen Geräten.
+const HELP_DEF = { len: 'normal', tone: 'locker', ex: true, mnemo: true, quiz: false, steps: false, notes: 'viele', wish: '' };
+const helpOf = () => ({ ...HELP_DEF, ...(state.stats.help || {}) });
+const HELP_SEGS = [
+  ['len', 'Antworten', [['kurz', 'Kurz'], ['normal', 'Normal'], ['lang', 'Ausführlich']]],
+  ['tone', 'Ton', [['locker', 'Locker'], ['sachlich', 'Sachlich']]],
+  ['notes', 'Notizen', [['wenige', 'Wenige'], ['normal', 'Normal'], ['viele', 'Viele']]],
+];
+const HELP_TOGS = [['ex', 'Mit Beispielen'], ['mnemo', 'Mit Eselsbrücken'], ['quiz', 'Oft abfragen'], ['steps', 'Schritt für Schritt']];
+const helpWish = () => String(helpOf().wish || '').replace(/\s+/g, ' ').trim().slice(0, 600);
+function helpText(spoken) {
+  const h = helpOf(), out = [];
+  if (h.len === 'kurz') out.push(spoken ? 'Antworte besonders kurz, meistens 1 bis 2 Sätze.' : 'Antworte besonders kurz und knapp, nur das Wichtigste.');
+  if (h.len === 'lang') out.push(spoken ? 'Du darfst etwas ausführlicher erklären, bis zu 6 Sätze.' : 'Erkläre ausführlich und gründlich, mit Hintergründen und Zusammenhängen.');
+  if (h.tone === 'sachlich') out.push('Bleib sachlich und ruhig, wenig Smalltalk, keine Emojis.');
+  if (!h.ex) out.push('Beispiele nur, wenn danach gefragt wird.');
+  if (!h.mnemo) out.push('Eselsbrücken nur, wenn danach gefragt wird.');
+  if (h.quiz) out.push('Frag oft ab: Stell nach einer Erklärung meistens eine kurze Kontrollfrage.');
+  if (h.steps) out.push('Erkläre Schritt für Schritt in kleinen Häppchen und frag zwischendurch, ob alles klar ist.');
+  if (h.notes === 'wenige') out.push('Notizen: höchstens eine NOTIZ-Zeile pro Antwort, nur für das Allerwichtigste.');
+  if (h.notes === 'normal') out.push('Notizen: höchstens 3 NOTIZ-Zeilen pro Antwort.');
+  const wish = helpWish();
+  if (wish) out.push(`Das wünscht sich die Person von dir (in ihren eigenen Worten, beachte es, solange es zum Lernen passt): „${wish}“`);
+  return out.length ? '\n\nSo möchte die Person mit dir lernen. Das gilt vor den Regeln oben:\n- ' + out.join('\n- ') : '';
+}
+// Für Quiz, Karten und Co.: nur der Wunsch aus den Einstellungen
+const wishLine = () => helpWish() ? `\nWunsch der Person (beachte ihn, wenn er hier passt, zum Beispiel Schwerpunkt oder Schwierigkeit): „${helpWish()}“` : '';
+const who = (spoken = false) => (myName() ? `\n\nDie Person, mit der du lernst, heißt ${myName()}. Sprich sie ab und zu mit ihrem Namen an.` : '') + helpText(spoken);
 
 async function send(text) {
   text = text.trim();
@@ -1247,13 +1354,7 @@ async function send(text) {
   let partial = '';
   try {
     const full = await aiChat({ system, turns, signal: ctl.signal, onText: t => { partial = t; bubble.classList.toggle('thinking', !t); bubble.innerHTML = t ? md(visible(t)) : 'Merki denkt nach …'; scrollDown(); } });
-    const saved = [];
-    for (const m of full.matchAll(NOTE_RE)) {
-      const title = m[1].trim().slice(0, 120), body = m[2].trim().slice(0, 1500);
-      if (pNotes(p.id).some(n => n.title.toLowerCase() === title.toLowerCase())) continue;
-      put('note', { id: 'n-' + uid8(), projectId: p.id, title, text: body, source: 'chat', createdAt: Date.now() }, false);
-      saved.push(title);
-    }
+    const saved = saveNoteLines(full, p.id);
     c.turns.push({ role: 'assistant', content: visible(full) || '…', saved });
   } catch (e) {
     if (e && e.code === 'cancelled') {
@@ -1270,7 +1371,11 @@ async function send(text) {
 // ---------- Notizen ----------
 const FILTERS = [['all', 'Alle'], ['voice', 'Sprachnotizen'], ['chat', 'Aus dem Chat'], ['file', 'Aus Dateien'], ['manual', 'Eigene']];
 function renderNotes() {
-  const all = pNotes();
+  const all = pNotes(), allView = ui.noteView === 'all' && all.length > 0;
+  $('#noteView').hidden = !all.length;
+  $('#noteView').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === (ui.noteView === 'all' ? 'all' : 'cards')));
+  $('#search').hidden = allView; $('#filters').hidden = allView; $('#cards').hidden = allView; $('#allNote').hidden = !allView;
+  if (allView) { renderAllNote(); return; }
   if (!FILTERS.some(([k]) => k === ui.filter)) ui.filter = 'all';
   $('#filters').innerHTML = all.length ? FILTERS.map(([k, l]) => {
     const n = k === 'all' ? all.length : all.filter(x => (x.source || 'manual') === k).length;
@@ -1291,8 +1396,108 @@ function renderNotes() {
       : n.inkText && n.inkRead === ink.v ? `<p class="inkread">Merki liest: ${esc(n.inkText.length > 160 ? n.inkText.slice(0, 160) + ' …' : n.inkText)}</p>` : '';
     return `<article class="card clickable" data-open="${esc(n.id)}"><h3>${esc(n.title)}</h3>${n.text ? `<p>${esc(n.text)}</p>` : ''}${thumb ? `<img class="inkthumb" src="${thumb}" alt="Handschrift">` : ''}${read}${spoken}
       <div class="meta"><span>${src} ${new Date(n.createdAt || Date.now()).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}</span>
-      <span class="acts"><button type="button" data-edit="${esc(n.id)}" aria-label="Bearbeiten">${ICON.edit}</button><button type="button" data-del="${esc(n.id)}" aria-label="Löschen">${ICON.trash}</button></span></div></article>`;
+      <span class="acts">${aiReady() ? `<button type="button" data-ask="${esc(n.id)}" aria-label="Merki zu dieser Notiz fragen">${ICON.ask}</button>` : ''}<button type="button" data-edit="${esc(n.id)}" aria-label="Bearbeiten">${ICON.edit}</button><button type="button" data-del="${esc(n.id)}" aria-label="Löschen">${ICON.trash}</button></span></div></article>`;
   }).join('');
+}
+
+// ---------- Alle Notizen in einer ----------
+// Merki ordnet alle Notizen eines Projekts nach Themen zu einem Text. Der Text wird gespeichert (notedoc).
+// Was danach neu dazukommt, steht bis zum nächsten Ordnen unten dran. So fehlt nie etwas.
+const ndIdOf = pid => 'nd-' + pid.replace(/^p-/, '');
+const ndOf = (pid = ui.pid) => state.notedocs.find(x => x.id === ndIdOf(pid)) || null;
+const strHash = s => { let h = 5381; for (let i = 0; i < s.length; i++) h = (h * 33 + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
+const noteHash = n => strHash(n.title + '\n' + noteBody(n));
+const ND_FULL = 30000; // bis so viele Zeichen schreibt Merki alles zu einem Text, bei mehr sortiert Merki die Notizen nur nach Themen
+let ndJob = null, ndErr = null; // gerade laufendes Ordnen und der letzte Fehler, je mit Projekt
+function ndDiff(doc, notes) {
+  if (!doc) return { fresh: [], gone: 0 };
+  const h = doc.h || {}, ids = new Set(notes.map(n => n.id));
+  return { fresh: notes.filter(n => h[n.id] !== noteHash(n)), gone: Object.keys(h).filter(id => !ids.has(id)).length };
+}
+// Von selbst ordnen, wenn jemand die Ansicht öffnet und es noch keinen Text gibt
+function ndAuto() {
+  const pid = ui.pid;
+  if (pid && ui.tab === 'notes' && ui.noteView === 'all' && !ndOf(pid) && !ndJob && !(ndErr && ndErr.pid === pid) && aiReady() && pNotes(pid).length >= 2) makeNoteDoc(pid);
+}
+async function makeNoteDoc(pid) {
+  const p = state.projects.find(x => x.id === pid);
+  if (ndJob || !p || !aiReady()) return;
+  const notes = pNotes(pid).slice().reverse(); // älteste zuerst
+  if (notes.length < 2) return;
+  const list = notes.map((n, i) => `[${i + 1}] ${n.title}: ${noteBody(n).replace(/\s*\n\s*/g, ' ').slice(0, 2500) || '(leer)'}`).join('\n');
+  const full = list.length <= ND_FULL;
+  ndErr = null; ndJob = { pid };
+  renderNotes();
+  try {
+    const x = await aiJson(full ? `Fasse alle Lernnotizen unten zu EINEM gut geordneten Lerntext auf Deutsch zusammen, wie ein sauberer Spickzettel für das Projekt „${p.name}“${p.desc ? ' (' + p.desc + ')' : ''}.
+- Gliedere nach Themen in einer sinnvollen Reihenfolge, Grundlagen zuerst. Jeder Abschnitt hat einen kurzen Titel.
+- Übernimm ALLE Inhalte der Notizen. Was doppelt ist, nur einmal. Erfinde nichts dazu.
+- text: klare, kurze Sätze. **fett** für Schlüsselbegriffe, Aufzählungen mit "- ". Keine Überschriften, keine Tabellen.
+- notizen: die Nummern aller Notizen, deren Inhalt in diesem Abschnitt steckt. Jede Notiz kommt in mindestens einem Abschnitt vor.
+Antworte nur mit JSON: {"abschnitte": [{"titel": "...", "text": "...", "notizen": [1, 2]}]}
+
+Notizen:
+${list}` : `Sortiere alle Lernnotizen unten nach Themen für das Projekt „${p.name}“${p.desc ? ' (' + p.desc + ')' : ''}.
+- Bilde Abschnitte in einer sinnvollen Reihenfolge, Grundlagen zuerst. Jeder Abschnitt hat einen kurzen Titel.
+- text: ein Satz, worum es in dem Abschnitt geht.
+- notizen: die Nummern der Notizen in diesem Abschnitt, in einer guten Lesereihenfolge. Jede Notiz kommt in genau einem Abschnitt vor.
+Antworte nur mit JSON: {"abschnitte": [{"titel": "...", "text": "...", "notizen": [1, 2]}]}
+
+Notizen:
+${list}`, { schema: SCHEMA.notedoc, maxTokens: full ? 16000 : 8000 });
+    const raw = Array.isArray(x) ? x : x && x.abschnitte;
+    const secs = (Array.isArray(raw) ? raw : []).map(a => ({
+      t: String((a && a.titel) || '').trim().slice(0, 120),
+      x: String((a && a.text) || '').trim().slice(0, full ? 20000 : 600),
+      n: [...new Set((Array.isArray(a && a.notizen) ? a.notizen : []).map(k => notes[Math.round(+k) - 1]).filter(Boolean).map(n => n.id))],
+    })).filter(a => a.t && (a.x || a.n.length)).slice(0, 40);
+    if (!secs.length) throw { code: 'invalid_json' };
+    // Notizen, die Merki keinem Abschnitt zugeordnet hat, kommen ans Ende
+    const used = new Set(secs.flatMap(a => a.n)), rest = notes.filter(n => !used.has(n.id)).map(n => n.id);
+    if (rest.length) secs.push({ t: 'Weitere Notizen', x: '', n: rest, more: true });
+    const h = {}; for (const n of notes) h[n.id] = noteHash(n);
+    put('notedoc', { id: ndIdOf(pid), projectId: pid, full, secs, h, at: Date.now() }, false);
+  } catch (e) {
+    ndErr = { pid, msg: aiError(e) };
+  }
+  ndJob = null;
+  renderNotes();
+}
+function renderAllNote() {
+  const pid = ui.pid, notes = pNotes(pid).slice().reverse(), doc = ndOf(pid);
+  const job = !!ndJob && ndJob.pid === pid, err = ndErr && ndErr.pid === pid ? ndErr.msg : '';
+  const byId = new Map(notes.map(n => [n.id, n]));
+  const { fresh, gone } = ndDiff(doc, notes);
+  const canAi = aiReady() && notes.length >= 2;
+  const noteHtml = n => {
+    const ink = inkOf(n), body = noteBody(n);
+    return `<div class="ad-note"><button type="button" class="ad-t" data-open="${esc(n.id)}">${esc(n.title)}</button>${body ? `<p>${esc(body)}</p>` : ''}${ink && !n.inkText ? `<img class="inkthumb" src="${inkThumb(ink)}" alt="Handschrift">` : ''}</div>`;
+  };
+  const secHtml = (a, i) => {
+    const src = a.n.map(id => byId.get(id)).filter(Boolean);
+    if (!a.x && !src.length) return '';
+    const showNotes = !doc.full || a.more;
+    return `<section class="ad-sec" id="ad-${i}"><h3>${esc(a.t)}</h3>${a.x ? (doc.full ? md(a.x) : `<p class="muted">${esc(a.x)}</p>`) : ''}${showNotes ? src.map(noteHtml).join('')
+      : src.length ? `<p class="ad-src"><span>Aus:</span>${src.map(n => `<button type="button" data-open="${esc(n.id)}">${esc(n.title)}</button>`).join('')}</p>` : ''}</section>`;
+  };
+  const when = doc ? new Date(doc.at).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' }) : '';
+  const sub = job ? `${notes.length} Notizen` : doc ? `${notes.length} Notizen · von Merki geordnet am ${when}` : `${notes.length} ${notes.length === 1 ? 'Notiz' : 'Notizen'}`;
+  const btn = canAi && !job ? `<button class="btn alt" type="button" id="ndGen">${ICON.refresh}${doc ? 'Neu ordnen' : 'Von Merki ordnen lassen'}</button>` : '';
+  let html = `<div class="ad-head"><div><h2>Alles in einer</h2><p class="muted">${sub}</p></div>${btn}</div>`;
+  if (job) html += `<p class="job" role="status"><span class="spin"></span>Merki fasst deine Notizen zu einem Text zusammen …</p>`;
+  if (err) html += `<p class="notice err">${esc(err)}</p>`;
+  if (doc) {
+    const why = [fresh.length ? `${fresh.length === 1 ? '1 Notiz ist' : fresh.length + ' Notizen sind'} neu oder geändert` : '', gone ? `${gone === 1 ? '1 Notiz wurde' : gone + ' Notizen wurden'} gelöscht` : ''].filter(Boolean).join(', ');
+    if (why && !job) html += `<p class="notice tip">${why}. ${canAi ? 'Tippe auf „Neu ordnen“, dann bringt Merki alles auf den neuesten Stand.' : ''}</p>`;
+    const secs = doc.secs || [];
+    if (secs.length >= 4) html += `<nav class="ad-toc" aria-label="Inhalt">${secs.map((a, i) => `<button type="button" data-jump="${i}">${esc(a.t)}</button>`).join('')}</nav>`;
+    html += secs.map(secHtml).join('');
+    if (fresh.length) html += `<section class="ad-sec ad-new" id="ad-new"><h3>Neu dazugekommen</h3>${fresh.map(noteHtml).join('')}</section>`;
+  } else {
+    if (!job && !err && notes.length >= 2) html += `<p class="notice">${aiReady() ? 'Tippe auf „Von Merki ordnen lassen“, dann schreibt Merki alles zu einem Text nach Themen zusammen.' : 'Hier stehen alle Notizen untereinander. Mit der KI ordnet Merki sie nach Themen.'}</p>`;
+    html += `<section class="ad-sec">${notes.map(noteHtml).join('')}</section>`;
+  }
+  $('#allNote').innerHTML = html;
 }
 
 function openSheet(html, onMount, onClose) {
@@ -1492,7 +1697,7 @@ Antworte nur mit JSON: {"titel": "...", "text": "..."}`, { schema: SCHEMA.ink, i
 }
 
 let padClose = null; // schließt das offene Blatt (und speichert)
-function openPad(orig) {
+function openPad(orig, opts = {}) {
   if (padClose || (!orig && !proj())) return;
   let n = orig ? { ...orig } : { id: 'n-' + uid8(), projectId: ui.pid, title: '', text: '', source: 'manual', createdAt: Date.now() };
   const iid = inkIdOf(n.id), ink0 = state.inks.find(x => x.id === iid);
@@ -1509,6 +1714,7 @@ function openPad(orig) {
         <button type="button" id="padType">${ICON.type}Tippen</button>
         <button type="button" id="padWrite">${ICON.pen}Schreiben</button>
       </div>
+      <button class="askbtn" type="button" id="padAsk" aria-pressed="false" aria-controls="askPanel">${ICON.ask}<span>Frag Merki</span></button>
       <button class="iconbtn plain" type="button" id="padDel" aria-label="Notiz löschen">${ICON.trash}</button>
       <button class="btn" type="button" id="padDone">Fertig</button>
     </header>
@@ -1524,13 +1730,24 @@ function openPad(orig) {
       <button type="button" id="padUndo" aria-label="Rückgängig">${ICON.undo}</button>
       <button type="button" id="padClear" aria-label="Handschrift löschen">${ICON.trash}</button>
     </div>
-    <div class="pad-scroll" id="padScroll"><div class="paper">
+    <div class="pad-body"><div class="pad-scroll" id="padScroll"><div class="paper">
       <input class="pad-title" id="padTitle" maxlength="120" placeholder="Titel" aria-label="Titel" value="${esc(n.autoTitle ? '' : n.title)}">
       <textarea class="pad-text" id="padText" aria-label="Getippter Text">${esc(n.text)}</textarea>
       ${spoken}
       <div class="ink-wrap" id="inkWrap"><canvas id="inkCv" aria-label="Blatt zum Schreiben mit Stift oder Finger"></canvas><p class="ink-hint" id="inkHint"></p></div>
       <div class="pad-foot"><button class="linkbtn" type="button" id="padMore">Mehr Platz zum Schreiben</button><p class="pad-read" id="padRead" hidden></p></div>
-    </div></div>`;
+    </div></div>
+    <aside class="pad-ask" id="askPanel" aria-label="Merki zu dieser Notiz fragen" hidden>
+      <div class="ask-head"><b>${ICON.ask}Frag Merki zu dieser Notiz</b><button class="iconbtn plain" type="button" id="askClose" aria-label="Fragen schließen">${ICON.close}</button></div>
+      <div class="ask-log" id="askLog" aria-live="polite"></div>
+      <div class="suggest" id="askSug">
+        <button type="button" data-s="Erklär mir diese Notiz ganz einfach.">Einfacher erklären</button>
+        <button type="button" data-s="Gib mir ein Beispiel dazu.">Beispiel</button>
+        <button type="button" data-s="Hast du eine Eselsbrücke dafür?">Eselsbrücke</button>
+        <button type="button" data-s="Frag mich zu dieser Notiz ab, eine Frage nach der anderen.">Frag mich ab</button>
+      </div>
+      <form class="composer" id="askForm"><textarea id="askIn" rows="1" placeholder="Frag etwas zu dieser Notiz …" aria-label="Frage zu dieser Notiz"></textarea><button class="iconbtn" type="submit" id="askSend" aria-label="Senden">${ICON.send}</button></form>
+    </aside></div>`;
   document.body.appendChild(el);
   const q = sel => el.querySelector(sel);
   const scroller = q('#padScroll'), wrap = q('#inkWrap'), cv = q('#inkCv'), ctx = cv.getContext('2d'), ta = q('#padText'), ti = q('#padTitle');
@@ -1694,11 +1911,98 @@ function openPad(orig) {
   const onVis = () => { if (document.visibilityState === 'hidden') save(); };
   const onResize = () => { if (Math.abs((wrap.clientWidth || 0) / INK_W - cssK) > 0.0005) fit(); };
   const onTheme = () => { cols = inkColors(false); redraw(); };
+
+  // Fragebot: Fragen zu genau dieser Notiz, das Gespräch wird mit der Notiz gespeichert
+  const panel = q('#askPanel'), askLog = q('#askLog'), askIn = q('#askIn'), askBtn = q('#askSend');
+  let qa = Array.isArray(n.qa) ? n.qa.slice() : [], asking = false, askCtl = null, dead = false;
+  const docked = () => window.matchMedia('(min-width: 900px)').matches;
+  const hasContent = () => !!(ti.value.trim() || ta.value.trim() || strokes.length);
+  const askGrow = () => { askIn.style.height = 'auto'; askIn.style.height = Math.min(askIn.scrollHeight, 120) + 'px'; };
+  const askState = () => {
+    askBtn.innerHTML = asking ? ICON.stop : ICON.send;
+    askBtn.setAttribute('aria-label', asking ? 'Antwort stoppen' : 'Senden');
+    askBtn.disabled = !asking && !aiReady();
+    askIn.placeholder = aiReady() ? 'Frag etwas zu dieser Notiz …' : 'Die KI ist gerade nicht verfügbar';
+  };
+  const renderAsk = () => {
+    askLog.innerHTML = qa.length ? qa.map(chatTurnHtml).join('')
+      : `<div class="msg ai"><p>Frag mich alles zu dieser Notiz. Ich erkläre es dir einfacher, gebe Beispiele oder frage dich ab.</p></div>`;
+    q('#askSug').hidden = qa.length > 0;
+    askLog.scrollTop = askLog.scrollHeight;
+  };
+  const setAsk = (open, remember) => {
+    panel.hidden = !open; q('#padAsk').setAttribute('aria-pressed', open);
+    if (remember && docked()) setPref('askOpen', open ? '1' : '0');
+    if (open) { renderAsk(); askState(); }
+    requestAnimationFrame(onResize);
+  };
+  // Nach dem Lesen der Handschrift: Text und Titel aus dem Speicher übernehmen
+  const syncInk = () => {
+    const cur = state.notes.find(x => x.id === n.id); if (!cur) return;
+    n = { ...n, inkText: cur.inkText, inkRead: cur.inkRead };
+    if (n.autoTitle && cur.autoTitle === false && cur.title && !ti.value.trim()) { ti.value = cur.title; n.title = cur.title; n.autoTitle = false; }
+    readLine();
+  };
+  const askSend = async text => {
+    text = text.trim();
+    if (!text || asking || !aiReady()) return;
+    if (!hasContent()) { toast('Schreib zuerst etwas in die Notiz, dann kann Merki dazu Fragen beantworten.', 4000); return; }
+    asking = true; askState();
+    qa.push({ role: 'user', content: text }); renderAsk();
+    const bubble = document.createElement('div');
+    bubble.className = 'msg ai thinking'; bubble.textContent = 'Merki denkt nach …';
+    askLog.appendChild(bubble); askLog.scrollTop = askLog.scrollHeight;
+    if (strokes.length) {
+      save();
+      const ik = state.inks.find(x => x.id === iid), cur = state.notes.find(x => x.id === n.id);
+      if (ik && cur && cur.inkRead !== ik.v) { bubble.textContent = 'Merki liest deine Handschrift …'; await readInk(n.id); if (dead) return; syncInk(); bubble.textContent = 'Merki denkt nach …'; }
+    }
+    const p = state.projects.find(x => x.id === n.projectId) || proj();
+    const title = ti.value.trim() || n.title || '(ohne Titel)';
+    const body = [ta.value.trim(), strokes.length && n.inkText ? 'Handschrift: ' + n.inkText : '', strokes.length && !n.inkText ? '(Dazu gibt es Handschrift, die noch nicht gelesen ist.)' : ''].filter(Boolean).join('\n');
+    const ctx = projectContext(p, text + ' ' + title + ' ' + body.slice(0, 400));
+    const system = [{ text: ASK_RULES + who() }, { text: ctx.files, cache: ctx.stable }, { text: `Die Notiz, um die es geht:\nTitel: ${title}\n${body || '(leer)'}\n\n${ctx.notes}` }];
+    let turns = qa.slice(-16).map(t => ({ role: t.role, content: t.content }));
+    while (turns.length > 2 && JSON.stringify(turns).length > 40000) turns = turns.slice(2);
+    while (turns.length && turns[0].role !== 'user') turns.shift();
+    askCtl = new AbortController();
+    let partial = '';
+    try {
+      const full = await aiChat({ system, turns, signal: askCtl.signal, onText: t => { partial = t; bubble.classList.toggle('thinking', !t); bubble.innerHTML = t ? md(visible(t)) : 'Merki denkt nach …'; askLog.scrollTop = askLog.scrollHeight; } });
+      if (dead) return;
+      qa.push({ role: 'assistant', content: visible(full) || '…', saved: saveNoteLines(full, n.projectId, title) });
+    } catch (e) {
+      if (dead) return;
+      if (e && e.code === 'cancelled') {
+        const kept = visible(e.text || partial || '');
+        if (kept) qa.push({ role: 'assistant', content: kept + ' …' });
+        else { qa.pop(); if (!askIn.value) { askIn.value = text; askGrow(); } }
+      } else qa.push({ role: 'assistant', content: (e && e.text ? visible(e.text) + '\n\n' : '') + aiError(e) });
+    }
+    asking = false; askCtl = null;
+    qa = qa.slice(-30); while (qa.length > 2 && JSON.stringify(qa).length > 30000) qa = qa.slice(2);
+    n.qa = qa; save();
+    renderAsk(); askState();
+  };
+  q('#padAsk').hidden = !aiReady();
+  q('#padAsk').onclick = () => { const open = panel.hidden; setAsk(open, true); if (open && window.matchMedia('(hover:hover)').matches) askIn.focus(); };
+  q('#askClose').onclick = () => setAsk(false, true);
+  q('#askSug').addEventListener('click', e => { const b = e.target.closest('button'); if (b) askSend(b.dataset.s); });
+  q('#askForm').addEventListener('submit', e => {
+    e.preventDefault();
+    if (asking) { if (askCtl) askCtl.abort(); return; }
+    const t = askIn.value; if (!t.trim()) return;
+    askIn.value = ''; askGrow(); askSend(t);
+  });
+  askIn.addEventListener('input', askGrow);
+  askIn.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && window.matchMedia('(hover:hover)').matches) { e.preventDefault(); q('#askForm').requestSubmit(); } });
+
   const unfit = fitViewport(el);
   document.addEventListener('visibilitychange', onVis);
   window.addEventListener('resize', onResize);
   window.addEventListener('merkheft-dark', onTheme);
   const teardown = () => {
+    dead = true; if (askCtl) askCtl.abort();
     clearTimeout(saveT); cancelAnimationFrame(glide);
     document.removeEventListener('visibilitychange', onVis);
     window.removeEventListener('resize', onResize);
@@ -1719,6 +2023,7 @@ function openPad(orig) {
       teardown(); renderAll(!busy);
     });
   };
+  if (opts.ask || (orig && docked() && pref('askOpen', '1') === '1' && hasContent())) setAsk(true);
   setMode(mode); grow(); fit(); readLine();
   if (!orig && mode === 'type') setTimeout(() => ta.focus(), 60);
 }
@@ -2177,7 +2482,7 @@ async function askAi() {
   setState('thinking'); showSaved([]);
   const recent = c.turns.filter(t => t.role === 'user').slice(-3).map(t => t.content).join(' ');
   const ctx = projectContext(p, recent);
-  const system = [{ text: VOICE_RULES + who() + `\n\nDu hast das Gespräch mit diesem Satz eröffnet: „${call.greeting}“ Begrüße nicht noch einmal.` }, { text: ctx.files, cache: ctx.stable }, { text: ctx.notes }];
+  const system = [{ text: VOICE_RULES + who(true) + `\n\nDu hast das Gespräch mit diesem Satz eröffnet: „${call.greeting}“ Begrüße nicht noch einmal.` }, { text: ctx.files, cache: ctx.stable }, { text: ctx.notes }];
   let turns = c.turns.slice(-24).map(t => ({ role: t.role, content: t.content }));
   while (turns.length > 2 && JSON.stringify(turns).length > 40000) turns = turns.slice(2);
   while (turns.length && turns[0].role !== 'user') turns.shift();
@@ -2203,13 +2508,7 @@ function onAnswer(t) {
   sayReady(speakable(shown));
 }
 function finishAnswer(full) {
-  const p = state.projects.find(x => x.id === call.pid), c = call.chat, saved = [];
-  for (const m of full.matchAll(NOTE_RE)) {
-    const title = m[1].trim().slice(0, 120), body = m[2].trim().slice(0, 1500);
-    if (!p || pNotes(p.id).some(n => n.title.toLowerCase() === title.toLowerCase())) continue;
-    put('note', { id: 'n-' + uid8(), projectId: p.id, title, text: body, source: 'chat', createdAt: Date.now() }, false);
-    saved.push(title);
-  }
+  const p = state.projects.find(x => x.id === call.pid), c = call.chat, saved = saveNoteLines(full, p && p.id);
   const shown = visible(full) || '…';
   c.turns.push({ role: 'assistant', content: shown, saved });
   saveCallChat();
@@ -2367,7 +2666,7 @@ function splitText(t, size) {
   if (t.trim()) out.push(t);
   return out;
 }
-const NOTES_JSON = n => `"notizen": [{"titel": "kurzer Titel", "inhalt": "1 bis 3 klare Sätze"}] mit den ${n} wichtigsten Lernpunkten`;
+const NOTES_JSON = n => `"notizen": [{"titel": "kurzer Titel", "inhalt": "1 bis 4 klare Sätze"}] mit ${n} Lernpunkten (Begriffe, Regeln, Formeln, Daten, Beispiele, Zusammenhänge)`;
 async function mergeSummaries(sums, name) {
   sums = sums.filter(Boolean);
   if (sums.length < 2) return sums[0] || '';
@@ -2412,7 +2711,7 @@ async function readOne(file, p, step) {
     for (let b = 0; b < batches.length; b++) {
       if (batches.length > 1) step(`Teil ${b + 1} von ${batches.length}`);
       const x = await aiJson(`Auf ${batches[b].length > 1 ? 'den Bildern' : 'dem Bild'} ist Lernstoff (zum Beispiel Buchseite, Mitschrift oder Tafelbild) aus „${file.name}“${batches.length > 1 ? ` (Teil ${b + 1} von ${batches.length})` : ''} für das Projekt „${p.name}“.
-Antworte nur mit JSON: {"abschrift": "der vollständige Text, den du lesen kannst, sauber abgeschrieben", "zusammenfassung": "3 bis 5 Sätze", ${NOTES_JSON('3 bis 8')}}
+Antworte nur mit JSON: {"abschrift": "der vollständige Text, den du lesen kannst, sauber abgeschrieben", "zusammenfassung": "3 bis 5 Sätze", ${NOTES_JSON('5 bis 12')}}
 Schon vorhandene Notizen (nicht doppelt): ${known()}`, { images: batches[b], schema: SCHEMA.scan, maxTokens: 16000 });
       text += (text ? '\n\n' : '') + String((x && x.abschrift) || '').trim();
       sums.push(String((x && x.zusammenfassung) || ''));
@@ -2427,7 +2726,7 @@ Schon vorhandene Notizen (nicht doppelt): ${known()}`, { images: batches[b], sch
       for (let k = 0; k < chunks.length; k++) {
         if (chunks.length > 1) step(`Teil ${k + 1} von ${chunks.length}`);
         const x = await aiJson(`Du bekommst ${chunks.length > 1 ? `Teil ${k + 1} von ${chunks.length} des Lern-Dokuments` : 'ein Lern-Dokument'} „${file.name}“ für das Projekt „${p.name}“${p.desc ? ' (' + p.desc + ')' : ''}. Lies ${chunks.length > 1 ? 'diesen Teil' : 'es'} vollständig.
-Antworte nur mit JSON: {"zusammenfassung": "3 bis 5 Sätze, worum es ${chunks.length > 1 ? 'in diesem Teil' : ''} geht", ${NOTES_JSON(chunks.length > 1 ? '3 bis 6' : '3 bis 8')}}
+Antworte nur mit JSON: {"zusammenfassung": "3 bis 5 Sätze, worum es ${chunks.length > 1 ? 'in diesem Teil' : ''} geht", ${NOTES_JSON(chunks.length > 1 ? '4 bis 10' : '5 bis 12')}}
 Schon vorhandene Notizen (nicht doppelt): ${known()}
 
 ${chunks.length > 1 ? 'Teil' : 'Dokument'}:
@@ -2447,7 +2746,7 @@ ${chunks[k]}`, { schema: SCHEMA.doc });
   } else f.text = full;
   put('file', f, false);
   const saved = [];
-  for (const n of notes.slice(0, 24)) {
+  for (const n of notes.slice(0, 40)) {
     if (!n || !(n.titel || n.inhalt)) continue;
     const title = String(n.titel || n.inhalt).slice(0, 120);
     if (pNotes(p.id).some(o => o.title.toLowerCase() === title.toLowerCase())) continue;
@@ -2546,6 +2845,7 @@ function projectMenu() {
       pCards(p.id).forEach(c => remove('card', c.id, false));
       state.plans.filter(x => x.projectId === p.id).forEach(x => remove('plan', x.id, false));
       state.progress.filter(x => x.projectId === p.id).forEach(x => remove('progress', x.id, false));
+      state.notedocs.filter(x => x.projectId === p.id).forEach(x => remove('notedoc', x.id, false));
       remove('project', p.id, false);
       ui.pid = null; ui.cid = null; saveUi(); renderAll();
     });
@@ -2608,7 +2908,7 @@ async function startQuiz() {
   const btn = $('#startQuiz'); btn.disabled = true;
   showArea(`<div class="q"><p class="muted">Merki schreibt dein Quiz zu „${esc(mat.label)}“ …</p><div class="progress"><i style="width:15%"></i></div></div>`);
   try {
-    const res = await aiJson(`Erstelle ein Lern-Quiz auf Deutsch mit genau 5 Multiple-Choice-Fragen. Jede Frage hat genau 4 Antworten, genau eine ist richtig ("richtig" ist ihre Position 0 bis 3). Falsche Antworten sollen plausibel sein. Mische die Position der richtigen Antwort. Fragen sollen Verständnis prüfen, nicht nur Wortlaut. "thema" ist das Unterthema der Frage in 1 bis 3 Wörtern.
+    const res = await aiJson(`Erstelle ein Lern-Quiz auf Deutsch mit genau 5 Multiple-Choice-Fragen. Jede Frage hat genau 4 Antworten, genau eine ist richtig ("richtig" ist ihre Position 0 bis 3). Falsche Antworten sollen plausibel sein. Mische die Position der richtigen Antwort. Fragen sollen Verständnis prüfen, nicht nur Wortlaut. "thema" ist das Unterthema der Frage in 1 bis 3 Wörtern.${wishLine()}
 Antworte nur mit JSON: {"fragen": [{"frage": "...", "antworten": ["A","B","C","D"], "richtig": 0, "erklaerung": "ein kurzer Satz warum", "thema": "..."}]}
 
 ${mat.text}`, { schema: SCHEMA.quiz });
@@ -2679,7 +2979,7 @@ async function startMemory() {
     const btn = $('#startMemory'); btn.disabled = true;
     showArea(`<div class="q"><p class="muted">Merki mischt die Karten zu „${esc(mat.label)}“ …</p><div class="progress"><i style="width:15%"></i></div></div>`);
     try {
-      const res = await aiJson(`Erstelle 6 Memory-Paare auf Deutsch zum Lernen. Jedes Paar: ein Begriff (1 bis 3 Wörter) und sein Partner (Erklärung, Übersetzung oder Antwort, höchstens 7 Wörter). Alle Partner müssen eindeutig zu genau einem Begriff passen.
+      const res = await aiJson(`Erstelle 6 Memory-Paare auf Deutsch zum Lernen. Jedes Paar: ein Begriff (1 bis 3 Wörter) und sein Partner (Erklärung, Übersetzung oder Antwort, höchstens 7 Wörter). Alle Partner müssen eindeutig zu genau einem Begriff passen.${wishLine()}
 Antworte nur mit JSON: {"paare": [{"begriff": "...", "partner": "..."}]}
 
 ${mat.text}`, { schema: SCHEMA.memory, tier: 'quick' });
@@ -2795,7 +3095,7 @@ async function generateCards() {
   const btn = $('#cGen'); btn.disabled = true; btn.textContent = 'Merki schreibt Karten …';
   const have = pCards().map(c => c.front);
   try {
-    const res = await aiJson(`Erstelle bis zu 12 Karteikarten auf Deutsch aus dem Lernstoff unten. Vorderseite: eine kurze, klare Frage oder ein Begriff. Rückseite: die Antwort in 1 bis 2 Sätzen. Jede Karte prüft genau einen wichtigen Punkt. "thema" ist das Unterthema in 1 bis 3 Wörtern.
+    const res = await aiJson(`Erstelle bis zu 12 Karteikarten auf Deutsch aus dem Lernstoff unten. Vorderseite: eine kurze, klare Frage oder ein Begriff. Rückseite: die Antwort in 1 bis 2 Sätzen. Jede Karte prüft genau einen wichtigen Punkt. "thema" ist das Unterthema in 1 bis 3 Wörtern.${wishLine()}
 Diese Karten gibt es schon (nicht doppelt): ${have.join(' | ').slice(0, 3000) || 'keine'}
 Antworte nur mit JSON: {"karten": [{"vorderseite": "...", "rueckseite": "...", "thema": "..."}]}
 
@@ -2891,7 +3191,7 @@ function startExplain(prefill) {
     const notes = digest(pNotes().filter(n => words(n.title + ' ' + noteBody(n)).some(w => words(topic).includes(w))).concat(pNotes()), 6000, n => `- ${n.title}: ${noteBody(n)}\n`);
     const pass = filePassages(pFiles(), topic, 12000);
     try {
-      const x = await aiJson(`Du bist Merki, ein freundlicher Lerncoach. Die Person, mit der du lernst, erklärt dir ein Thema in eigenen Worten. Bewerte ehrlich und ermutigend auf Deutsch und sprich sie mit „du“ an.
+      const x = await aiJson(`Du bist Merki, ein freundlicher Lerncoach. Die Person, mit der du lernst, erklärt dir ein Thema in eigenen Worten. Bewerte ehrlich und ermutigend auf Deutsch und sprich sie mit „du“ an.${wishLine()}
 Thema: ${topic}
 Projekt: ${p.name}${p.desc ? ' (' + p.desc + ')' : ''}
 Ihre Erklärung:
@@ -3136,6 +3436,7 @@ function toast(t, ms = 2800) {
 function tab(name) {
   ui.tab = name; saveUi(); renderView(); backHome();
   if (name === 'progress') renderProgress();
+  if (name === 'notes') ndAuto();
   if (name === 'chat') scrollDown(); else $('#main').scrollTop = 0;
 }
 
@@ -3144,14 +3445,22 @@ let installEvt = null;
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
 function settingsSheet() {
   const ios = IOS, server = MODE === 'server', inApp = standalone();
-  const rate = Math.min(1.3, Math.max(0.8, +pref('rate', '1') || 1)), look = lookOf(state.stats);
+  const rate = Math.min(1.3, Math.max(0.8, +pref('rate', '1') || 1)), look = lookOf(state.stats), help = helpOf();
   let fill = null;
   const saveName = el => { const x = el && el.querySelector('#sName'); if (!x) return; const v = x.value.replace(/\s+/g, ' ').trim().slice(0, 40); if (v !== myName()) { state.stats.name = v; saveStats(); } };
+  const setHelp = (k, v) => { const h = helpOf(); if (h[k] === v) return; h[k] = v; state.stats.help = h; saveStats(); };
+  const saveWish = el => { const x = el && el.querySelector('#sWish'); if (x) setHelp('wish', x.value.trim().slice(0, 600)); };
   let sheetEl = null;
   openSheet(`<h2>Einstellungen</h2>
     <div class="field"><label for="sName">Dein Name (so spricht Merki dich an)</label><input id="sName" maxlength="40" autocomplete="given-name" enterkeyhint="done" placeholder="z. B. Lena" value="${esc(myName())}"></div>
     <div class="field"><span class="label" id="sThemeL">Hell oder dunkel</span><div class="seg look" role="group" aria-labelledby="sThemeL" id="sTheme">${THEMES.map(([v, t, svg]) => `<button type="button" data-v="${v}" aria-pressed="${look.theme === v}">${svg}${t}</button>`).join('')}</div></div>
     <div class="field"><span class="label" id="sPalL">Farbe</span><div class="swatches" role="group" aria-labelledby="sPalL" id="sPal">${PALETTES.map(([v, t]) => `<button type="button" class="swatch" data-palette="${v}" data-v="${v}" aria-pressed="${look.palette === v}"><i aria-hidden="true"></i><span>${t}</span></button>`).join('')}</div></div>
+    <div class="field"><span class="label" id="sHelpL">So soll Merki dir helfen</span><div class="helpbox" id="sHelp" role="group" aria-labelledby="sHelpL">
+      ${HELP_SEGS.map(([k, label, opts]) => `<div class="hrow"><span id="sh-${k}">${label}</span><div class="seg hs" role="group" aria-labelledby="sh-${k}" data-k="${k}">${opts.map(([v, t]) => `<button type="button" data-v="${v}" aria-pressed="${help[k] === v}">${t}</button>`).join('')}</div></div>`).join('')}
+      <div class="htog" role="group" aria-label="Was Merki machen soll">${HELP_TOGS.map(([k, t]) => `<button type="button" data-t="${k}" aria-pressed="${!!help[k]}">${ICON.check}${t}</button>`).join('')}</div>
+      <label for="sWish">Was Merki sonst noch wissen soll</label>
+      <textarea id="sWish" maxlength="600" placeholder="z. B. Ich lerne für die Prüfung im Juni. Erklär mir alles mit Beispielen aus dem Alltag und frag mich am Ende ab.">${esc(help.wish || '')}</textarea>
+    </div></div>
     ${TTS_OK || serverTts ? `<div class="field"><label for="sVoice">Merkis Stimme</label><select id="sVoice"></select></div>
     <div class="field"><label for="sRate">Sprechtempo: <span id="sRateV">${Math.round(rate * 100)} %</span></label><input type="range" id="sRate" min="0.8" max="1.3" step="0.05" value="${rate}"></div>
     <button class="btn alt" type="button" id="sTest">${ICON.sound}Probe hören</button>
@@ -3173,6 +3482,15 @@ function settingsSheet() {
       box.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
     });
     pick('theme', q('#sTheme')); pick('palette', q('#sPal'));
+    // Wie Merki helfen soll: wirkt ab der nächsten Antwort
+    q('#sHelp').addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.t) { const on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', on); setHelp(b.dataset.t, on); return; }
+      const box = b.closest('[data-k]'); if (!box) return;
+      setHelp(box.dataset.k, b.dataset.v);
+      box.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+    });
+    q('#sWish').addEventListener('change', () => saveWish(el));
     if (TTS_OK || serverTts) {
       const sv = q('#sVoice'), sr = q('#sRate');
       let real = []; // echte Stimmen vom Sprachdienst des Servers (Google oder ElevenLabs)
@@ -3218,7 +3536,7 @@ function settingsSheet() {
       showStatus();
     }).catch(() => { usage = 'KI-Verbrauch gerade nicht abrufbar.'; showStatus(); });
   }, () => {
-    saveName(sheetEl);
+    saveName(sheetEl); saveWish(sheetEl);
     if (fill) { try { speechSynthesis.removeEventListener('voiceschanged', fill); } catch {} }
     voice.stop();
   });
@@ -3231,7 +3549,7 @@ $('#newProj').onclick = () => { closeSide(); projectSheet(null); };
 $('#plist').addEventListener('click', e => {
   const b = e.target.closest('[data-p]'); if (!b) return;
   ui.pid = b.dataset.p; ui.cid = (pChats(b.dataset.p)[0] || {}).id || null; ui.filter = 'all'; saveUi(); playPicked = false;
-  $('#search').value = ''; $('#tipOut').hidden = true; closeSide(); backHome(); renderAll();
+  $('#search').value = ''; $('#tipOut').hidden = true; closeSide(); backHome(); renderAll(); ndAuto();
 });
 $('#pMenu').onclick = projectMenu;
 $('#examChip').onclick = () => tab('progress');
@@ -3269,6 +3587,17 @@ $('#flist').addEventListener('click', e => {
 $('#newNote').onclick = () => openPad(null);
 $('#search').addEventListener('input', renderNotes);
 $('#filters').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { ui.filter = b.dataset.f; saveUi(); renderNotes(); } });
+$('#noteView').addEventListener('click', e => {
+  const b = e.target.closest('button[data-v]'); if (!b || (ui.noteView === 'all') === (b.dataset.v === 'all')) return;
+  ui.noteView = b.dataset.v; saveUi(); renderNotes(); ndAuto();
+});
+$('#allNote').addEventListener('click', e => {
+  const o = e.target.closest('[data-open]');
+  if (o) { const n = state.notes.find(x => x.id === o.dataset.open); if (n) openPad(n); return; }
+  const j = e.target.closest('[data-jump]');
+  if (j) { const t = document.getElementById('ad-' + j.dataset.jump); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+  if (e.target.closest('#ndGen')) makeNoteDoc(ui.pid);
+});
 $('#cards').addEventListener('click', e => {
   const del = e.target.closest('[data-del]');
   if (del) {
@@ -3276,6 +3605,8 @@ $('#cards').addEventListener('click', e => {
     if (n) confirmSheet('Notiz löschen?', `„${n.title}“ ist danach weg.`, 'Löschen', () => { if (inkOf(n)) remove('ink', inkIdOf(n.id), false); remove('note', n.id); });
     return;
   }
+  const ask = e.target.closest('[data-ask]');
+  if (ask) { const n = state.notes.find(x => x.id === ask.dataset.ask); if (n) openPad(n, { ask: true }); return; }
   const op = e.target.closest('[data-edit],[data-open]');
   const n = op && state.notes.find(x => x.id === (op.dataset.edit || op.dataset.open));
   if (n) openPad(n);
