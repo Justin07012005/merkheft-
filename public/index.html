@@ -252,6 +252,8 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .ad-head h2{font:800 20px/1.2 var(--f-display);color:var(--ink);margin:0}
 .ad-head .btn{padding:8px 12px;font-size:14px}
 .ad-head .btn svg{width:16px;height:16px}
+.ad-btns{display:flex;gap:8px;flex-wrap:wrap}
+#fsPdf svg,#ndPdf svg{width:18px;height:18px}
 .ad-toc{display:flex;flex-wrap:wrap;gap:6px}
 .ad-toc button{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:3px 10px;font-size:13px;color:var(--ink-soft);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ad-sec{scroll-margin-top:12px;min-width:0}
@@ -373,7 +375,14 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .citem{display:flex;gap:10px;align-items:flex-start;background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .citem div{flex:1;min-width:0}
 .citem b{display:block;overflow-wrap:anywhere}
-.citem p{margin:2px 0 0;font-size:14px;color:var(--ink-soft);overflow-wrap:anywhere}
+.citem p{margin:2px 0 0;font-size:14px;color:var(--ink-soft);overflow-wrap:anywhere;white-space:pre-wrap}
+.citem[hidden]{display:none}
+.citem .acts{flex:none}
+.ctopic{display:inline-block;font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:2px}
+.cfind{width:100%;margin:2px 0 4px}
+.kreset{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--ink-soft);margin:4px 0 10px}
+#cEdit{display:inline-flex;align-items:center;gap:6px}
+#cEdit svg{width:16px;height:16px}
 .boxdots{display:flex;gap:3px;margin-top:6px}
 .boxdots i{width:8px;height:8px;border-radius:50%;background:var(--line)}
 .boxdots i.on{background:var(--good)}
@@ -443,6 +452,12 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .seg button{border:0;background:none;border-radius:9px;padding:6px 12px;font-weight:700;color:var(--ink-soft);display:flex;align-items:center;gap:6px}
 .seg button svg{width:16px;height:16px}
 .seg button[aria-pressed="true"]{background:var(--sheet);color:var(--ink);box-shadow:var(--shadow)}
+.seg button:disabled{opacity:.4;cursor:default}
+.seg.qseg{margin:0;align-self:flex-start}
+.qset{display:flex;flex-direction:column;gap:14px}
+.qset .field{margin:0}
+.qset .seg button{min-width:56px;justify-content:center;white-space:nowrap}
+#qWeak{margin:4px 0 0;font-size:14px}
 @media (max-width:560px){.seg button svg{display:none}}
 /* Schmales Handy: "Fertig" macht dasselbe wie der Zurück-Pfeil, der Pfeil macht Platz für "Frag Merki" */
 @media (max-width:480px){#padBack{display:none}.pad-bar{gap:4px;padding-left:6px;padding-right:6px}.pad-bar .iconbtn.plain{width:36px}.seg button{padding:6px 9px}.pad-bar .btn{padding:8px 11px}}
@@ -805,7 +820,7 @@ input[type=range]{accent-color:var(--ink);width:100%}
             </button>
             <button class="game" type="button" id="startQuiz">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/></svg>
-              <h3>Quiz</h3><span class="muted">5 Fragen mit 4 Antworten. Falsche Antworten kommen als Karteikarte wieder.</span>
+              <h3>Quiz</h3><span class="muted">5, 10 oder 15 Fragen, auf Wunsch nur zu deinen schwachen Themen. Falsche Antworten kommen als Karteikarte wieder.</span>
             </button>
             <button class="game" type="button" id="startMemory">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="8" height="10" rx="2"/><rect x="13" y="10" width="8" height="10" rx="2"/></svg>
@@ -914,6 +929,8 @@ const ICON = {
   ask: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M10 9a2 2 0 1 1 2.6 1.9c-.4.2-.6.5-.6 1.1M12 14.2v.1"/></svg>',
   close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
   refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 3v5h5"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 21v-5h-5"/></svg>',
+  share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 12v8h14v-8"/></svg>',
+  pdf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>',
 };
 
 // ---------- Wo läuft die App? ----------
@@ -1855,8 +1872,9 @@ function renderAllNote() {
   };
   const when = doc ? new Date(doc.at).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' }) : '';
   const sub = job ? `${notes.length} Notizen` : doc ? `${notes.length} Notizen · von Merki geordnet am ${when}` : `${notes.length} ${notes.length === 1 ? 'Notiz' : 'Notizen'}`;
-  const btn = canAi && !job ? `<button class="btn alt" type="button" id="ndGen">${ICON.refresh}${doc ? 'Neu ordnen' : 'Von Merki ordnen lassen'}</button>` : '';
-  let html = `<div class="ad-head"><div><h2>Alles in einer</h2><p class="muted">${sub}</p></div>${btn}</div>`;
+  const btn = (canAi && !job ? `<button class="btn alt" type="button" id="ndGen">${ICON.refresh}${doc ? 'Neu ordnen' : 'Von Merki ordnen lassen'}</button>` : '')
+    + (notes.length && !job && MODE === 'server' ? `<button class="btn alt" type="button" id="ndPdf">${ICON.pdf}PDF-Lernzettel</button>` : '');
+  let html = `<div class="ad-head"><div><h2>Alles in einer</h2><p class="muted">${sub}</p></div>${btn ? `<div class="ad-btns">${btn}</div>` : ''}</div>`;
   if (job) html += `<p class="job" role="status"><span class="spin"></span>Merki fasst deine Notizen zu einem Text zusammen …</p>`;
   if (err) html += `<p class="notice err">${esc(err)}</p>`;
   if (doc) {
@@ -3055,8 +3073,11 @@ const LIBS = {
         ['https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js', 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js']],
   docx: [['https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js'], ['https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js']],
   mermaid: [['https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.12.0/mermaid.min.js'], ['https://cdn.jsdelivr.net/npm/mermaid@11.12.0/dist/mermaid.min.js']],
+  pdfmake: [['https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.23/pdfmake.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.23/vfs_fonts.js'],
+            ['https://cdn.jsdelivr.net/npm/pdfmake@0.2.23/build/pdfmake.min.js', 'https://cdn.jsdelivr.net/npm/pdfmake@0.2.23/build/vfs_fonts.js']],
 };
-const LIB_OK = { pdf: () => window.pdfjsLib && window.pdfjsWorker, docx: () => window.mammoth, mermaid: () => window.mermaid && typeof window.mermaid.render === 'function' };
+const LIB_OK = { pdf: () => window.pdfjsLib && window.pdfjsWorker, docx: () => window.mammoth, mermaid: () => window.mermaid && typeof window.mermaid.render === 'function',
+  pdfmake: () => !!window.pdfMake && typeof window.pdfMake.createPdf === 'function' }; // die Schrift (vfs_fonts) meldet sich selbst bei pdfMake an
 // Diagramme (Mermaid) zeichnen, sobald welche auf dem Bildschirm sind. Das Programm dafür lädt erst beim ersten Diagramm.
 // Gezeichnet wird erst, wenn sich eine halbe Sekunde nichts mehr ändert (nicht mitten in einer Antwort, die noch kommt).
 let mmdTimer = 0, mmdN = 0, mmdLook = '', mmdBusy = false;
@@ -3446,8 +3467,10 @@ function viewFile(f) {
         : cur.summary ? `<div class="fsum"><p class="fs-intro">${inl(cur.summary)}</p></div>${can ? '<p class="notice tip">Das ist noch die alte, kurze Zusammenfassung. Merki kann sie jetzt ausführlich schreiben, auf Uni-Niveau mit Erklärungen, Tabellen, Diagrammen und typischen Klausurfragen.</p>' : ''}`
         : `<p class="muted">Zu dieser Datei gibt es noch keine Zusammenfassung.</p>`)
         + (msg ? `<p class="notice err">${esc(msg)}</p>` : '')
+        + (cur.sum && MODE === 'server' ? `<button class="btn alt" type="button" id="fsPdf"${working ? ' disabled' : ''}>${ICON.pdf}PDF-Lernzettel</button>` : '')
         + (can ? `<button class="btn${cur.sum && !old ? ' alt' : ''}" type="button" id="fsGen"${working ? ' disabled' : ''}>${working ? `<span class="spin"></span>${esc(working === true ? 'Merki fasst zusammen …' : working)}` : ICON.refresh + (cur.sum ? 'Neu zusammenfassen' : 'Besser zusammenfassen')}</button>` : '');
       const b = q('#fsGen'); if (b) b.onclick = regen;
+      const z = q('#fsPdf'); if (z) z.onclick = () => lernzettel(z, () => sumPdf(cur, cur.sum, state.projects.find(x => x.id === cur.projectId)));
     };
     const regen = async () => {
       const p = state.projects.find(x => x.id === f.projectId);
@@ -3476,6 +3499,161 @@ function viewFile(f) {
     });
     paint();
   });
+}
+// ---------- PDF-Lernzettel ----------
+// Aus einer Zusammenfassung oder „Alles in einer“ wird ein PDF zum Ausdrucken, Teilen oder Sichern.
+// Das Programm dafür (pdfmake) lädt erst beim ersten Lernzettel. Diagramme kommen als Bild hinein.
+const PZ = { ink: '#2b2622', soft: '#6b6158', line: '#d8cdbf', head: '#f6e7c1', box: '#fbf5e8', merke: '#e8f3ea' };
+// **fett** im Text
+const pzInline = s => String(s ?? '').split(/(\*\*.+?\*\*)/g).filter(Boolean).map(t => { const m = t.match(/^\*\*(.+)\*\*$/); return m ? { text: m[1], bold: true } : t; });
+const pzTable = (head, rows) => ({
+  table: { headerRows: 1, widths: head.map(() => '*'), body: [head.map(c => ({ text: pzInline(c), bold: true, fillColor: PZ.head })), ...rows.map(r => head.map((_, j) => ({ text: pzInline(r[j] ?? '') })))] },
+  layout: { hLineColor: () => PZ.line, vLineColor: () => PZ.line, paddingLeft: () => 5, paddingRight: () => 5, paddingTop: () => 3, paddingBottom: () => 3 }, fontSize: 9.5, margin: [0, 4, 0, 8],
+});
+// Markdown (wie md()) als Bausteine für das PDF; Mermaid-Diagramme als Platzhalter, die später Bilder werden
+function pzMd(s) {
+  const blocks = [], out = [];
+  const text = String(s ?? '').replace(/```(\w*)[^\n]*\n([\s\S]*?)(?:```|$)/g, (m, lang, body) => { blocks.push({ lang: lang.toLowerCase(), body: body.replace(/\s+$/, '') }); return `\n\u0000${blocks.length - 1}\u0000\n`; });
+  const lines = text.split('\n'), cells = l => l.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
+  const row = l => /^\s*\|.*\|\s*$/.test(l), sep = l => /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(l);
+  let para = [], list = null;
+  const flush = () => { if (para.length) { out.push({ text: pzInline(para.join('\n')), margin: [0, 0, 0, 6] }); para = []; } };
+  const endList = () => { if (list) { out.push({ [list.kind]: list.items, margin: [0, 0, 0, 6] }); list = null; } };
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i], b = l.match(/^\u0000(\d+)\u0000$/);
+    if (b) { flush(); endList(); const k = blocks[+b[1]]; out.push(k.lang === 'mermaid' ? { pzDiagram: k.body } : { text: k.body, fontSize: 9, color: PZ.soft, preserveLeadingSpaces: true, margin: [0, 0, 0, 6] }); continue; }
+    if (row(l) && i + 1 < lines.length && sep(lines[i + 1])) {
+      flush(); endList();
+      const head = cells(l), rows = [];
+      for (i += 2; i < lines.length && row(lines[i]); i++) rows.push(cells(lines[i]));
+      i--; out.push(pzTable(head, rows)); continue;
+    }
+    const h = l.match(/^\s*#{1,4}\s+(.*)/);
+    if (h) { flush(); endList(); out.push({ text: pzInline(h[1]), style: 'h4' }); continue; }
+    const m = l.match(/^\s*(?:[-*•]|(\d+)[.)])\s+(.*)/);
+    if (m) { flush(); const kind = m[1] ? 'ol' : 'ul'; if (!list || list.kind !== kind) { endList(); list = { kind, items: [] }; } list.items.push({ text: pzInline(m[2]) }); continue; }
+    endList();
+    if (!l.trim()) flush(); else para.push(l);
+  }
+  flush(); endList();
+  return out;
+}
+// Mermaid-Diagramm in hellen Farben zeichnen und als PNG (für das PDF) zurückgeben
+async function pzDiagram(src) {
+  await lib('mermaid');
+  window.mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'base', htmlLabels: false, flowchart: { htmlLabels: false, useMaxWidth: false },
+    themeVariables: { fontFamily: 'Helvetica, Arial, sans-serif', fontSize: '15px', primaryColor: PZ.head, primaryTextColor: PZ.ink, primaryBorderColor: PZ.ink, lineColor: PZ.soft, secondaryColor: PZ.box, tertiaryColor: '#ffffff', background: '#ffffff', textColor: PZ.ink, mainBkg: PZ.head, nodeTextColor: PZ.ink } });
+  mmdLook = ''; // die Diagramme in der App bekommen danach wieder ihre Farben
+  const id = 'pz' + (++mmdN);
+  try {
+    const { svg } = await window.mermaid.render(id, src);
+    const d = new DOMParser().parseFromString(svg, 'image/svg+xml').documentElement;
+    const vb = (d.getAttribute('viewBox') || '').split(/[\s,]+/).map(Number), w = vb[2] || 600, h = vb[3] || 300;
+    d.setAttribute('width', w); d.setAttribute('height', h); d.removeAttribute('style');
+    const img = new Image();
+    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(d)); });
+    const k = Math.min(2, 2400 / w), cv = document.createElement('canvas'); cv.width = Math.ceil(w * k); cv.height = Math.ceil(h * k);
+    const g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, cv.width, cv.height); g.drawImage(img, 0, 0, cv.width, cv.height);
+    return { image: cv.toDataURL('image/png'), width: Math.min(515, w * 0.75), alignment: 'center', margin: [0, 4, 0, 10] };
+  } finally { const junk = document.getElementById('d' + id); if (junk) junk.remove(); }
+}
+// Platzhalter durch Diagramm-Bilder ersetzen (klappt eins nicht, steht dort ein Hinweis)
+async function pzDiagrams(nodes) {
+  for (let i = 0; i < nodes.length; i++) {
+    const n = nodes[i];
+    if (n && n.pzDiagram !== undefined) { try { nodes[i] = await pzDiagram(n.pzDiagram); } catch (e) { console.warn('pz diagram', e); nodes[i] = { text: '(Diagramm: in der App ansehen)', italics: true, color: PZ.soft, margin: [0, 0, 0, 6] }; } }
+    else if (n && typeof n === 'object') for (const k of ['stack', 'ul', 'ol']) if (Array.isArray(n[k])) await pzDiagrams(n[k]);
+  }
+  return nodes;
+}
+const pzBox = (stack, fill = PZ.box) => ({ table: { widths: ['*'], body: [[{ stack, fillColor: fill, margin: [8, 6, 8, 4] }]] }, layout: 'noBorders', margin: [0, 2, 0, 10] });
+function pzDoc(title, sub, content) {
+  return {
+    info: { title, creator: 'Merkheft' }, pageSize: 'A4', pageMargins: [40, 48, 40, 48],
+    defaultStyle: { fontSize: 10.5, lineHeight: 1.25, color: PZ.ink },
+    styles: { title: { fontSize: 20, bold: true, margin: [0, 0, 0, 2] }, sub: { fontSize: 10, color: PZ.soft, margin: [0, 0, 0, 12] }, h2: { fontSize: 14, bold: true, margin: [0, 12, 0, 4] }, h3: { fontSize: 12, bold: true, margin: [0, 8, 0, 3] }, h4: { fontSize: 11, bold: true, margin: [0, 4, 0, 2] } },
+    // Überschrift nie allein unten auf einer Seite
+    pageBreakBefore: (node, after) => node.headlineLevel === 2 && after.length === 0,
+    footer: (page, pages) => ({ columns: [{ text: title, color: PZ.soft, fontSize: 8 }, { text: `Seite ${page} von ${pages}`, alignment: 'right', color: PZ.soft, fontSize: 8 }], margin: [40, 16, 40, 0] }),
+    content: [{ text: title, style: 'title' }, { text: sub, style: 'sub' }, ...content],
+  };
+}
+const pzH2 = (t, toc) => ({ text: t, style: 'h2', ...(toc ? { tocItem: true } : {}), headlineLevel: 2 });
+function pzToc(n) { return n >= 3 ? [{ toc: { title: { text: 'Inhalt', style: 'h3' }, textStyle: { fontSize: 10 } }, margin: [0, 0, 0, 8] }] : []; }
+// Lernzettel aus der Zusammenfassung einer Datei
+function sumPdf(f, sum, p) {
+  const secs = sum.abschnitte, c = [];
+  if (sum.ueberblick) c.push(pzBox([{ text: pzInline(sum.ueberblick) }]));
+  c.push(...pzToc(secs.length));
+  for (const a of secs) {
+    c.push(pzH2(a.titel, secs.length >= 3));
+    if (a.text) c.push(...pzMd(a.text));
+    if (a.punkte.length) c.push({ ul: a.punkte.map(t => ({ text: pzInline(t) })), margin: [0, 0, 0, 6] });
+    if (a.tabelle) c.push(...pzMd(a.tabelle));
+    if (a.diagramm) c.push({ pzDiagram: a.diagramm });
+  }
+  if (sum.begriffe.length) c.push(pzH2('Wichtige Begriffe', secs.length >= 3), { table: { widths: ['30%', '*'], body: sum.begriffe.map(b => [{ text: b.begriff, bold: true }, { text: pzInline(b.erklaerung) }]) }, layout: { hLineColor: () => PZ.line, vLineWidth: () => 0, paddingTop: () => 3, paddingBottom: () => 3 }, margin: [0, 0, 0, 8] });
+  if (sum.merke.length) c.push(pzH2('Das solltest du dir merken', secs.length >= 3), pzBox([{ ul: sum.merke.map(t => ({ text: pzInline(t) })) }], PZ.merke));
+  if ((sum.fragen || []).length) c.push(pzH2('Typische Klausurfragen', secs.length >= 3), { ol: sum.fragen.map(t => ({ text: pzInline(t), margin: [0, 0, 0, 14] })) });
+  return { name: f.name.replace(/\.[a-z0-9]{1,5}$/i, ''), content: c, sub: `${p ? p.name + ' · ' : ''}${new Date().toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}` };
+}
+// Lernzettel aus allen Notizen eines Projekts (geordnet wie unter „Alles in einer“)
+function notesPdf(pid) {
+  const p = state.projects.find(x => x.id === pid), notes = pNotes(pid).slice().reverse(), doc = ndOf(pid), byId = new Map(notes.map(n => [n.id, n])), c = [];
+  const note = n => { const body = noteBody(n); return [{ text: n.title, style: 'h3' }, ...(body ? pzMd(body) : [])]; };
+  if (doc && (doc.secs || []).length) {
+    const secs = doc.secs, used = new Set();
+    c.push(...pzToc(secs.length));
+    for (const a of secs) {
+      const src = a.n.map(id => byId.get(id)).filter(Boolean);
+      if (!a.x && !src.length) continue;
+      c.push(pzH2(a.t, secs.length >= 3));
+      if (a.x) c.push(...(doc.full ? pzMd(a.x) : [{ text: pzInline(a.x), color: PZ.soft, margin: [0, 0, 0, 6] }]));
+      if (!doc.full || a.more) for (const n of src) c.push(...note(n));
+      src.forEach(n => used.add(n.id));
+    }
+    const fresh = ndDiff(doc, notes).fresh;
+    if (fresh.length) { c.push(pzH2('Neu dazugekommen', secs.length >= 3)); for (const n of fresh) c.push(...note(n)); }
+  } else for (const n of notes) c.push(...note(n));
+  return { name: p ? p.name : 'Notizen', content: c, sub: `${notes.length} ${notes.length === 1 ? 'Notiz' : 'Notizen'} · ${new Date().toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}` };
+}
+async function makePdf(z) {
+  await lib('pdfmake');
+  const content = await pzDiagrams(z.content);
+  const title = `Lernzettel: ${z.name}`;
+  const blob = await new Promise((res, rej) => { try { window.pdfMake.createPdf(pzDoc(title, z.sub, content)).getBlob(res); } catch (e) { rej(e); } });
+  return new File([blob], `Lernzettel ${z.name.replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 80) || 'Merkheft'}.pdf`, { type: 'application/pdf' });
+}
+// Teilen (iPad und iPhone: Drucken, In Dateien sichern, AirDrop …) oder herunterladen
+async function savePdf(file) {
+  if (navigator.canShare && navigator.share && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: file.name.replace(/\.pdf$/, '') }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  const a = document.createElement('a'), url = URL.createObjectURL(file);
+  a.href = url; a.download = file.name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+const canShareFiles = () => { try { return !!(navigator.canShare && navigator.share && navigator.canShare({ files: [new File([''], 'x.pdf', { type: 'application/pdf' })] })); } catch { return false; } };
+// Knopf „PDF-Lernzettel“: erst bauen, dann teilen. Teilen braucht einen eigenen Tipp (das Bauen dauert zu lange dafür).
+const pzReady = new WeakMap();
+async function lernzettel(btn, make) {
+  if (!btn || btn.disabled) return;
+  const ready = pzReady.get(btn);
+  if (ready) return savePdf(ready);
+  const label = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Lernzettel wird gemacht …';
+  try {
+    const file = await makePdf(make());
+    if (!btn.isConnected) return;
+    pzReady.set(btn, file);
+    btn.disabled = false;
+    if (canShareFiles()) { btn.innerHTML = `${ICON.share}Lernzettel teilen oder sichern`; btn.classList.remove('alt'); }
+    else { btn.innerHTML = label; savePdf(file); }
+  } catch (e) {
+    console.warn('lernzettel', e);
+    btn.disabled = false; btn.innerHTML = label;
+    toast(e && e.code === 'lib' ? 'Für den Lernzettel braucht Merki einmal Internet.' : 'Der Lernzettel hat nicht geklappt. Versuch es nochmal.', 5000);
+  }
 }
 function deleteFile(f) {
   fileParts(f).forEach(x => remove('part', x.id, false));
@@ -3578,15 +3756,23 @@ function fileWindow(f, size) {
   const start = Math.floor(Math.random() * (t.length - size));
   return '…' + t.slice(start, start + size) + '…';
 }
-function playMaterial() {
+// focus: Themen, um die es gehen soll (schwache Themen). Dann zuerst die passenden Notizen und Stellen aus den Dateien.
+function playMaterial(focus) {
   const v = $('#playSource').value, p = proj();
   if (v === '__topic') { const t = $('#topic').value.trim(); return t ? { label: t, text: 'Thema: ' + t + ' (nutze gesichertes Grundwissen)' } : null; }
   const notes = v === '__all' ? state.notes : pNotes();
   const files = v === '__all' ? state.files : pFiles();
   if (!notes.length && !files.length) return null;
+  const label = v === '__all' ? 'Alle Projekte' : p.name;
+  if (focus && focus.length) {
+    const fw = new Set(words(focus.join(' '))), hit = n => words(n.title + ' ' + noteBody(n)).some(w => fw.has(w));
+    const nt = digest(shuffle(notes.filter(hit)).concat(shuffle(notes.filter(n => !hit(n)))), 10000, n => `- ${n.title}: ${noteBody(n)}\n`);
+    const ft = filePassages(files, focus.join(' '), 20000) || digest(shuffle(files), 12000, f => `\n[${f.name}]\n${fileWindow(f, 6000)}\n`);
+    return { label, text: `Notizen:\n${nt || '(keine)'}\n${ft ? 'Aus den Dateien:' + ft : ''}`, notes };
+  }
   const nt = digest(shuffle(notes), 10000, n => `- ${n.title}: ${noteBody(n)}\n`);
   const ft = digest(shuffle(files), 20000, f => `\n[${f.name}]\n${fileWindow(f, 6000)}\n`);
-  return { label: v === '__all' ? 'Alle Projekte' : p.name, text: `Notizen:\n${nt || '(keine)'}\n${ft ? 'Aus den Dateien:' + ft : ''}`, notes };
+  return { label, text: `Notizen:\n${nt || '(keine)'}\n${ft ? 'Aus den Dateien:' + ft : ''}`, notes };
 }
 function playMsg(t) { const m = $('#playMsg'); m.hidden = !t; m.textContent = t || ''; }
 function showArea(html) { $('#playHome').hidden = true; const a = $('#playArea'); a.hidden = false; a.innerHTML = html; $('#main').scrollTop = 0; return a; }
@@ -3598,24 +3784,49 @@ function noteTopic(pid, topic, fields) {
   for (const [f, v] of Object.entries(fields)) t[f] = (t[f] || 0) + v;
 }
 
-async function startQuiz() {
+// Themen, bei denen sie noch unsicher ist (schwächstes zuerst)
+const weakTopics = pid => pid ? topicMastery(pid).filter(t => t.m < 0.6).reverse().map(t => t.name).slice(0, 8) : [];
+const QUIZ_N = [5, 10, 15];
+// Quiz einstellen: wie viele Fragen und worüber. Merkt sich die Wahl auf diesem Gerät.
+function startQuiz(want) {
   playMsg('');
-  const mat = playMaterial();
-  if (!mat) return playMsg('Gib zuerst ein Thema ein.');
   if (!aiReady()) return playMsg(MODE === 'artifact' ? 'Für das Quiz braucht Merki die KI. Öffne das Merkheft in Claude und erlaube die KI.' : 'Für das Quiz braucht Merki die KI. Sie ist auf dem Server noch nicht eingerichtet.');
-  const btn = $('#startQuiz'); btn.disabled = true;
-  showArea(`<div class="q"><p class="muted">Merki schreibt dein Quiz zu „${esc(mat.label)}“ …</p><div class="progress"><i style="width:15%"></i></div></div>`);
+  const src = $('#playSource').value;
+  if (src === '__topic' && !$('#topic').value.trim()) return playMsg('Gib zuerst ein Thema ein.');
+  const weak = src === '__proj' ? weakTopics(ui.pid) : [];
+  let n = QUIZ_N.includes(+pref('quizN', 5)) ? +pref('quizN', 5) : 5;
+  let mode = weak.length && (want === 'weak' || (want !== 'all' && pref('quizMode', 'all') === 'weak')) ? 'weak' : 'all';
+  const a = showArea(`<div class="row" style="justify-content:space-between"><h2>Quiz</h2><button class="btn alt" type="button" id="qBack">Zurück</button></div>
+    <div class="q qset">
+      <div class="field"><span class="label" id="qnL">Wie viele Fragen?</span><div class="seg qseg" role="group" aria-labelledby="qnL" id="qN">${QUIZ_N.map(k => `<button type="button" data-v="${k}" aria-pressed="${k === n}">${k}</button>`).join('')}</div></div>
+      <div class="field"><span class="label" id="qmL">Worüber?</span><div class="seg qseg" role="group" aria-labelledby="qmL" id="qMode"><button type="button" data-v="all" aria-pressed="${mode === 'all'}">Alles</button><button type="button" data-v="weak" aria-pressed="${mode === 'weak'}"${weak.length ? '' : ' disabled'}>Schwache Themen</button></div>
+        <p class="muted" id="qWeak">${weak.length ? `Noch unsicher bei: ${esc(weak.join(', '))}` : src === '__proj' ? 'Schwache Themen kennt Merki, sobald du ein paar Quiz oder Karteikarten gemacht hast.' : 'Schwache Themen gibt es, wenn du bei „Woraus?“ dein Projekt wählst.'}</p></div>
+      <div class="row"><button class="btn" type="button" id="qGo">Quiz starten</button></div>
+    </div>`);
+  a.querySelector('#qBack').onclick = backHome;
+  const pick = (id, fn) => a.querySelector(id).addEventListener('click', e => {
+    const b = e.target.closest('button[data-v]'); if (!b || b.disabled) return;
+    a.querySelectorAll(`${id} button`).forEach(x => x.setAttribute('aria-pressed', x === b)); fn(b.dataset.v);
+  });
+  pick('#qN', v => { n = +v; setPref('quizN', n); });
+  pick('#qMode', v => { mode = v; setPref('quizMode', v); });
+  a.querySelector('#qGo').onclick = () => makeQuiz({ n, focus: mode === 'weak' ? weak : null });
+}
+async function makeQuiz(o) {
+  const mat = playMaterial(o.focus);
+  if (!mat) { backHome(); return playMsg('Gib zuerst ein Thema ein.'); }
+  showArea(`<div class="q"><p class="muted">Merki schreibt ${o.n} Fragen zu „${esc(o.focus ? o.focus.slice(0, 3).join(', ') : mat.label)}“ …</p><div class="progress"><i style="width:15%"></i></div></div>`);
   try {
-    const res = await aiJson(`Erstelle ein Lern-Quiz auf Deutsch mit genau 5 Multiple-Choice-Fragen. Jede Frage hat genau 4 Antworten, genau eine ist richtig ("richtig" ist ihre Position 0 bis 3). Falsche Antworten sollen plausibel sein. Mische die Position der richtigen Antwort. Fragen sollen Verständnis prüfen, nicht nur Wortlaut. "thema" ist das Unterthema der Frage in 1 bis 3 Wörtern.${wishLine()}
-Antworte nur mit JSON: {"fragen": [{"frage": "...", "antworten": ["A","B","C","D"], "richtig": 0, "erklaerung": "ein kurzer Satz warum", "thema": "..."}]}
+    const res = await aiJson(`Erstelle ein Lern-Quiz auf Deutsch mit genau ${o.n} Multiple-Choice-Fragen. Jede Frage hat genau 4 Antworten, genau eine ist richtig ("richtig" ist ihre Position 0 bis 3). Falsche Antworten sollen plausibel sein. Mische die Position der richtigen Antwort. Fragen sollen Verständnis prüfen, nicht nur Wortlaut, auch Anwendung und Zusammenhänge. Keine Frage doppelt. "thema" ist das Unterthema der Frage in 1 bis 3 Wörtern.${o.focus ? `
+Alle Fragen drehen sich um diese Themen, bei denen die Person noch unsicher ist: ${o.focus.join(', ')}. Frag sie aus verschiedenen Richtungen ab. "thema" ist jeweils das passende Thema aus dieser Liste.` : ''}${wishLine()}
+Antworte nur mit JSON: {"fragen": [{"frage": "...", "antworten": ["A","B","C","D"], "richtig": 0, "erklaerung": "ein bis zwei Sätze warum", "thema": "..."}]}
 
-${mat.text}`, { schema: SCHEMA.quiz, purpose: 'learn' });
+${mat.text}`, { schema: SCHEMA.quiz, maxTokens: 2000 + o.n * 500, purpose: 'learn' });
     const list = Array.isArray(res) ? res : res && res.fragen;
-    const qs = (Array.isArray(list) ? list : []).filter(q => q && q.frage && Array.isArray(q.antworten) && q.antworten.length >= 2 && Number.isInteger(+q.richtig) && +q.richtig >= 0 && +q.richtig < q.antworten.length).slice(0, 5);
+    const qs = (Array.isArray(list) ? list : []).filter(q => q && q.frage && Array.isArray(q.antworten) && q.antworten.length >= 2 && Number.isInteger(+q.richtig) && +q.richtig >= 0 && +q.richtig < q.antworten.length).slice(0, o.n);
     if (!qs.length) throw { code: 'invalid_json' };
-    runQuiz(qs, mat.label, $('#playSource').value === '__all' ? null : ui.pid);
+    runQuiz(qs, o.focus ? 'Schwache Themen' : mat.label, $('#playSource').value === '__all' ? null : ui.pid, o);
   } catch (e) { backHome(); playMsg(aiError(e)); }
-  btn.disabled = false;
 }
 // Falsche Antworten werden zu Karteikarten, die bald wiederkommen
 function cardFromMistake(pid, q) {
@@ -3625,16 +3836,16 @@ function cardFromMistake(pid, q) {
   put('card', newCard(pid, front, back.slice(0, 800), q.thema, 'quiz'), false);
   return true;
 }
-function runQuiz(qs, label, pid) {
+function runQuiz(qs, label, pid, o) {
   let i = 0, score = 0;
   const step = () => {
     if (i >= qs.length) {
       const xp = score * 10; addXp(xp, pid);
       const a = showArea(`<div class="q result"><span class="muted">${esc(label)}</span><span class="big">${score}/${qs.length}</span>
-        <b>${score === qs.length ? 'Perfekt! Alles richtig.' : score >= 3 ? 'Stark, weiter so!' : 'Gut geübt. Nochmal macht es fester.'}</b>
+        <b>${score === qs.length ? 'Perfekt! Alles richtig.' : score >= qs.length * 0.6 ? 'Stark, weiter so!' : 'Gut geübt. Nochmal macht es fester.'}</b>
         <span class="muted">+${xp} XP${score < qs.length && pid ? ' · deine Fehler kommen als Karteikarten wieder' : ''}</span>
         <div class="row" style="justify-content:center"><button class="btn" type="button" id="again">Neues Quiz</button><button class="btn alt" type="button" id="home">Zurück</button></div></div>`);
-      a.querySelector('#again').onclick = startQuiz; a.querySelector('#home').onclick = backHome;
+      a.querySelector('#again').onclick = () => o ? makeQuiz(o) : startQuiz(); a.querySelector('#home').onclick = backHome;
       return;
     }
     const q = qs[i], right = +q.richtig;
@@ -3762,28 +3973,48 @@ function cardsHome(msg) {
       </div>
       <p class="notice err" id="cMsg"${msg ? '' : ' hidden'}>${esc(msg || '')}</p>
     </div>
-    ${all.length ? `<details class="clist"><summary>Alle Karten ansehen (${all.length})</summary>${all.map(c => `<div class="citem"><div><b>${esc(c.front)}</b><p>${esc(c.back)}</p>
+    ${all.length ? `<details class="clist"${ui.cardsOpen ? ' open' : ''}><summary>Alle Karten ansehen (${all.length})</summary>${all.length > 8 ? `<input type="search" id="cFind" class="cfind" placeholder="Karte suchen" aria-label="Karte suchen">` : ''}${all.map(c => `<div class="citem" data-ctext="${esc((c.front + ' ' + c.back + ' ' + (c.topic || '')).toLowerCase())}"><div>${c.topic ? `<span class="ctopic">${esc(c.topic)}</span>` : ''}<b>${esc(c.front)}</b><p>${esc(c.back)}</p>
       <div class="boxdots" title="Fortschritt">${[1, 2, 3, 4, 5].map(k => `<i class="${(c.box || 0) >= k ? 'on' : ''}"></i>`).join('')}</div></div>
-      <span class="acts"><button type="button" data-cdel="${esc(c.id)}" aria-label="Karte löschen">${ICON.trash}</button></span></div>`).join('')}</details>` : ''}`);
+      <span class="acts"><button type="button" data-cedit="${esc(c.id)}" aria-label="Karte bearbeiten">${ICON.edit}</button><button type="button" data-cdel="${esc(c.id)}" aria-label="Karte löschen">${ICON.trash}</button></span></div>`).join('')}<p class="muted" id="cNone" hidden>Keine Karte gefunden.</p></details>` : ''}`);
   a.querySelector('#cBack').onclick = backHome;
   a.querySelector('#cLearn').onclick = () => reviewCards(dueCards().slice(0, 20));
   a.querySelector('#cGen').onclick = generateCards;
   a.querySelector('#cAdd').onclick = () => editCard(null);
+  const det = a.querySelector('.clist'); if (det) det.addEventListener('toggle', () => { ui.cardsOpen = det.open; });
+  const find = a.querySelector('#cFind');
+  if (find) find.oninput = () => {
+    const q = find.value.trim().toLowerCase(); let n = 0;
+    a.querySelectorAll('.citem').forEach(x => { const on = !q || x.dataset.ctext.includes(q); x.hidden = !on; if (on) n++; });
+    a.querySelector('#cNone').hidden = n > 0;
+  };
+  a.querySelectorAll('[data-cedit]').forEach(b => b.onclick = () => { const c = state.cards.find(x => x.id === b.dataset.cedit); if (c) editCard(c); });
   a.querySelectorAll('[data-cdel]').forEach(b => b.onclick = () => { const c = state.cards.find(x => x.id === b.dataset.cdel); if (c) confirmSheet('Karte löschen?', `„${c.front.slice(0, 80)}“ ist danach weg.`, 'Löschen', () => { remove('card', c.id, false); cardsHome(); renderBadges(); }); });
 }
-function editCard() {
-  openSheet(`<h2>Eigene Karteikarte</h2>
-    <div class="field"><label for="kFront">Vorderseite (Frage oder Begriff)</label><textarea id="kFront" style="min-height:70px"></textarea></div>
-    <div class="field"><label for="kBack">Rückseite (Antwort)</label><textarea id="kBack" style="min-height:90px"></textarea></div>
+// Eigene Karte anlegen oder eine Karte ändern (auch mitten beim Lernen: after bekommt die geänderte Karte)
+function editCard(c, after) {
+  const topics = [...new Set(pCards().map(x => x.topic).filter(Boolean))].slice(0, 60);
+  openSheet(`<h2>${c ? 'Karteikarte bearbeiten' : 'Eigene Karteikarte'}</h2>
+    <div class="field"><label for="kFront">Vorderseite (Frage oder Begriff)</label><textarea id="kFront" maxlength="400" style="min-height:70px">${esc(c ? c.front : '')}</textarea></div>
+    <div class="field"><label for="kBack">Rückseite (Antwort)</label><textarea id="kBack" maxlength="800" style="min-height:90px">${esc(c ? c.back : '')}</textarea></div>
+    <div class="field"><label for="kTopic">Thema (wenn du willst)</label><input id="kTopic" maxlength="60" list="kTopics" value="${esc(c && c.topic || '')}" placeholder="z. B. Mitose"><datalist id="kTopics">${topics.map(t => `<option value="${esc(t)}">`).join('')}</datalist></div>
+    ${c && c.reviews ? '<label class="kreset"><input type="checkbox" id="kReset"> Wie neu lernen (Fortschritt der Karte auf Anfang)</label>' : ''}
     <div class="row"><button class="btn" type="button" id="kSave">Speichern</button><button class="btn alt" type="button" id="kNo">Abbrechen</button></div>`, el => {
     el.querySelector('#kNo').onclick = closeSheet;
     el.querySelector('#kSave').onclick = () => {
-      const f = el.querySelector('#kFront').value.trim(), b = el.querySelector('#kBack').value.trim();
+      const f = el.querySelector('#kFront').value.trim(), b = el.querySelector('#kBack').value.trim(), t = el.querySelector('#kTopic').value.trim().slice(0, 60);
       if (!f || !b) return (f ? el.querySelector('#kBack') : el.querySelector('#kFront')).focus();
-      put('card', newCard(ui.pid, f.slice(0, 400), b.slice(0, 800), '', 'manual'), false);
+      if (c) {
+        const cur = state.cards.find(x => x.id === c.id) || c, reset = el.querySelector('#kReset') && el.querySelector('#kReset').checked;
+        const upd = { ...cur, front: f.slice(0, 400), back: b.slice(0, 800), topic: t, ...(reset ? { box: 0, due: today(), reviews: 0, lapses: 0 } : {}), editedAt: Date.now() };
+        put('card', upd, false);
+        closeSheet(); toast('Karte geändert');
+        if (after) after(upd); else { cardsHome(); renderBadges(); }
+        return;
+      }
+      put('card', newCard(ui.pid, f.slice(0, 400), b.slice(0, 800), t, 'manual'), false);
       closeSheet(); cardsHome(); renderBadges(); toast('Karte gespeichert');
     };
-    setTimeout(() => el.querySelector('#kFront').focus(), 50);
+    setTimeout(() => el.querySelector(c ? '#kBack' : '#kFront').focus(), 50);
   });
 }
 async function generateCards() {
@@ -3836,10 +4067,11 @@ function reviewCards(queue) {
         <span class="fs b"><span class="ftop">Antwort</span>${esc(c.back)}</span></span></button>
       <button class="btn" type="button" id="flip">Umdrehen</button>
       <div class="grade" id="grade" hidden><button class="btn alt bad" type="button" data-g="0">Nicht gewusst</button><button class="btn alt" type="button" data-g="1">Unsicher</button><button class="btn good" type="button" data-g="2">Gewusst</button></div>
-    </div><button class="btn alt" type="button" id="quit" style="margin-top:12px">Beenden</button>`);
+    </div><div class="row" style="margin-top:12px"><button class="btn alt" type="button" id="quit">Beenden</button><button class="linkbtn" type="button" id="cEdit">${ICON.edit}Karte bearbeiten</button></div>`);
     const flip = () => { a.querySelector('#flash').classList.add('open'); a.querySelector('#flip').hidden = true; a.querySelector('#grade').hidden = false; };
     a.querySelector('#flash').onclick = flip; a.querySelector('#flip').onclick = flip;
     a.querySelector('#quit').onclick = () => { i = queue.length; step(); };
+    a.querySelector('#cEdit').onclick = () => editCard(c, upd => { queue[i] = upd; queue.forEach((x, k) => { if (x.id === upd.id) queue[k] = upd; }); step(); });
     a.querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
       const g = +b.dataset.g;
       grade(c, g); reviewed++;
@@ -4060,8 +4292,9 @@ function renderProgress() {
   const list = topicMastery(p.id), strong = list.filter(x => x.m >= 0.7).slice(0, 5), weak = list.filter(x => x.m < 0.6).reverse().slice(0, 5);
   const topicHtml = (x, cls) => `<div class="topic ${cls}"><div><span>${esc(x.name)}</span><span class="muted">${Math.round(x.m * 100)} %</span></div><div class="progress"><i style="width:${Math.round(x.m * 100)}%"></i></div></div>`;
   $('#topics').innerHTML = `<div class="panel"><h3 class="sub">Kannst du schon gut</h3>${strong.length ? strong.map(x => topicHtml(x, '')).join('') : '<p class="muted">Mach ein paar Quiz oder Karten, dann zeigt Merki hier deine starken Themen.</p>'}</div>
-    <div class="panel"><h3 class="sub">Noch üben</h3>${weak.length ? weak.map(x => topicHtml(x, 'weak')).join('') + '<div class="row"><button class="btn alt" type="button" id="practiceWeak">Schwächstes Thema erklären</button></div>' : '<p class="muted">Hier erscheinen Themen, bei denen du noch unsicher bist.</p>'}</div>`;
+    <div class="panel"><h3 class="sub">Noch üben</h3>${weak.length ? weak.map(x => topicHtml(x, 'weak')).join('') + '<div class="row"><button class="btn alt" type="button" id="quizWeak">Quiz zu diesen Themen</button><button class="btn alt" type="button" id="practiceWeak">Schwächstes Thema erklären</button></div>' : '<p class="muted">Hier erscheinen Themen, bei denen du noch unsicher bist.</p>'}</div>`;
   const pw = $('#practiceWeak'); if (pw) pw.onclick = () => { tab('learn'); startExplain(weak[0].name); };
+  const qw = $('#quizWeak'); if (qw) qw.onclick = () => { tab('learn'); $('#playSource').value = '__proj'; $('#topicWrap').hidden = true; startQuiz('weak'); };
 }
 async function askTip() {
   const p = proj(), out = $('#tipOut'), btn = $('#tipBtn');
@@ -4315,6 +4548,7 @@ $('#allNote').addEventListener('click', e => {
   const j = e.target.closest('[data-jump]');
   if (j) { const t = document.getElementById('ad-' + j.dataset.jump); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
   if (e.target.closest('#ndGen')) makeNoteDoc(ui.pid);
+  const z = e.target.closest('#ndPdf'); if (z) { const pid = ui.pid; lernzettel(z, () => notesPdf(pid)); }
 });
 $('#cards').addEventListener('click', e => {
   const del = e.target.closest('[data-del]');
@@ -4330,7 +4564,7 @@ $('#cards').addEventListener('click', e => {
   if (n) openPad(n);
 });
 $('#playSource').addEventListener('change', () => { playPicked = true; $('#topicWrap').hidden = $('#playSource').value !== '__topic'; playMsg(''); });
-$('#startQuiz').onclick = startQuiz; $('#startMemory').onclick = startMemory;
+$('#startQuiz').onclick = () => startQuiz(); $('#startMemory').onclick = startMemory;
 $('#startCards').onclick = () => { playMsg(''); cardsHome(); };
 $('#startExplain').onclick = () => startExplain('');
 $('#startTalk').onclick = () => openCall({ quiz: true });
