@@ -1,6 +1,6 @@
 # Merkheft
 
-Lern-App mit KI für Handy und Tablet, gedacht für Klausuren an der Uni. Die KI heißt Merki: Sie fasst hochgeladene Dateien ausführlich zusammen (Überblick, Themen mit Erklärung, Stichpunkten, Tabellen und Diagrammen, wichtige Begriffe, Merksätze und typische Klausurfragen), liest dabei auch Seiten, die nur aus Bildern bestehen (Scans, Abbildungen), schreibt das Wichtigste aus Sprachnotizen und Dateien in die Notizen und macht daraus Karteikarten, Quiz, Memory und einen Lernplan bis zur Prüfung. Karteikarten lassen sich bearbeiten. Ein Quiz hat 5, 10 oder 15 Fragen, auf Wunsch nur zu den Themen, die noch nicht sitzen. Zusammenfassungen und „Alles in einer“ gibt es als PDF-Lernzettel zum Teilen, Drucken oder Sichern. Im Chat antwortet Merki bei Bedarf auch mit Tabellen und Diagrammen. Antworten speichert man mit dem Knopf „Als Notiz“, dann macht Merki daraus eine saubere Notiz. „Vorlesen“ liest eine Antwort mit der Stimme des Geräts vor. Man kann mit Merki auch reden wie am Telefon (mit „Mikro aus“ und „Ton aus“) und Notizen auf einem Blatt tippen oder mit dem Apple Pencil schreiben. Neben jeder Notiz gibt es „Frag Merki“ für Fragen genau zu dieser Notiz, und unter **Alles in einer** ordnet Merki alle Notizen eines Projekts zu einem Text nach Themen. In den Einstellungen steht unter „So soll Merki dir helfen“, wie Merki antworten soll (Niveau Uni oder Schule, kurz oder ausführlich, mit Beispielen, oft abfragen, eigene Wünsche). Voreingestellt ist Uni: fachlich genau und anspruchsvoll. Von Haus aus hat die App einen Pastell-Look mit einer Farbe pro Bereich (Chat grün, Notizen rosa, Dateien blau, Lernen lila, Fortschritt gelb), hell oder dunkel. In den Einstellungen wählt man das Design (Pastell oder Klassisch) und getrennt davon eine von sechs Farben, dazu Hell/Dunkel. Das gilt dann auf allen Geräten. Jedes Projekt hat an der Seite eine eigene Farbe.
+Lern-App mit KI für Handy und Tablet, gedacht für Klausuren an der Uni. Die KI heißt Merki: Sie fasst hochgeladene Dateien ausführlich zusammen (Überblick, Themen mit Erklärung, Stichpunkten, Tabellen und Diagrammen, wichtige Begriffe, Merksätze und typische Klausurfragen), liest dabei auch Seiten, die nur aus Bildern bestehen (Scans, Abbildungen), schreibt das Wichtigste aus Sprachnotizen und Dateien in die Notizen und macht daraus Karteikarten, Quiz, Memory und einen Lernplan bis zur Prüfung. Karteikarten lassen sich bearbeiten. Ein Quiz hat 5, 10 oder 15 Fragen, auf Wunsch nur zu den Themen, die noch nicht sitzen. Zusammenfassungen und „Alles in einer“ gibt es als PDF-Lernzettel zum Teilen, Drucken oder Sichern. Auf Wunsch erinnert Merki jeden Tag mit einer Mitteilung ans Lernen. Im Chat antwortet Merki bei Bedarf auch mit Tabellen und Diagrammen. Antworten speichert man mit dem Knopf „Als Notiz“, dann macht Merki daraus eine saubere Notiz. „Vorlesen“ liest eine Antwort mit der Stimme des Geräts vor. Man kann mit Merki auch reden wie am Telefon (mit „Mikro aus“ und „Ton aus“) und Notizen auf einem Blatt tippen oder mit dem Apple Pencil schreiben. Neben jeder Notiz gibt es „Frag Merki“ für Fragen genau zu dieser Notiz, und unter **Alles in einer** ordnet Merki alle Notizen eines Projekts zu einem Text nach Themen. In den Einstellungen steht unter „So soll Merki dir helfen“, wie Merki antworten soll (Niveau Uni oder Schule, kurz oder ausführlich, mit Beispielen, oft abfragen, eigene Wünsche). Voreingestellt ist Uni: fachlich genau und anspruchsvoll. Von Haus aus hat die App einen Pastell-Look mit einer Farbe pro Bereich (Chat grün, Notizen rosa, Dateien blau, Lernen lila, Fortschritt gelb), hell oder dunkel. In den Einstellungen wählt man das Design (Pastell oder Klassisch) und getrennt davon eine von sechs Farben, dazu Hell/Dunkel. Das gilt dann auf allen Geräten. Jedes Projekt hat an der Seite eine eigene Farbe.
 
 Die App läuft als Cloudflare Worker. Die KI läuft über deinen Claude-API-Schlüssel. Der Schlüssel liegt nur als Secret in Cloudflare und kommt nie in die App oder ins Repo.
 
@@ -20,6 +20,14 @@ Die App läuft als Cloudflare Worker. Die KI läuft über deinen Claude-API-Schl
 4. Als App auf dem iPad oder iPhone: den Link in Safari öffnen, dann **Teilen** → **Zum Home-Bildschirm**. Das App-Symbol bekommt den Code mit, die App startet danach ohne Code-Eingabe und öffnet sich auch ohne Internet.
 
 Jeder Push auf `main` wird danach automatisch veröffentlicht.
+
+## Tägliche Erinnerung
+
+Merki schickt jeden Tag zur eingestellten Uhrzeit eine Mitteilung mit dem, was ansteht: fällige Karteikarten, was heute im Lernplan steht, wie viele Tage es noch bis zur Prüfung sind. Wer an dem Tag schon gelernt hat, bekommt keine.
+
+Einschalten in der App unter **Einstellungen** → **Tägliche Erinnerung** → **An**, dann Mitteilungen erlauben. Auf dem iPad und iPhone geht das ab iOS 16.4 und nur in der App vom Home-Bildschirm, nicht im Safari-Tab. Jedes Gerät schaltet die Erinnerung für sich ein, mit eigener Uhrzeit.
+
+Dafür braucht es keinen weiteren Schlüssel. Der Server legt seinen Schlüssel für die Mitteilungen beim ersten Mal selbst an und behält ihn im Speicher. Mitteilungen gehen nur an die Dienste von Apple, Google, Mozilla und Microsoft.
 
 ## Echte Stimme für Merki (freiwillig)
 
@@ -61,7 +69,8 @@ Klappt die echte Stimme einmal nicht, liest die Gerätestimme den Satz. Den Grun
 - `public/index.html`: die ganze App (läuft auch als Claude-Artifact)
 - `public/sw.js`, `public/manifest.webmanifest`: damit sie sich wie eine App installieren und offline öffnen lässt
 - `src/index.ts`: Server mit Zugangscode, KI, echter Stimme, Tageslimits und dem App-Symbol für den Home-Bildschirm
-- `src/store.ts`: Speicher (Durable Object mit SQLite), Handy und Tablet gleichen sich darüber ab
+- `src/store.ts`: Speicher (Durable Object mit SQLite), Handy und Tablet gleichen sich darüber ab, dazu der Wecker für die tägliche Erinnerung
+- `src/push.ts`: Mitteilungen verschlüsseln und signieren (Web Push)
 
 ## Lokal testen
 

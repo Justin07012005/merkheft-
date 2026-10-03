@@ -47,6 +47,8 @@ export interface Env {
   ELEVENLABS_BASE_URL?: string;
   /** Nur für lokale Tests: andere Adresse statt texttospeech.googleapis.com */
   GOOGLE_TTS_BASE_URL?: string;
+  /** Nur für lokale Tests: diese Adresse darf als Push-Dienst dienen (nie in wrangler.toml) */
+  PUSH_TEST_ORIGIN?: string;
 }
 
 const DEFAULT_MODEL = 'claude-sonnet-5-5';
@@ -764,6 +766,46 @@ async function appManifest(url: URL, env: Env): Promise<Response> {
   });
 }
 
+// ---------- Tägliche Erinnerung ----------
+
+interface PushIn {
+  endpoint?: unknown;
+  keys?: { p256dh?: unknown; auth?: unknown };
+  time?: unknown;
+  tz?: unknown;
+}
+
+async function readEndpoint(request: Request): Promise<{ input: PushIn; endpoint: string } | null> {
+  const input = await readJson<PushIn>(request);
+  if (!input || typeof input.endpoint !== 'string' || !input.endpoint || input.endpoint.length > 1000) return null;
+  return { input, endpoint: input.endpoint };
+}
+
+async function postPush(action: string, request: Request, url: URL, env: Env): Promise<Response> {
+  const bad = () => fail(400, 'bad_request', 'Die Erinnerung lässt sich auf diesem Gerät nicht einrichten.');
+  const got = await readEndpoint(request);
+  if (!got) return bad();
+  const { input, endpoint } = got;
+  const s = store(env);
+  if (action === 'subscribe') {
+    const keys = input.keys || {};
+    if (typeof keys.p256dh !== 'string' || typeof keys.auth !== 'string' || typeof input.time !== 'string' || typeof input.tz !== 'string') return bad();
+    const ok = await s.pushSubscribe({ endpoint, p256dh: keys.p256dh, auth: keys.auth, time: input.time, tz: input.tz, contact: url.origin });
+    return ok ? json(await s.pushStatus(endpoint)) : bad();
+  }
+  if (action === 'unsubscribe') {
+    await s.pushUnsubscribe(endpoint);
+    return json({ on: false });
+  }
+  if (action === 'status') return json(await s.pushStatus(endpoint));
+  // test
+  const status = await s.pushTest(endpoint);
+  if (status === -1) return fail(404, 'push_off', 'Die Erinnerung ist auf diesem Gerät nicht eingeschaltet.');
+  if (status === 404 || status === 410) return fail(410, 'push_gone', 'Das Gerät nimmt keine Mitteilungen mehr an. Bitte die Erinnerung neu einschalten.');
+  if (status < 200 || status >= 300) return fail(502, 'push_failed', 'Die Mitteilung kam nicht an. Bitte später nochmal versuchen.');
+  return json({ ok: true });
+}
+
 // ---------- Weiche ----------
 
 export default {
@@ -791,6 +833,9 @@ export default {
       if (url.pathname === '/api/ai' && request.method === 'POST') return await postAi(request, env, ctx);
       if (url.pathname === '/api/tts' && request.method === 'POST') return await postTts(request, env);
       if (url.pathname === '/api/tts/voices' && request.method === 'GET') return await getVoices(env);
+      if (url.pathname === '/api/push/key' && request.method === 'GET') return json({ key: await store(env).pushKey() });
+      const push = /^\/api\/push\/(subscribe|unsubscribe|status|test)$/.exec(url.pathname);
+      if (push && request.method === 'POST') return await postPush(push[1], request, url, env);
     } catch (e) {
       console.error('server error', e instanceof Error ? e.message : e);
       return fail(500, 'server', 'Unerwarteter Fehler auf dem Server.');

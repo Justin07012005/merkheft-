@@ -101,10 +101,27 @@ async function google(req, res, p) {
   res.writeHead(200, { 'content-type': 'application/json' });
   res.end(JSON.stringify({ audioContent: mp3.toString('base64') }));
 }
+// Ersatz für den Push-Dienst der Geräte (Apple, Google): merkt sich jede Erinnerung, "gone" ist ein abgemeldetes Gerät
+const PUSHES = [];
+function push(req, res, buf) {
+  if (req.url === '/push-log') {
+    if (req.method === 'DELETE') PUSHES.length = 0;
+    res.writeHead(200, { 'content-type': 'application/json' });
+    return res.end(JSON.stringify(PUSHES));
+  }
+  const id = req.url.slice('/push/'.length);
+  const h = req.headers;
+  PUSHES.push({ id, at: Date.now(), headers: { authorization: h.authorization, encoding: h['content-encoding'], ttl: h.ttl, urgency: h.urgency, type: h['content-type'] }, body: buf.toString('base64') });
+  res.writeHead(id === 'gone' ? 410 : 201);
+  res.end();
+}
+
 const server = http.createServer((req, res) => {
-  let body = '';
-  req.on('data', (c) => (body += c));
+  const chunks = [];
+  req.on('data', (c) => chunks.push(c));
   req.on('end', async () => {
+    const buf = Buffer.concat(chunks), body = buf.toString();
+    if (req.url === '/push-log' || req.url.startsWith('/push/')) return push(req, res, buf);
     let p = {};
     try { p = JSON.parse(body || '{}'); } catch {}
     fs.appendFileSync(LOG, JSON.stringify({ path: req.url, headers: { key: req.headers['x-api-key'], version: req.headers['anthropic-version'], beta: req.headers['anthropic-beta'], xi: req.headers['xi-api-key'], g: req.headers['x-goog-api-key'] }, body: p }) + '\n');

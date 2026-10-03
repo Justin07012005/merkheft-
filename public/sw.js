@@ -39,3 +39,27 @@ self.addEventListener('fetch', (e) => {
       .then((res) => res || fromNet),
   );
 });
+
+// Tägliche Erinnerung: Der Server schickt Titel und Text, hier wird daraus eine Mitteilung.
+// Jede Nachricht zeigt eine Mitteilung (sonst meldet das iPad die Erinnerung ab).
+self.addEventListener('push', (e) => {
+  let m = {};
+  try { m = e.data ? e.data.json() : {}; } catch { m = { body: e.data ? e.data.text() : '' }; }
+  e.waitUntil(self.registration.showNotification(String(m.title || 'Merkheft'), {
+    body: String(m.body || 'Zeit für eine kurze Lernrunde mit Merki.'),
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    tag: String(m.tag || 'merkheft-erinnerung'),
+    data: { url: '/' },
+  }));
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      const win = list.find((c) => new URL(c.url).origin === self.location.origin);
+      return win ? win.focus() : self.clients.openWindow('/');
+    }),
+  );
+});

@@ -574,6 +574,11 @@ input[type=range]{accent-color:var(--ink);width:100%}
 .htog button[aria-pressed="true"] svg{display:block}
 .helpbox textarea{border:1px solid var(--line);background:var(--paper);border-radius:12px;padding:10px 12px;width:100%;min-height:84px;resize:vertical}
 .helpbox label{font-size:13px;color:var(--ink-soft);font-weight:700;letter-spacing:.03em}
+.remind input[type=time]{border:1px solid var(--line);background:var(--paper);border-radius:12px;padding:6px 10px;font:inherit;color:var(--text);width:auto;min-width:120px}
+.remind input[type=time]:disabled,.remind .seg button:disabled{opacity:.45}
+.remind .rmsg{margin:0;font-size:14px;color:var(--ink-soft)}
+.remind .rmsg.err{color:var(--red)}
+.remind .btn{align-self:flex-start}
 .swatch{display:flex;flex-direction:column;align-items:center;gap:6px;border:1px solid var(--line);background:var(--sheet);color:var(--text);border-radius:14px;padding:10px 4px 8px;font-size:14px;min-width:0}
 .swatch i{position:relative;width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--ink) 0 50%,var(--marker) 50% 100%);box-shadow:0 0 0 1px var(--line)}
 .swatch[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink),var(--shadow);font-weight:700}
@@ -931,6 +936,7 @@ const ICON = {
   refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 3v5h5"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 21v-5h-5"/></svg>',
   share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 12v8h14v-8"/></svg>',
   pdf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>',
+  bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></svg>',
 };
 
 // ---------- Wo läuft die App? ----------
@@ -4381,6 +4387,91 @@ const KIND_LABEL = { chat: 'Chat', ask: 'Frag Merki', voice: 'Gespräch', file: 
 // Einstellungen: Name und Stimme überall, Installieren, Verbrauch und Abmelden nur auf dem eigenen Server
 let installEvt = null;
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
+// ---------- Tägliche Erinnerung (Mitteilung vom Server, auch wenn die App zu ist) ----------
+const PUSH_OK = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+const REMIND_RE = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+const unb64u = t => Uint8Array.from(atob(t.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - t.length % 4) % 4)), c => c.charCodeAt(0));
+const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+function remindHtml() {
+  return `<div class="field"><span class="label" id="rL">Tägliche Erinnerung</span><div class="helpbox remind" id="rBox" role="group" aria-labelledby="rL">
+    <div class="hrow"><span id="rOnL">Jeden Tag erinnern</span><div class="seg hs" role="group" aria-labelledby="rOnL" id="rOn"><button type="button" data-v="0" aria-pressed="true">Aus</button><button type="button" data-v="1" aria-pressed="false">An</button></div></div>
+    <div class="hrow"><label for="rTime">Um wie viel Uhr</label><input type="time" id="rTime" value="${esc(REMIND_RE.test(pref('remindTime', '')) ? pref('remindTime', '') : '18:00')}"></div>
+    <p class="rmsg" id="rMsg" aria-live="polite"></p>
+    <button class="btn alt" type="button" id="rTest" hidden>${ICON.bell}Test schicken</button>
+  </div></div>`;
+}
+function remindSetup(el) {
+  const q = x => el.querySelector(x), on = q('#rOn'), time = q('#rTime'), msg = q('#rMsg'), test = q('#rTest');
+  if (!on) return;
+  let reg = null, sub = null, key = '', isOn = false;
+  const tz = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch { return ''; } })();
+  const offText = 'Merki schickt dir jeden Tag eine Mitteilung mit dem, was ansteht.';
+  const onText = (t, last) => `An: jeden Tag um ${t} Uhr, mit dem, was ansteht (Karteikarten, Lernplan, Prüfung). Hast du an dem Tag schon gelernt, bleibt es still.${last ? ` Zuletzt: ${new Date(last).toLocaleString('de-DE', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}.` : ''}`;
+  const deniedText = IOS ? 'Mitteilungen sind für Merkheft ausgeschaltet. Erlauben kannst du sie in den Einstellungen des Geräts unter Mitteilungen › Merkheft.' : 'Mitteilungen sind für diese Seite ausgeschaltet. Erlauben kannst du sie in den Website-Einstellungen des Browsers.';
+  const show = (o, text, err) => {
+    isOn = o;
+    on.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', (b.dataset.v === '1') === o));
+    test.hidden = !o; msg.textContent = text; msg.classList.toggle('err', !!err);
+  };
+  const lock = text => { on.querySelectorAll('button').forEach(b => { b.disabled = true; }); time.disabled = true; show(false, text); };
+  const wait = w => { on.querySelectorAll('button').forEach(b => { b.disabled = w; }); test.disabled = w; };
+  const fail = (e, o) => show(o, e && e.name ? 'Erinnerungen gehen auf diesem Gerät gerade nicht. Bitte nochmal versuchen.' : (e && e.message) || aiError(e), true);
+  const body = extra => ({ method: 'POST', body: JSON.stringify({ endpoint: sub.endpoint, ...extra }) });
+  const save = () => api('/api/push/subscribe', body({ keys: sub.toJSON().keys, time: time.value, tz }));
+  if (!PUSH_OK()) return lock(IOS && !standalone() ? 'Auf dem iPad und iPhone geht das nur in der App vom Home-Bildschirm. Füge Merkheft zuerst zum Home-Bildschirm hinzu (Teilen › Zum Home-Bildschirm), öffne es dort und schalte die Erinnerung dann hier ein.' : 'Dieser Browser kann keine Erinnerungen schicken.');
+  if (Notification.permission === 'denied') return lock(deniedText);
+  show(false, offText);
+  // Alles vorher holen: Das Gerät fragt nur direkt nach dem Tippen um Erlaubnis
+  const ready = (async () => {
+    reg = await Promise.race([navigator.serviceWorker.ready, new Promise((_, no) => setTimeout(() => no({ code: 'no_sw' }), 8000))]);
+    key = (await (await api('/api/push/key')).json()).key;
+    sub = await reg.pushManager.getSubscription();
+    const opt = sub && sub.options && sub.options.applicationServerKey;
+    if (sub && opt && b64u(opt) !== key) { await sub.unsubscribe().catch(() => {}); sub = null; }
+    if (!sub) return;
+    const st = await (await api('/api/push/status', body())).json();
+    if (st.on) { time.value = st.time; setPref('remindTime', st.time); show(true, onText(st.time, st.lastSent)); }
+  })().catch(e => { if (e && e.code === 'no_sw') lock('Erinnerungen gehen auf diesem Gerät gerade nicht. Öffne die App bitte neu.'); else fail(e, false); });
+  on.addEventListener('click', async e => {
+    const b = e.target.closest('button'); if (!b || b.disabled || (b.dataset.v === '1') === isOn) return;
+    if (b.dataset.v === '1') {
+      if (!REMIND_RE.test(time.value)) time.value = '18:00';
+      if (!reg || !key) { await ready; if (!reg || !key) return; }
+      wait(true);
+      try {
+        if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: unb64u(key) });
+        await save();
+        setPref('remindTime', time.value);
+        show(true, onText(time.value));
+        toast('Erinnerung ist an');
+      } catch (err) {
+        if (Notification.permission === 'denied') lock(deniedText);
+        else fail(err, false);
+      } finally { wait(false); }
+    } else {
+      wait(true);
+      try {
+        if (sub) { await api('/api/push/unsubscribe', body()); await sub.unsubscribe().catch(() => {}); sub = null; }
+        show(false, offText);
+      } catch (err) { fail(err, true); } finally { wait(false); }
+    }
+  });
+  time.addEventListener('change', async () => {
+    if (!REMIND_RE.test(time.value)) return;
+    setPref('remindTime', time.value);
+    if (!isOn || !sub) return;
+    try { await save(); show(true, onText(time.value)); } catch (err) { fail(err, true); }
+  });
+  test.onclick = async () => {
+    if (!sub) return;
+    test.disabled = true;
+    try { await api('/api/push/test', body()); toast('Test ist unterwegs, die Mitteilung kommt gleich'); }
+    catch (err) {
+      if (err && (err.code === 'push_gone' || err.code === 'push_off')) { await sub.unsubscribe().catch(() => {}); sub = null; show(false, err.message, true); }
+      else fail(err, true);
+    } finally { test.disabled = false; }
+  };
+}
 function settingsSheet() {
   const ios = IOS, server = MODE === 'server', inApp = standalone();
   const rate = Math.min(1.3, Math.max(0.8, +pref('rate', '1') || 1)), look = lookOf(state.stats), help = helpOf();
@@ -4404,6 +4495,7 @@ function settingsSheet() {
     <div class="field"><label for="sRate">Sprechtempo: <span id="sRateV">${Math.round(rate * 100)} %</span></label><input type="range" id="sRate" min="0.8" max="1.3" step="0.05" value="${rate}"></div>
     <button class="btn alt" type="button" id="sTest">${ICON.sound}Probe hören</button>
     ${ios && !serverTts ? '<p class="notice tip">Schönere Stimme: Auf dem iPhone oder iPad unter Einstellungen › Bedienungshilfen › Gesprochene Inhalte › Stimmen › Deutsch eine Stimme mit „Erweitert“ oder „Premium“ laden. Danach hier auswählen.</p>' : ''}` : ''}
+    ${server ? remindHtml() : ''}
     ${server && !inApp ? `<div class="notice"><b>Als App auf den Startbildschirm</b><br>${installEvt ? 'Tippe auf „Installieren“.' : ios ? 'Tippe in Safari unten auf das Teilen-Symbol und dann auf „Zum Home-Bildschirm“.' : 'Öffne das Browser-Menü (⋮) und tippe auf „App installieren“ oder „Zum Startbildschirm hinzufügen“.'}</div>` : ''}
     ${server && installEvt && !inApp ? '<button class="btn" type="button" id="sInstall">Installieren</button>' : ''}
     ${server ? `<p class="notice" id="sStatus">KI-Verbrauch heute wird geladen …</p>
@@ -4458,6 +4550,7 @@ function settingsSheet() {
         voice.say(`Hallo${myName() ? ' ' + myName() : ''}, ich bin Merki. So klinge ich, wenn wir zusammen lernen.`);
       };
     }
+    if (server) remindSetup(el);
     const ib = q('#sInstall'); if (ib) ib.onclick = async () => { installEvt.prompt(); await installEvt.userChoice.catch(() => null); installEvt = null; closeSheet(); };
     const out = q('#sOut');
     if (out) out.onclick = () => confirmSheet('Abmelden?', 'Deine Notizen bleiben auf dem Server. Auf diesem Gerät brauchst du danach wieder den Zugangscode.', 'Abmelden', async () => {
