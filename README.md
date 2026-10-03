@@ -53,7 +53,8 @@ Klappt die echte Stimme einmal nicht, liest die Gerätestimme den Satz. Den Grun
 - `MODEL` in `wrangler.toml`: welches Claude-Modell Merki nutzt. Voreingestellt ist ein günstiges Modell, ein Opus-Modell ist noch stärker, kostet aber etwa das Doppelte.
 - `TTS_TAGES_ZEICHEN` in `wrangler.toml` (Standard 5000, etwa 5 Minuten): So viel spricht Merki pro Tag mit der echten Stimme, danach bis zum nächsten Tag mit der Gerätestimme.
 - `TTS_MONATS_ZEICHEN` in `wrangler.toml` (Standard 900.000): So viel spricht Merki pro Monat mit der echten Stimme. Das bleibt unter Googles kostenloser Menge.
-- Den Verbrauch von heute zeigt die App unter **Einstellungen**.
+- Den Verbrauch von heute zeigt die App unter **Einstellungen**, aufgeteilt nach Chat, Dateien, Lernen und so weiter.
+- Damit es günstig bleibt, ohne dass Merki schlechter antwortet: Der Anfang jeder Chat-Anfrage (Regeln, Dateien, Notizen, bisheriger Verlauf) bleibt während eines Gesprächs gleich, dann rechnet Claude ihn aus dem Zwischenspeicher für ein Zehntel ab. Aus großen Dateien kommen nur die zur Frage passenden Stellen mit, und zwar in die neue Nachricht. Eine hochgeladene Datei liest Merki mit einer einzigen Anfrage (Zusammenfassung und Notizen zusammen), nur sehr lange Dateien in Teilen.
 
 ## Aufbau
 

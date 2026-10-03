@@ -183,7 +183,11 @@ interface AiRequest {
   schema?: Record<string, unknown>;
   tier?: 'quick' | 'default';
   maxTokens?: number;
+  /** Wofür die Anfrage ist (nur für die Kostenübersicht) */
+  purpose?: string;
 }
+
+const PURPOSES = new Set(['chat', 'ask', 'voice', 'file', 'order', 'learn', 'ink', 'vnote']);
 
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
@@ -346,9 +350,24 @@ async function postAi(request: Request, env: Env, ctx: ExecutionContext): Promis
   if (messages[0].role !== 'user') return fail(400, 'bad_request', 'Die erste Nachricht muss vom Nutzer sein.');
 
   const system: Anthropic.Beta.BetaTextBlockParam[] = [];
+  let marks = 0; // Claude erlaubt höchstens 4 Merkpunkte pro Anfrage, 2 davon braucht der Chat selbst
   for (const b of Array.isArray(input.system) ? input.system.slice(0, 4) : []) {
     if (!b || typeof b.text !== 'string' || !b.text) continue;
-    system.push({ type: 'text', text: b.text, ...(b.cache ? { cache_control: { type: 'ephemeral' as const } } : {}) });
+    const mark = !!b.cache && marks < 2;
+    if (mark) marks++;
+    system.push({ type: 'text', text: b.text, ...(mark ? { cache_control: { type: 'ephemeral' as const } } : {}) });
+  }
+
+  // Die neue Nachricht bringt im Chat oft wechselnde Textstellen aus den Dateien mit. Der Verlauf davor bleibt aber gleich:
+  // Merkpunkt an der letzten Antwort, damit er beim nächsten Mal aus dem Zwischenspeicher kommt (kostet ein Zehntel)
+  if (kind === 'chat' && messages.length >= 3) {
+    const prev = messages[messages.length - 2];
+    const blocks = typeof prev.content === 'string' ? (prev.content ? [{ type: 'text' as const, text: prev.content }] : []) : prev.content;
+    const last = blocks[blocks.length - 1];
+    if (last && last.type === 'text' && last.text) {
+      last.cache_control = { type: 'ephemeral' };
+      prev.content = blocks;
+    }
   }
 
   const day = berlinDay();
@@ -359,6 +378,7 @@ async function postAi(request: Request, env: Env, ctx: ExecutionContext): Promis
   }
 
   const model = env.MODEL || DEFAULT_MODEL;
+  const purpose = typeof input.purpose === 'string' && PURPOSES.has(input.purpose) ? input.purpose : 'other';
   const smart = !/haiku/.test(model); // Die kleinen Modelle kennen weder effort noch fallbacks
   const effort = kind === 'chat' || input.tier === 'quick' ? 'low' : 'medium';
   const maxTokens = Math.min(Math.max(Number(input.maxTokens) || (kind === 'chat' ? 6000 : 8000), 1000), 16000);
@@ -437,7 +457,7 @@ async function postAi(request: Request, env: Env, ctx: ExecutionContext): Promis
       clearInterval(beat);
       if (!open) reader.cancel().catch(() => {});
       const usd = meter.costUsd();
-      if (usd > 0) await s.addSpend(day, usd);
+      if (usd > 0) await s.addSpend(day, usd, purpose);
       if (open) {
         open = false;
         try {
@@ -463,11 +483,12 @@ async function getStatus(env: Env): Promise<Response> {
   const day = berlinDay();
   const s = store(env);
   const spent = await s.spentOn(day);
+  const byKind = await s.spentByKind(day);
   const p = ttsProvider(env);
   const tts = p
     ? { provider: p, chars: (await s.ttsOn(day)).chars, limit: ttsLimit(env), month: await s.ttsMonth(day), monthLimit: ttsMonthLimit(env) }
     : null;
-  return json({ model: env.MODEL || DEFAULT_MODEL, budgetUsd: budgetUsd(env), spentUsd: Math.round(spent.usd * 1000) / 1000, calls: spent.calls, tts });
+  return json({ model: env.MODEL || DEFAULT_MODEL, budgetUsd: budgetUsd(env), spentUsd: Math.round(spent.usd * 1000) / 1000, calls: spent.calls, byKind, tts });
 }
 
 // ---------- Echte Stimme (Google oder ElevenLabs) ----------

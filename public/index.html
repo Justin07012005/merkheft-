@@ -1092,6 +1092,7 @@ const S = { type: 'string' }, I = { type: 'integer' };
 const arr = items => ({ type: 'array', items });
 const obj = props => ({ type: 'object', properties: props, required: Object.keys(props), additionalProperties: false });
 const NOTE_ITEMS = arr(obj({ titel: S, inhalt: S }));
+const FSUM = obj({ ueberblick: S, abschnitte: arr(obj({ titel: S, punkte: arr(S) })), begriffe: arr(obj({ begriff: S, erklaerung: S })), merke: arr(S) });
 const SCHEMA = {
   voice: obj({ titel: S, inhalt: S }),
   doc: obj({ zusammenfassung: S, notizen: NOTE_ITEMS }),
@@ -1105,7 +1106,9 @@ const SCHEMA = {
   tip: obj({ tipp: S }),
   ink: obj({ titel: S, text: S }),
   notedoc: obj({ abschnitte: arr(obj({ titel: S, text: S, notizen: arr(I) })) }),
-  fsum: obj({ ueberblick: S, abschnitte: arr(obj({ titel: S, punkte: arr(S) })), begriffe: arr(obj({ begriff: S, erklaerung: S })), merke: arr(S) }),
+  fsum: FSUM,
+  docsum: obj({ zusammenfassung: FSUM, notizen: NOTE_ITEMS }),
+  scansum: obj({ abschrift: S, zusammenfassung: FSUM, notizen: NOTE_ITEMS }),
 };
 async function imageBlock(blob) {
   const bmp = await createImageBitmap(blob).catch(() => null);
@@ -1152,18 +1155,18 @@ async function streamAi(body, signal, onText) {
   if (stop === 'max_tokens') throw { code: 'too_long' };
   try { return JSON.parse(text); } catch { throw { code: 'invalid_json' }; }
 }
-async function aiChat({ system, turns, signal, onText, maxTokens }) {
+async function aiChat({ system, turns, signal, onText, maxTokens, purpose }) {
   if (MODE === 'artifact') {
     const { text } = await sample([{ role: 'user', content: system.map(b => b.text).join('\n\n') }, ...turns], { cache: false, signal, onText: ({ text: t }) => onText && onText(t) });
     return text;
   }
-  return streamAi({ kind: 'chat', system, messages: turns, ...(maxTokens ? { maxTokens } : {}) }, signal, onText);
+  return streamAi({ kind: 'chat', system, messages: turns, purpose, ...(maxTokens ? { maxTokens } : {}) }, signal, onText);
 }
-async function aiJson(prompt, { schema, images, tier = 'default', signal, maxTokens } = {}) {
+async function aiJson(prompt, { schema, images, tier = 'default', signal, maxTokens, purpose } = {}) {
   if (MODE === 'artifact') return sample.json(prompt, { ...(images ? { images } : {}), modelTier: tier === 'quick' ? 'quick' : 'default', cache: false, signal });
   let content = prompt;
   if (images && images.length) content = [...(await Promise.all([...images].map(imageBlock))), { type: 'text', text: prompt }];
-  return streamAi({ kind: 'json', schema, tier, maxTokens, messages: [{ role: 'user', content }] }, signal);
+  return streamAi({ kind: 'json', schema, tier, maxTokens, purpose, messages: [{ role: 'user', content }] }, signal);
 }
 async function imageCaps() {
   if (!aiReady()) return null;
@@ -1222,21 +1225,47 @@ function filePassages(files, query, budget) {
   picked.sort((a, b) => a.f.name.localeCompare(b.f.name) || a.i - b.i);
   return picked.map(p => `\n[Aus „${p.f.name}“]\n${p.text}\n`).join('');
 }
-// Kontext für den Chat: Dateien (bleibt gleich, kann zwischengespeichert werden) und Notizen
-function projectContext(p, query) {
+// Kontext für den Chat. Claude speichert den Anfang einer Anfrage 5 Minuten zwischen, solange er gleich bleibt,
+// und dann kostet er nur ein Zehntel. Darum: Dateien und Notizen bleiben während eines Gesprächs gleich
+// (key = Gespräch), und die zur Frage passenden Stellen aus langen Dateien kommen in die neue Nachricht (passages).
+const ctxSnap = new Map();
+function projectContext(p, query, key) {
   const files = pFiles(p.id), total = files.reduce((n, f) => n + fileLen(f), 0);
-  let ftext = '', stable = true;
+  let ftext = '', passages = '';
   if (total <= 60000) for (const f of files) ftext += `\n=== Datei „${f.name}“ ===\n${fileText(f)}\n`;
   else {
-    stable = false;
-    ftext = files.map(f => `\n[Datei „${f.name}“${f.summary ? ': ' + f.summary : ''}]`).join('')
-      + '\n\nPassende Stellen aus den Dateien zur aktuellen Frage:\n' + (filePassages(files, query, 30000) || '(keine passende Stelle gefunden, nutze die Zusammenfassungen)');
+    ftext = files.map(f => `\n[Datei „${f.name}“${f.summary ? ': ' + f.summary : ''}]`).join('');
+    passages = 'Passende Stellen aus den Dateien zu dieser Nachricht:\n' + (filePassages(files, query, 30000) || '(keine passende Stelle gefunden, nutze die Zusammenfassungen)');
   }
   const head = `Projekt: ${p.name}${p.desc ? '\nWorum es geht: ' + p.desc : ''}`;
-  const notes = digest(pNotes(p.id), 8000, n => `- ${n.title}: ${noteBody(n)}\n`) || '(noch keine)\n';
-  const n = p.examDate ? daysBetween(today(), p.examDate) : null;
-  const exam = n !== null && n >= 0 ? `\nPrüfung: ${fmtDay(p.examDate, { weekday: 'long', day: 'numeric', month: 'long' })} (${n === 0 ? 'heute' : n === 1 ? 'morgen' : 'in ' + n + ' Tagen'}).` : '';
-  return { files: files.length ? `${head}\n\nHochgeladene Dateien:${ftext}` : head, stable, notes: `Notizen:\n${notes}\nHeute ist ${new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}.${exam}` };
+  const now = Date.now();
+  let snap = key ? ctxSnap.get(key) : null;
+  // Neu, wenn das Gespräch über 5 Minuten ruhte (dann ist nichts mehr zwischengespeichert) oder älter als 1 Stunde ist
+  if (!snap || snap.pid !== p.id || now - snap.used > 5 * 60e3 || now - snap.at > 60 * 60e3) {
+    const notes = digest(pNotes(p.id), 8000, n => `- ${n.title}: ${noteBody(n)}\n`) || '(noch keine)\n';
+    const n = p.examDate ? daysBetween(today(), p.examDate) : null;
+    const exam = n !== null && n >= 0 ? `\nPrüfung: ${fmtDay(p.examDate, { weekday: 'long', day: 'numeric', month: 'long' })} (${n === 0 ? 'heute' : n === 1 ? 'morgen' : 'in ' + n + ' Tagen'}).` : '';
+    snap = { pid: p.id, at: now, notes: `Notizen:\n${notes}\nHeute ist ${new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}.${exam}` };
+  }
+  snap.used = now;
+  if (key) ctxSnap.set(key, snap);
+  return { files: files.length ? `${head}\n\nHochgeladene Dateien:${ftext}` : head, stable: true, notes: snap.notes, passages };
+}
+// Verlauf für die KI. Der Anfang rückt nur in Schritten weiter, damit der Verlauf zwischengespeichert bleibt.
+// Die Notizliste im Kontext bleibt während des Gesprächs gleich, darum steht an Merkis Antworten, was davon schon gespeichert ist.
+function windowTurns(all, maxTurns, maxChars, step = 6) {
+  const list = all.map(t => ({ role: t.role, content: t.role === 'assistant' && t.saved && t.saved.length ? `${t.content}\n\n[Schon als Notiz gespeichert: ${t.saved.join('; ')}]` : t.content }));
+  let start = Math.max(0, Math.ceil((list.length - maxTurns) / step) * step);
+  while (start < list.length - 2 && JSON.stringify(list.slice(start)).length > maxChars) start += step;
+  start = Math.min(start, Math.max(0, list.length - 1));
+  while (start < list.length - 1 && list[start].role !== 'user') start++;
+  return list.slice(start);
+}
+// Passende Stellen aus langen Dateien kommen vor die neueste Nachricht
+function withPassages(turns, ctx) {
+  const last = turns[turns.length - 1];
+  if (!ctx.passages || !last || last.role !== 'user') return turns;
+  return [...turns.slice(0, -1), { role: 'user', content: `${ctx.passages}\n\n---\n\n${last.content}` }];
 }
 
 // ---------- Chat ----------
@@ -1302,7 +1331,7 @@ function saveChat(c) { c.turns = trimTurns(c.turns); c.updatedAt = Date.now(); p
 
 const NOTE_RULE = `Merke Wichtiges, und zwar großzügig: Immer wenn im Gespräch etwas Lernrelevantes vorkommt oder du etwas erklärst (Definition, Regel, Formel, Fakt, Datum, Vokabel, Beispiel, Eselsbrücke, Zusammenhang, typischer Fehler, Lernziel, Prüfungstermin), hänge GANZ AM ENDE deiner Antwort pro Punkt eine eigene Zeile in genau diesem Format an:
 NOTIZ: <kurzer Titel> :: <Inhalt in 1 bis 4 klaren Sätzen>
-Jede Antwort, die etwas erklärt oder abfragt, bekommt mindestens eine solche Zeile, höchstens 6. Keine für reinen Smalltalk, keine doppelten zu vorhandenen Notizen. Erwähne diese Zeilen nicht im Text.`;
+Jede Antwort, die etwas erklärt oder abfragt, bekommt mindestens eine solche Zeile, höchstens 6. Keine für reinen Smalltalk, keine doppelten zu vorhandenen Notizen (auch nicht zu denen in eckigen Klammern unter deinen früheren Antworten, die setzt die App, nicht du). Erwähne diese Zeilen nicht im Text.`;
 const RULES = `Du bist "Merki", ein freundlicher, geduldiger Lernbegleiter in der Lern-App "Merkheft". Antworte immer auf Deutsch, locker und leicht verständlich, eher kurz, mit Beispielen und Eselsbrücken. Formatierung: **fett** für Schlüsselbegriffe, Listen mit "- ". Keine Überschriften, keine Tabellen.
 Nutze die Dateien und Notizen des Projekts. Wenn du etwas daraus hast, sag aus welcher Datei. Wenn du abfragst: immer nur eine Frage, warte auf die Antwort, lobe ehrlich und korrigiere freundlich.
 
@@ -1365,15 +1394,13 @@ async function send(text) {
   $('#chatlog').appendChild(bubble); scrollDown();
 
   const recent = c.turns.filter(t => t.role === 'user').slice(-3).map(t => t.content).join(' ');
-  const ctx = projectContext(p, text + ' ' + recent);
+  const ctx = projectContext(p, text + ' ' + recent, 'c:' + c.id);
   const system = [{ text: RULES + who() }, { text: ctx.files, cache: ctx.stable }, { text: ctx.notes }];
-  let turns = c.turns.slice(-20).map(t => ({ role: t.role, content: t.content }));
-  while (turns.length > 2 && JSON.stringify(turns).length > 60000) turns = turns.slice(2);
-  while (turns.length && turns[0].role !== 'user') turns.shift();
+  const turns = withPassages(windowTurns(c.turns, 20, 60000), ctx);
   ctl = new AbortController();
   let partial = '';
   try {
-    const full = await aiChat({ system, turns, signal: ctl.signal, onText: t => { partial = t; bubble.classList.toggle('thinking', !t); bubble.innerHTML = t ? md(visible(t)) : 'Merki denkt nach …'; scrollDown(); } });
+    const full = await aiChat({ system, turns, signal: ctl.signal, purpose: 'chat', onText: t => { partial = t; bubble.classList.toggle('thinking', !t); bubble.innerHTML = t ? md(visible(t)) : 'Merki denkt nach …'; scrollDown(); } });
     const saved = saveNoteLines(full, p.id);
     c.turns.push({ role: 'assistant', content: visible(full) || '…', saved });
   } catch (e) {
@@ -1464,7 +1491,7 @@ ${list}` : `Sortiere alle Lernnotizen unten nach Themen für das Projekt „${p.
 Antworte nur mit JSON: {"abschnitte": [{"titel": "...", "text": "...", "notizen": [1, 2]}]}
 
 Notizen:
-${list}`, { schema: SCHEMA.notedoc, maxTokens: full ? 16000 : 8000 });
+${list}`, { schema: SCHEMA.notedoc, maxTokens: full ? 16000 : 8000, purpose: 'order' });
     const raw = Array.isArray(x) ? x : x && x.abschnitte;
     const secs = (Array.isArray(raw) ? raw : []).map(a => ({
       t: String((a && a.titel) || '').trim().slice(0, 120),
@@ -1704,7 +1731,7 @@ async function readInk(noteId) {
       const x = await aiJson(`Auf ${imgs.length > 1 ? 'den Bildern ist eine handschriftliche Lernnotiz (Seiten in Reihenfolge)' : 'dem Bild ist eine handschriftliche Lernnotiz'}${pname ? ` aus dem Projekt „${pname}“` : ''}.${n.text ? ` Getippt steht dabei: „${n.text.slice(0, 600)}“` : ''}
 Schreib den handschriftlichen Text genau ab, mit Zeilenumbrüchen wie im Original. Formeln und Pfeile schreibst du als Text (zum Beispiel "->"). Zeichnungen und Skizzen beschreibst du kurz in eckigen Klammern. Was du nicht lesen kannst, markierst du mit [?]. Erfinde nichts dazu.
 "titel" ist ein kurzer, passender Titel für die Notiz.
-Antworte nur mit JSON: {"titel": "...", "text": "..."}`, { schema: SCHEMA.ink, images: imgs.slice(0, Math.max(1, Math.min(caps.maxCount || 1, 4))), tier: 'quick' });
+Antworte nur mit JSON: {"titel": "...", "text": "..."}`, { schema: SCHEMA.ink, purpose: 'ink', images: imgs.slice(0, Math.max(1, Math.min(caps.maxCount || 1, 4))), tier: 'quick' });
       const cur = state.notes.find(y => y.id === noteId), ik = cur && inkOf(cur);
       if (cur && ik && ik.v === ink.v) {
         const text = String((x && x.text) || '').trim().slice(0, 6000), title = String((x && x.titel) || '').trim().slice(0, 120);
@@ -1980,15 +2007,13 @@ function openPad(orig, opts = {}) {
     const p = state.projects.find(x => x.id === n.projectId) || proj();
     const title = ti.value.trim() || n.title || '(ohne Titel)';
     const body = [ta.value.trim(), strokes.length && n.inkText ? 'Handschrift: ' + n.inkText : '', strokes.length && !n.inkText ? '(Dazu gibt es Handschrift, die noch nicht gelesen ist.)' : ''].filter(Boolean).join('\n');
-    const ctx = projectContext(p, text + ' ' + title + ' ' + body.slice(0, 400));
-    const system = [{ text: ASK_RULES + who() }, { text: ctx.files, cache: ctx.stable }, { text: `Die Notiz, um die es geht:\nTitel: ${title}\n${body || '(leer)'}\n\n${ctx.notes}` }];
-    let turns = qa.slice(-16).map(t => ({ role: t.role, content: t.content }));
-    while (turns.length > 2 && JSON.stringify(turns).length > 40000) turns = turns.slice(2);
-    while (turns.length && turns[0].role !== 'user') turns.shift();
+    const ctx = projectContext(p, text + ' ' + title + ' ' + body.slice(0, 400), 'n:' + n.id);
+    const system = [{ text: ASK_RULES + who() }, { text: ctx.files, cache: ctx.stable }, { text: `${ctx.notes}\n\nDie Notiz, um die es geht:\nTitel: ${title}\n${body || '(leer)'}` }];
+    const turns = withPassages(windowTurns(qa, 16, 40000), ctx);
     askCtl = new AbortController();
     let partial = '';
     try {
-      const full = await aiChat({ system, turns, signal: askCtl.signal, onText: t => { partial = t; bubble.classList.toggle('thinking', !t); bubble.innerHTML = t ? md(visible(t)) : 'Merki denkt nach …'; askLog.scrollTop = askLog.scrollHeight; } });
+      const full = await aiChat({ system, turns, signal: askCtl.signal, purpose: 'ask', onText: t => { partial = t; bubble.classList.toggle('thinking', !t); bubble.innerHTML = t ? md(visible(t)) : 'Merki denkt nach …'; askLog.scrollTop = askLog.scrollHeight; } });
       if (dead) return;
       qa.push({ role: 'assistant', content: visible(full) || '…', saved: saveNoteLines(full, n.projectId, title) });
     } catch (e) {
@@ -2105,7 +2130,7 @@ function voiceNote(fromChat) {
 Antworte nur mit JSON: {"titel": "kurzer Titel", "inhalt": "sauberer Text, gern mit kurzen Zeilen pro Punkt"}
 
 Diktat:
-${raw.slice(0, 8000)}`, { schema: SCHEMA.voice, tier: 'quick' });
+${raw.slice(0, 8000)}`, { schema: SCHEMA.voice, tier: 'quick', purpose: 'vnote' });
         if (!x || !(x.titel || x.inhalt)) throw { code: 'invalid_json' };
         const f = fallback(raw);
         done({ ...f, title: String(x.titel || '').slice(0, 120) || f.title, text: String(x.inhalt || raw) });
@@ -2501,15 +2526,13 @@ async function askAi() {
   call.streamDone = false; call.answer = ''; call.spoken = 0;
   setState('thinking'); showSaved([]);
   const recent = c.turns.filter(t => t.role === 'user').slice(-3).map(t => t.content).join(' ');
-  const ctx = projectContext(p, recent);
+  const ctx = projectContext(p, recent, 'v:' + c.id);
   const system = [{ text: VOICE_RULES + who(true) + `\n\nDu hast das Gespräch mit diesem Satz eröffnet: „${call.greeting}“ Begrüße nicht noch einmal.` }, { text: ctx.files, cache: ctx.stable }, { text: ctx.notes }];
-  let turns = c.turns.slice(-24).map(t => ({ role: t.role, content: t.content }));
-  while (turns.length > 2 && JSON.stringify(turns).length > 40000) turns = turns.slice(2);
-  while (turns.length && turns[0].role !== 'user') turns.shift();
+  const turns = withPassages(windowTurns(c.turns, 24, 40000), ctx);
   const ctl = call.ctl = new AbortController();
   call.inflight = my; busy = true; renderAiAvailability();
   try {
-    const full = await aiChat({ system, turns, signal: ctl.signal, maxTokens: 2500, onText: t => { if (my === call.turn) onAnswer(t); } });
+    const full = await aiChat({ system, turns, signal: ctl.signal, maxTokens: 2500, purpose: 'voice', onText: t => { if (my === call.turn) onAnswer(t); } });
     if (my === call.turn) finishAnswer(full);
   } catch (e) {
     if (my === call.turn && !(e && e.code === 'cancelled')) answerFailed(e);
@@ -2694,12 +2717,17 @@ async function mergeSummaries(sums, name) {
     const x = await aiJson(`Das sind Zusammenfassungen der Teile von „${name}“ (in Reihenfolge). Fasse sie zu einer Gesamtzusammenfassung in 4 bis 6 Sätzen auf Deutsch zusammen.
 Antworte nur mit JSON: {"zusammenfassung": "..."}
 
-${sums.map((s, i) => `Teil ${i + 1}: ${s}`).join('\n')}`, { schema: SCHEMA.sum, tier: 'quick' });
+${sums.map((s, i) => `Teil ${i + 1}: ${s}`).join('\n')}`, { schema: SCHEMA.sum, tier: 'quick', purpose: 'file' });
     return String((x && x.zusammenfassung) || sums.join(' '));
   } catch { return sums.join(' '); }
 }
 // Zusammenfassung einer Datei zum Lernen: Überblick, Themen mit Stichpunkten, Begriffe, Merksätze
 const SUM_JSON = `{"ueberblick": "2 bis 3 Sätze", "abschnitte": [{"titel": "...", "punkte": ["..."]}], "begriffe": [{"begriff": "...", "erklaerung": "..."}], "merke": ["..."]}`;
+const SUM_RULES = `Sie soll beim Lernen und Wiederholen helfen: klar gegliedert, leicht verständlich, nichts Wichtiges weglassen, nichts erfinden.
+- ueberblick: 2 bis 3 Sätze, worum es geht.
+- abschnitte: die Hauptthemen in einer sinnvollen Reihenfolge (meist der des Dokuments), 3 bis 8, bei kurzen Texten weniger. Jeder Abschnitt hat einen kurzen Titel und 2 bis 6 Punkte. Ein Punkt ist ein kurzer, vollständiger Satz, eine Regel oder eine Formel. **fett** für den wichtigsten Begriff im Punkt.
+- begriffe: die wichtigsten Fachbegriffe (höchstens 10), jeweils mit einer Erklärung in einem Satz. Leer, wenn es keine gibt.
+- merke: 3 bis 5 Sätze, die man sich unbedingt merken sollte, zum Beispiel für die Prüfung.`;
 function normSum(x) {
   const s = v => String(v ?? '').trim();
   const list = (a, n, len) => (Array.isArray(a) ? a : []).map(s).filter(Boolean).slice(0, n).map(t => t.slice(0, len));
@@ -2725,7 +2753,7 @@ async function fileSummary(name, p, text, sums = [], notes = [], step = () => {}
 Antworte nur mit JSON: {"zusammenfassung": "..."}
 
 Teil:
-${chunks[k]}`, { schema: SCHEMA.sum });
+${chunks[k]}`, { schema: SCHEMA.sum, purpose: 'file' });
         sums.push(String((x && x.zusammenfassung) || ''));
       }
     }
@@ -2733,25 +2761,22 @@ ${chunks[k]}`, { schema: SCHEMA.sum });
       + (notes.length ? `\n\nNotizen aus dem Dokument:\n${notes.filter(n => n && (n.titel || n.inhalt)).map(n => `- ${n.titel || ''}: ${n.inhalt || ''}`).join('\n').slice(0, 20000)}` : '');
   }
   step('Zusammenfassung');
-  const x = await aiJson(`Schreib eine Lern-Zusammenfassung auf Deutsch für „${name}“ (Projekt „${p.name}“${p.desc ? ', ' + p.desc : ''}). Sie soll beim Lernen und Wiederholen helfen: klar gegliedert, leicht verständlich, nichts Wichtiges weglassen, nichts erfinden.
-- ueberblick: 2 bis 3 Sätze, worum es geht.
-- abschnitte: die Hauptthemen in einer sinnvollen Reihenfolge (meist der des Dokuments), 3 bis 8, bei kurzen Texten weniger. Jeder Abschnitt hat einen kurzen Titel und 2 bis 6 Punkte. Ein Punkt ist ein kurzer, vollständiger Satz, eine Regel oder eine Formel. **fett** für den wichtigsten Begriff im Punkt.
-- begriffe: die wichtigsten Fachbegriffe (höchstens 10), jeweils mit einer Erklärung in einem Satz. Leer, wenn es keine gibt.
-- merke: 3 bis 5 Sätze, die man sich unbedingt merken sollte, zum Beispiel für die Prüfung.${wishLine()}
+  const x = await aiJson(`Schreib eine Lern-Zusammenfassung auf Deutsch für „${name}“ (Projekt „${p.name}“${p.desc ? ', ' + p.desc : ''}). ${SUM_RULES}${wishLine()}
 Antworte nur mit JSON: ${SUM_JSON}
 
-${src}`, { schema: SCHEMA.fsum, maxTokens: 8000 });
+${src}`, { schema: SCHEMA.fsum, maxTokens: 8000, purpose: 'file' });
   return normSum(x);
 }
 async function readOne(file, p, step) {
   const ext = (file.name.split('.').pop() || '').toLowerCase();
   const isImg = (file.type || '').startsWith('image/');
   if (file.size > 40 * 1024 * 1024) throw { msg: 'Die Datei ist größer als 40 MB.' };
-  let text = '', images = null;
+  let text = '', images = null, pages = 0;
   const kind = isImg ? 'FOTO' : ext.toUpperCase().slice(0, 4);
   if (isImg) images = [file];
   else if (ext === 'pdf') {
     const pdf = await pdfDoc(file);
+    pages = pdf.numPages;
     text = await pdfText(pdf, (i, n) => step(`Seite ${i} von ${n}`));
     if (text.replace(/\s/g, '').length < 80) {
       const caps = await imageCaps();
@@ -2776,26 +2801,48 @@ async function readOne(file, p, step) {
     const batches = []; for (let i = 0; i < images.length; i += per) batches.push(images.slice(i, i + per));
     for (let b = 0; b < batches.length; b++) {
       if (batches.length > 1) step(`Teil ${b + 1} von ${batches.length}`);
-      const x = await aiJson(`Auf ${batches[b].length > 1 ? 'den Bildern' : 'dem Bild'} ist Lernstoff (zum Beispiel Buchseite, Mitschrift oder Tafelbild) aus „${file.name}“${batches.length > 1 ? ` (Teil ${b + 1} von ${batches.length})` : ''} für das Projekt „${p.name}“.
-Antworte nur mit JSON: {"abschrift": "der vollständige Text, den du lesen kannst, sauber abgeschrieben", "zusammenfassung": "3 bis 5 Sätze", ${NOTES_JSON('5 bis 12')}}
-Schon vorhandene Notizen (nicht doppelt): ${known()}`, { images: batches[b], schema: SCHEMA.scan, maxTokens: 16000 });
+      // Nur ein Teil: Abschrift, Zusammenfassung und Notizen in einer Anfrage (spart eine zweite)
+      const one = batches.length === 1;
+      const x = await aiJson(`Auf ${batches[b].length > 1 ? 'den Bildern' : 'dem Bild'} ist Lernstoff (zum Beispiel Buchseite, Mitschrift oder Tafelbild) aus „${file.name}“${batches.length > 1 ? ` (Teil ${b + 1} von ${batches.length})` : ''} für das Projekt „${p.name}“.${one ? `
+- abschrift: der vollständige Text, den du lesen kannst, sauber abgeschrieben.
+- zusammenfassung: eine Lern-Zusammenfassung auf Deutsch. ${SUM_RULES}
+- notizen: 5 bis 12 Lernpunkte (Begriffe, Regeln, Formeln, Daten, Beispiele, Zusammenhänge).${wishLine()}
+Antworte nur mit JSON: {"abschrift": "...", "zusammenfassung": ${SUM_JSON}, "notizen": [{"titel": "kurzer Titel", "inhalt": "1 bis 4 klare Sätze"}]}` : `
+Antworte nur mit JSON: {"abschrift": "der vollständige Text, den du lesen kannst, sauber abgeschrieben", "zusammenfassung": "6 bis 10 Sätze mit allen wichtigen Punkten", ${NOTES_JSON('5 bis 12')}}`}
+Schon vorhandene Notizen (nicht doppelt): ${known()}`, { images: batches[b], schema: one ? SCHEMA.scansum : SCHEMA.scan, maxTokens: 16000, purpose: 'file' });
       text += (text ? '\n\n' : '') + String((x && x.abschrift) || '').trim();
-      sums.push(String((x && x.zusammenfassung) || ''));
+      if (one) sum = normSum(x && x.zusammenfassung);
+      else sums.push(String((x && x.zusammenfassung) || ''));
       if (x && Array.isArray(x.notizen)) notes.push(...x.notizen);
     }
-    if (!text && !sums.some(Boolean)) throw { msg: 'Merki konnte darauf keinen Text erkennen.' };
+    if (!text && !sums.some(Boolean) && !sum) throw { msg: 'Merki konnte darauf keinen Text erkennen.' };
+    if (pages) pages = { all: pages, read: images.length };
   } else {
     if (!text) throw { msg: 'In der Datei steht kein lesbarer Text.' };
     if (aiReady()) {
       const chunks = splitText(text.slice(0, MAX_TEXT), PART);
       for (let k = 0; k < chunks.length; k++) {
         if (chunks.length > 1) step(`Teil ${k + 1} von ${chunks.length}`);
-        const x = await aiJson(`Du bekommst ${chunks.length > 1 ? `Teil ${k + 1} von ${chunks.length} des Lern-Dokuments` : 'ein Lern-Dokument'} „${file.name}“ für das Projekt „${p.name}“${p.desc ? ' (' + p.desc + ')' : ''}. Lies ${chunks.length > 1 ? 'diesen Teil' : 'es'} vollständig.
-Antworte nur mit JSON: {"zusammenfassung": "${chunks.length > 1 ? '8 bis 12 Sätze mit allen wichtigen Punkten, Begriffen, Regeln und Zahlen dieses Teils' : '2 bis 3 Sätze, worum es geht'}", ${NOTES_JSON(chunks.length > 1 ? '4 bis 10' : '5 bis 12')}}
+        if (chunks.length === 1) {
+          // Normale Datei: Zusammenfassung und Notizen in einer Anfrage, Merki liest den Text nur einmal
+          const x = await aiJson(`Du bekommst ein Lern-Dokument „${file.name}“ für das Projekt „${p.name}“${p.desc ? ' (' + p.desc + ')' : ''}. Lies es vollständig.
+- zusammenfassung: eine Lern-Zusammenfassung auf Deutsch. ${SUM_RULES}
+- notizen: 5 bis 12 Lernpunkte (Begriffe, Regeln, Formeln, Daten, Beispiele, Zusammenhänge).${wishLine()}
+Antworte nur mit JSON: {"zusammenfassung": ${SUM_JSON}, "notizen": [{"titel": "kurzer Titel", "inhalt": "1 bis 4 klare Sätze"}]}
 Schon vorhandene Notizen (nicht doppelt): ${known()}
 
-${chunks.length > 1 ? 'Teil' : 'Dokument'}:
-${chunks[k]}`, { schema: SCHEMA.doc });
+Dokument:
+${chunks[k]}`, { schema: SCHEMA.docsum, maxTokens: 12000, purpose: 'file' });
+          sum = normSum(x && x.zusammenfassung);
+          if (x && Array.isArray(x.notizen)) notes.push(...x.notizen);
+          continue;
+        }
+        const x = await aiJson(`Du bekommst Teil ${k + 1} von ${chunks.length} des Lern-Dokuments „${file.name}“ für das Projekt „${p.name}“${p.desc ? ' (' + p.desc + ')' : ''}. Lies diesen Teil vollständig.
+Antworte nur mit JSON: {"zusammenfassung": "8 bis 12 Sätze mit allen wichtigen Punkten, Begriffen, Regeln und Zahlen dieses Teils", ${NOTES_JSON('4 bis 10')}}
+Schon vorhandene Notizen (nicht doppelt): ${known()}
+
+Teil:
+${chunks[k]}`, { schema: SCHEMA.doc, purpose: 'file' });
         sums.push(String((x && x.zusammenfassung) || ''));
         if (x && Array.isArray(x.notizen)) notes.push(...x.notizen);
       }
@@ -2803,10 +2850,12 @@ ${chunks[k]}`, { schema: SCHEMA.doc });
   }
   const full = text.slice(0, MAX_TEXT);
   if (aiReady()) {
-    try { sum = await fileSummary(file.name, p, full, sums, notes, step); } catch (e) { console.warn('summary', e); }
+    if (!sum) { try { sum = await fileSummary(file.name, p, full, sums, notes, step); } catch (e) { console.warn('summary', e); } }
     summary = sum ? sum.ueberblick : await mergeSummaries(sums, file.name);
   }
-  const f = { id: 'f-' + uid8(), projectId: p.id, name: file.name.slice(0, 120), kind, size: file.size, textLen: full.length, truncated: text.length > MAX_TEXT, summary, ...(sum ? { sum } : {}), createdAt: Date.now() };
+  // Echte Seitenzahl (PDF); bei Scans auch, wie viele Seiten Merki gelesen hat
+  const pg = typeof pages === 'object' ? pages : pages ? { all: pages, read: pages } : null;
+  const f = { id: 'f-' + uid8(), projectId: p.id, name: file.name.slice(0, 120), kind, size: file.size, textLen: full.length, truncated: text.length > MAX_TEXT, summary, ...(sum ? { sum } : {}), ...(pg ? { pages: pg.all, readPages: pg.read } : {}), ...(typeof pages === 'object' ? { scan: true } : {}), createdAt: Date.now() };
   if (full.length > PART) {
     const parts = splitText(full, PART);
     f.parts = parts.length;
@@ -2836,10 +2885,11 @@ async function handleFiles(list, fromChat) {
       if (fromChat && ui.pid === p.id && !busy) {
         const c = getOrCreateChat('Datei: ' + f.name);
         c.turns.push({ role: 'user', content: 'Datei hochgeladen: ' + f.name });
-        c.turns.push({ role: 'assistant', content: `Ich habe **${f.name}** gelesen.${f.summary ? '\n\n' + f.summary : ''}${f.sum ? '\n\nDie ganze Zusammenfassung mit Stichpunkten steht unter **Dateien**.' : ''}${saved.length ? '\n\nDas Wichtigste steht jetzt in deinen Notizen. Frag mich gern dazu oder lass dich abfragen.' : ''}`, saved });
+        c.turns.push({ role: 'assistant', content: `Ich habe **${f.name}** gelesen${f.pages ? (f.readPages < f.pages ? ` (die ersten ${f.readPages} von ${f.pages} Seiten, mehr Seiten eines Scans auf einmal gehen nicht)` : ` (alle ${f.pages} ${f.pages === 1 ? 'Seite' : 'Seiten'})`) : ''}.${f.summary ? '\n\n' + f.summary : ''}${f.sum ? '\n\nDie ganze Zusammenfassung mit Stichpunkten steht unter **Dateien**.' : ''}${saved.length ? '\n\nDas Wichtigste steht jetzt in deinen Notizen. Frag mich gern dazu oder lass dich abfragen.' : ''}`, saved });
         saveChat(c);
       }
-      toast(saved.length ? `„${f.name}“ gelesen · ${saved.length} neue Notizen` : `„${f.name}“ gespeichert`);
+      const part = f.pages && f.readPages < f.pages ? ` · Scan: die ersten ${f.readPages} von ${f.pages} Seiten gelesen` : '';
+      toast((saved.length ? `„${f.name}“ gelesen · ${saved.length} neue Notizen` : `„${f.name}“ gespeichert`) + part, part ? 6000 : 2800);
     } catch (e) {
       console.warn(e);
       const m = e && e.msg ? e.msg : e && e.code === 'lib' ? 'Das Lese-Werkzeug für diese Datei lädt gerade nicht. Versuch es später nochmal.' : e && e.code ? aiError(e) : 'Die Datei konnte nicht gelesen werden.';
@@ -2855,8 +2905,9 @@ function renderFiles() {
   $('#flist').innerHTML = files.length ? files.map(f => {
     const nn = state.notes.filter(n => n.projectId === f.projectId && n.fileName === f.name).length;
     const pages = Math.round(fileLen(f) / 2500);
+    const pg = f.pages ? (f.readPages < f.pages ? `Scan: ${f.readPages} von ${f.pages} Seiten gelesen` : `${f.pages} ${f.pages === 1 ? 'Seite' : 'Seiten'}${f.scan ? ' (Scan)' : ''}`) : pages > 1 ? `etwa ${pages} Seiten Text` : '';
     return `<div class="file"><div class="ficon">${esc(f.kind || '')}</div><div class="fbody"><b>${esc(f.name)}</b>
-      <p>${fmtSize(f.size || 0)}${pages > 1 ? ` · etwa ${pages} Seiten Text` : ''} · ${new Date(f.createdAt).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}${nn ? ` · ${nn} ${nn === 1 ? 'Notiz' : 'Notizen'}` : ''}</p>
+      <p>${fmtSize(f.size || 0)}${pg ? ` · ${pg}` : ''} · ${new Date(f.createdAt).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}${nn ? ` · ${nn} ${nn === 1 ? 'Notiz' : 'Notizen'}` : ''}</p>
       ${f.summary ? `<p class="sum">${inl(f.summary)}</p>` : ''}
       ${f.sum ? `<button type="button" class="linkbtn fs-open" data-view="${esc(f.id)}">Zusammenfassung ansehen${f.sum.abschnitte.length > 1 ? ` · ${f.sum.abschnitte.length} Themen` : ''}</button>` : ''}</div>
       <div class="acts"><button type="button" data-view="${esc(f.id)}" aria-label="Zusammenfassung und Text ansehen">${ICON.eye}</button><button type="button" data-fdel="${esc(f.id)}" aria-label="Datei löschen">${ICON.trash}</button></div></div>`;
@@ -3025,7 +3076,7 @@ async function startQuiz() {
     const res = await aiJson(`Erstelle ein Lern-Quiz auf Deutsch mit genau 5 Multiple-Choice-Fragen. Jede Frage hat genau 4 Antworten, genau eine ist richtig ("richtig" ist ihre Position 0 bis 3). Falsche Antworten sollen plausibel sein. Mische die Position der richtigen Antwort. Fragen sollen Verständnis prüfen, nicht nur Wortlaut. "thema" ist das Unterthema der Frage in 1 bis 3 Wörtern.${wishLine()}
 Antworte nur mit JSON: {"fragen": [{"frage": "...", "antworten": ["A","B","C","D"], "richtig": 0, "erklaerung": "ein kurzer Satz warum", "thema": "..."}]}
 
-${mat.text}`, { schema: SCHEMA.quiz });
+${mat.text}`, { schema: SCHEMA.quiz, purpose: 'learn' });
     const list = Array.isArray(res) ? res : res && res.fragen;
     const qs = (Array.isArray(list) ? list : []).filter(q => q && q.frage && Array.isArray(q.antworten) && q.antworten.length >= 2 && Number.isInteger(+q.richtig) && +q.richtig >= 0 && +q.richtig < q.antworten.length).slice(0, 5);
     if (!qs.length) throw { code: 'invalid_json' };
@@ -3096,7 +3147,7 @@ async function startMemory() {
       const res = await aiJson(`Erstelle 6 Memory-Paare auf Deutsch zum Lernen. Jedes Paar: ein Begriff (1 bis 3 Wörter) und sein Partner (Erklärung, Übersetzung oder Antwort, höchstens 7 Wörter). Alle Partner müssen eindeutig zu genau einem Begriff passen.${wishLine()}
 Antworte nur mit JSON: {"paare": [{"begriff": "...", "partner": "..."}]}
 
-${mat.text}`, { schema: SCHEMA.memory, tier: 'quick' });
+${mat.text}`, { schema: SCHEMA.memory, tier: 'quick', purpose: 'learn' });
       const list = Array.isArray(res) ? res : res && res.paare;
       pairs = (Array.isArray(list) ? list : []).filter(p => p && p.begriff && p.partner).slice(0, 6);
       if (pairs.length < 3) throw { code: 'invalid_json' };
@@ -3213,7 +3264,7 @@ async function generateCards() {
 Diese Karten gibt es schon (nicht doppelt): ${have.join(' | ').slice(0, 3000) || 'keine'}
 Antworte nur mit JSON: {"karten": [{"vorderseite": "...", "rueckseite": "...", "thema": "..."}]}
 
-${mat.text}`, { schema: SCHEMA.cards });
+${mat.text}`, { schema: SCHEMA.cards, purpose: 'learn' });
     const list = Array.isArray(res) ? res : res && res.karten;
     const seen = new Set(have.map(x => x.toLowerCase()));
     let n = 0;
@@ -3322,7 +3373,7 @@ Vergleiche mit dem Lernstoff unten (wenn er passt) und mit gesichertem Fachwisse
 Antworte nur mit JSON: {"punkte": 4, "fazit": "...", "gut": "...", "fehlt": ["..."], "falsch": ["..."], "tipp": "...", "karten": [{"vorderseite": "...", "rueckseite": "..."}]}
 
 Lernstoff:
-${notes || '(keine Notizen)'}${pass ? '\nAus den Dateien:' + pass : ''}`, { schema: SCHEMA.explain });
+${notes || '(keine Notizen)'}${pass ? '\nAus den Dateien:' + pass : ''}`, { schema: SCHEMA.explain, purpose: 'learn' });
       if (!x || !Number.isFinite(+x.punkte)) throw { code: 'invalid_json' };
       showExplainResult(topic, x);
     } catch (e) { btn.disabled = false; btn.textContent = 'Merki prüfen lassen'; msg.hidden = false; msg.textContent = aiError(e); }
@@ -3421,7 +3472,7 @@ ${n > 21 ? 'Es sind mehr als 21 Tage: mach höchstens 21 Einträge, ein Eintrag 
 Antworte nur mit JSON: {"tage": [{"datum": "${today()}", "titel": "Thema des Tages", "aufgaben": ["...", "..."]}]}
 
 Lernstoff:
-${stoff}`, { schema: SCHEMA.plan });
+${stoff}`, { schema: SCHEMA.plan, purpose: 'learn' });
     const list = Array.isArray(x) ? x : x && x.tage;
     const last = addDays(p.examDate, -1);
     const days = (Array.isArray(list) ? list : []).filter(d => d && isDate(d.datum) && d.datum >= today() && d.datum <= last)
@@ -3494,7 +3545,7 @@ async function askTip() {
     const x = await aiJson(`Du bist Merki, ein freundlicher Lerncoach. Schau dir den Lernstand an und sag in 2 bis 4 kurzen Sätzen auf Deutsch, was als Nächstes am meisten bringt. Konkret (welches Thema, welche Übung in der App: Karteikarten, Quiz, Memory oder Erklären) und ermutigend, mit „du“.
 Antworte nur mit JSON: {"tipp": "..."}
 
-${stand}`, { schema: SCHEMA.tip, tier: 'quick' });
+${stand}`, { schema: SCHEMA.tip, tier: 'quick', purpose: 'learn' });
     out.hidden = false; out.textContent = String((x && x.tipp) || '').trim() || 'Mach heute deine fälligen Karteikarten, das bringt am meisten.';
   } catch (e) { out.hidden = false; out.textContent = aiError(e); }
   btn.disabled = false; btn.textContent = 'Merki fragen';
@@ -3554,6 +3605,8 @@ function tab(name) {
   if (name === 'chat') scrollDown(); else $('#main').scrollTop = 0;
 }
 
+// Wofür die KI heute Geld gebraucht hat (Einstellungen)
+const KIND_LABEL = { chat: 'Chat', ask: 'Frag Merki', voice: 'Gespräch', file: 'Dateien', order: 'Alles in einer', learn: 'Lernen', ink: 'Handschrift', vnote: 'Sprachnotizen' };
 // Einstellungen: Name und Stimme überall, Installieren, Verbrauch und Abmelden nur auf dem eigenen Server
 let installEvt = null;
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
@@ -3644,6 +3697,8 @@ function settingsSheet() {
     if (server) api('/api/status').then(r => r.json()).then(s => {
       const eur = v => v.toFixed(2).replace('.', ',');
       usage = `KI heute: ${eur(s.spentUsd)} $ von ${eur(s.budgetUsd)} $ Tageslimit (${s.calls} Anfragen).`;
+      const kinds = (Array.isArray(s.byKind) ? s.byKind : []).filter(k => k.usd >= 0.005);
+      if (kinds.length) usage += ` Davon: ${kinds.map(k => `${KIND_LABEL[k.kind] || 'Sonstiges'} ${eur(k.usd)} $`).join(', ')}.`;
       if (s.tts) usage += ` Echte Stimme heute: ${s.tts.chars.toLocaleString('de-DE')} von ${s.tts.limit.toLocaleString('de-DE')} Zeichen.`;
       // Bei Google zählt die kostenlose Menge pro Monat
       if (s.tts && s.tts.provider === 'google' && s.tts.monthLimit) usage += ` Diesen Monat: ${(s.tts.month || 0).toLocaleString('de-DE')} von ${s.tts.monthLimit.toLocaleString('de-DE')}.`;

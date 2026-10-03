@@ -45,6 +45,7 @@ export class Store extends DurableObject<object> {
       CREATE INDEX IF NOT EXISTS docs_rev ON docs(rev);
       CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS spend (day TEXT PRIMARY KEY, usd REAL NOT NULL, calls INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS spend_kind (day TEXT NOT NULL, kind TEXT NOT NULL, usd REAL NOT NULL, calls INTEGER NOT NULL, PRIMARY KEY (day, kind));
       CREATE TABLE IF NOT EXISTS fails (ip TEXT NOT NULL, hour INTEGER NOT NULL, n INTEGER NOT NULL, PRIMARY KEY (ip, hour));
       CREATE TABLE IF NOT EXISTS tts (day TEXT PRIMARY KEY, chars INTEGER NOT NULL, calls INTEGER NOT NULL);
     `);
@@ -103,15 +104,32 @@ export class Store extends DurableObject<object> {
     return row ? { usd: row.usd, calls: row.calls } : { usd: 0, calls: 0 };
   }
 
-  addSpend(day: string, usd: number): void {
+  addSpend(day: string, usd: number, kind = 'other'): void {
     this.sql.exec(
       `INSERT INTO spend (day, usd, calls) VALUES (?, ?, 1)
        ON CONFLICT(day) DO UPDATE SET usd = usd + excluded.usd, calls = calls + 1`,
       day,
       usd,
     );
+    // Wofür (Chat, Dateien, Lernen ...), damit die App zeigen kann, was wie viel kostet
+    this.sql.exec(
+      `INSERT INTO spend_kind (day, kind, usd, calls) VALUES (?, ?, ?, 1)
+       ON CONFLICT(day, kind) DO UPDATE SET usd = usd + excluded.usd, calls = calls + 1`,
+      day,
+      kind,
+      usd,
+    );
     // Nur die letzten 60 Tage behalten
     this.sql.exec(`DELETE FROM spend WHERE day < date(?, '-60 days')`, day);
+    this.sql.exec(`DELETE FROM spend_kind WHERE day < date(?, '-60 days')`, day);
+  }
+
+  /** Heutige Kosten nach Zweck, teuerster zuerst. */
+  spentByKind(day: string): { kind: string; usd: number; calls: number }[] {
+    return this.sql
+      .exec<{ kind: string; usd: number; calls: number }>(`SELECT kind, usd, calls FROM spend_kind WHERE day = ? ORDER BY usd DESC`, day)
+      .toArray()
+      .map((r) => ({ kind: r.kind, usd: Math.round(r.usd * 1000) / 1000, calls: r.calls }));
   }
 
   /** Wie viele Zeichen heute schon mit der echten Stimme gesprochen wurden. */
