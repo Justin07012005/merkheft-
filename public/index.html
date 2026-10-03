@@ -26,7 +26,10 @@
   --call-bg:#141B47; --call-bg2:#2B3590; --call-soft:#C1C6EC; --call-glow:#F7E463; --call-glow-ink:#3A3300; --call-orb-hi:#FFF8C2; --call-orb-lo:#DDB43A; --call-halo:rgba(247,228,99,.32); --call-ring:rgba(247,228,99,.5);
   --f-display:"Bricolage Grotesque",ui-rounded,"Segoe UI",system-ui,sans-serif;
   --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --pc-ink:#231C17; --pc-gelb:#F7D98E; --pc-gruen:#A9D9B5; --pc-rosa:#F2AA9B; --pc-blau:#AAC9EF; --pc-lila:#CBB8E9; --pc-orange:#F6BE8A; --pc-tuerkis:#9ED8D2; --pc-pink:#F3B4CF;
 }
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--pc-ink:#1D1915; --pc-gelb:#E6C46F; --pc-gruen:#86BF98; --pc-rosa:#E39A8A; --pc-blau:#8DB3E2; --pc-lila:#AE9AD8; --pc-orange:#DDA06B; --pc-tuerkis:#7DBDB6; --pc-pink:#D995B3}}
+:root[data-theme="dark"]{--pc-ink:#1D1915; --pc-gelb:#E6C46F; --pc-gruen:#86BF98; --pc-rosa:#E39A8A; --pc-blau:#8DB3E2; --pc-lila:#AE9AD8; --pc-orange:#DDA06B; --pc-tuerkis:#7DBDB6; --pc-pink:#D995B3}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --paper:#11131C; --sheet:#1A1D2A; --side:#151824; --line:#2B3044; --ink:#A9B4FF; --ink-soft:#8C93B8;
   --text:#E8EAF4; --marker:#D8C445; --marker-ink:#1C1800; --red:#F0717B; --good:#5FD39A; --good-bg:#16352A; --bad-bg:#3A1C21; --warn:#F2B35B;
@@ -38,30 +41,48 @@
   --pen-ink:#EEF0FA; --pen-blue:#93B2FF; --pen-red:#FF8C95; --pen-hl:#6B6014; --pen-hl-op:lighten; --rule:#2C3149;
   --shadow:0 1px 0 rgba(0,0,0,.4),0 8px 20px -12px rgba(0,0,0,.8); --call-bg:#080B20; --call-bg2:#1B2263; color-scheme:dark}
 /* Farben zum Auswählen (Einstellungen). Gelten für <html data-palette> und für die Farbmuster im Einstellungsblatt */
-/* Pastell (Standard): Creme, jede Ansicht hat oben ihre eigene Pastellfarbe, dunkle Ränder, gelbe Leiste unten */
-[data-palette="pastell"]{--paper:#FBF4E8;--sheet:#FFFCF6;--side:#F4EBDC;--line:#E5D6BF;--edge:#2D2520;--ink:#2D2520;--ink-soft:#655849;--text:#231C17;--marker:#F4BC45;--marker-ink:#2D2520;--rule:#EBDFCB;--shadow:0 0 0 transparent;--sec-ink:#231C17;--sec-chat:#A9D9B5;--sec-notes:#F2AA9B;--sec-files:#AAC9EF;--sec-learn:#CBB8E9;--sec-progress:#F7D98E;--call-bg:#241B16;--call-bg2:#5B4535;--call-soft:#E9D8C6;--call-glow:#F4BC45;--call-glow-ink:#2D2520;--call-orb-hi:#FFF1C9;--call-orb-lo:#D9962A;--call-halo:rgba(244,188,69,.32);--call-ring:rgba(244,188,69,.5)}
 [data-palette="mitternacht"]{--paper:#F6F7FB;--sheet:#FFFFFF;--side:#EEF0F7;--line:#DCE1EE;--ink:#1F2A6B;--ink-soft:#5A6390;--text:#1B1E2E;--marker:#F7E463;--marker-ink:#3A3300;--rule:#D3DBF0;--shadow:0 1px 0 rgba(31,42,107,.06),0 6px 18px -10px rgba(31,42,107,.25);--call-bg:#141B47;--call-bg2:#2B3590;--call-soft:#C1C6EC;--call-glow:#F7E463;--call-glow-ink:#3A3300;--call-orb-hi:#FFF8C2;--call-orb-lo:#DDB43A;--call-halo:rgba(247,228,99,.32);--call-ring:rgba(247,228,99,.5)}
 [data-palette="lavendel"]{--paper:#F8F6FC;--sheet:#FFFFFF;--side:#F1EDF8;--line:#E3DCF0;--ink:#5B3A9E;--ink-soft:#6B5F8C;--text:#1F1A2E;--marker:#F6C4E4;--marker-ink:#4D1239;--rule:#DFD5F0;--shadow:0 1px 0 rgba(91,58,158,.06),0 6px 18px -10px rgba(91,58,158,.25);--call-bg:#1F1442;--call-bg2:#4B2F8F;--call-soft:#D3C6EE;--call-glow:#F6C4E4;--call-glow-ink:#4D1239;--call-orb-hi:#FFF0FA;--call-orb-lo:#D688BC;--call-halo:rgba(246,196,228,.32);--call-ring:rgba(246,196,228,.5)}
 [data-palette="rose"]{--paper:#FCF6F8;--sheet:#FFFFFF;--side:#F8EDF1;--line:#F0DDE4;--ink:#A3245A;--ink-soft:#7F5A69;--text:#2A1A21;--marker:#FFD3A8;--marker-ink:#4A2400;--rule:#F1D5DF;--shadow:0 1px 0 rgba(163,36,90,.06),0 6px 18px -10px rgba(163,36,90,.25);--call-bg:#3B0E23;--call-bg2:#8A2152;--call-soft:#F2C9D9;--call-glow:#FFD3A8;--call-glow-ink:#4A2400;--call-orb-hi:#FFF4E8;--call-orb-lo:#E8A066;--call-halo:rgba(255,211,168,.32);--call-ring:rgba(255,211,168,.5)}
 [data-palette="salbei"]{--paper:#F5F8F5;--sheet:#FFFFFF;--side:#EBF2EC;--line:#D8E6DB;--ink:#2F6B4F;--ink-soft:#526B5F;--text:#18241E;--marker:#DDF27A;--marker-ink:#2A3300;--rule:#D0E3D5;--shadow:0 1px 0 rgba(47,107,79,.06),0 6px 18px -10px rgba(47,107,79,.25);--call-bg:#0D2A1D;--call-bg2:#22604A;--call-soft:#C4E2D2;--call-glow:#DDF27A;--call-glow-ink:#2A3300;--call-orb-hi:#F8FFD9;--call-orb-lo:#A8C23C;--call-halo:rgba(221,242,122,.32);--call-ring:rgba(221,242,122,.5)}
 [data-palette="ozean"]{--paper:#F4F8FA;--sheet:#FFFFFF;--side:#EAF2F6;--line:#D5E4EB;--ink:#0F5F78;--ink-soft:#4E6B79;--text:#152229;--marker:#A8EDE6;--marker-ink:#003A36;--rule:#CDE2EB;--shadow:0 1px 0 rgba(15,95,120,.06),0 6px 18px -10px rgba(15,95,120,.25);--call-bg:#072333;--call-bg2:#125F7A;--call-soft:#BFDDE8;--call-glow:#A8EDE6;--call-glow-ink:#003A36;--call-orb-hi:#E8FFFC;--call-orb-lo:#5CC6BB;--call-halo:rgba(168,237,230,.32);--call-ring:rgba(168,237,230,.5)}
 [data-palette="sonne"]{--paper:#FBF7F1;--sheet:#FFFFFF;--side:#F6EEE3;--line:#EBDDCB;--ink:#A8401A;--ink-soft:#7F6351;--text:#2A1C14;--marker:#FFE07A;--marker-ink:#3D2E00;--rule:#EEDCC5;--shadow:0 1px 0 rgba(168,64,26,.06),0 6px 18px -10px rgba(168,64,26,.25);--call-bg:#381507;--call-bg2:#8A3714;--call-soft:#F0D2C2;--call-glow:#FFE07A;--call-glow-ink:#3D2E00;--call-orb-hi:#FFF7D6;--call-orb-lo:#E0A930;--call-halo:rgba(255,224,122,.32);--call-ring:rgba(255,224,122,.5)}
+/* Pastell-Design (Standard): jede Ansicht hat oben ihre eigene Pastellfarbe, dunkle Ränder, runde Ecken. Die Farbe bestimmt Papier, Ränder und die Leiste unten */
+:root[data-design="pastell"]{--shadow:0 0 0 transparent;--sec-ink:#231C17;--sec-chat:#A9D9B5;--sec-notes:#F2AA9B;--sec-files:#AAC9EF;--sec-learn:#CBB8E9;--sec-progress:#F7D98E}
+[data-design="pastell"][data-palette="mitternacht"],[data-design="pastell"] [data-palette="mitternacht"]{--paper:#F2F3FA;--sheet:#FCFCFF;--side:#E8EAF5;--line:#D3D8EC;--edge:#1E2550;--ink:#1E2550;--ink-soft:#555C82;--text:#181C30;--marker:#B3C1F4;--marker-ink:#1E2550;--rule:#DADFF0}
+[data-design="pastell"][data-palette="lavendel"],[data-design="pastell"] [data-palette="lavendel"]{--paper:#F6F2FB;--sheet:#FEFCFF;--side:#EDE6F7;--line:#DCD0EE;--edge:#2E2148;--ink:#2E2148;--ink-soft:#63587E;--text:#211933;--marker:#D4BFF3;--marker-ink:#2E2148;--rule:#E2D8F1}
+[data-design="pastell"][data-palette="rose"],[data-design="pastell"] [data-palette="rose"]{--paper:#FCF2F5;--sheet:#FFFBFC;--side:#F6E6EC;--line:#EDD3DD;--edge:#4A1D33;--ink:#4A1D33;--ink-soft:#7A5565;--text:#2A161F;--marker:#F6B6CC;--marker-ink:#4A1D33;--rule:#F1DCE4}
+[data-design="pastell"][data-palette="salbei"],[data-design="pastell"] [data-palette="salbei"]{--paper:#F2F7F1;--sheet:#FBFDFA;--side:#E6EFE5;--line:#D0E0CF;--edge:#1F3A2C;--ink:#1F3A2C;--ink-soft:#4F6658;--text:#17241D;--marker:#B5DCAE;--marker-ink:#1F3A2C;--rule:#D9E7D8}
+[data-design="pastell"][data-palette="ozean"],[data-design="pastell"] [data-palette="ozean"]{--paper:#F0F6F9;--sheet:#FAFDFE;--side:#E3EEF3;--line:#CCDFE8;--edge:#13384A;--ink:#13384A;--ink-soft:#4B6674;--text:#12222A;--marker:#A3D5EA;--marker-ink:#13384A;--rule:#D5E6EE}
+[data-design="pastell"][data-palette="sonne"],[data-design="pastell"] [data-palette="sonne"]{--paper:#FBF4E8;--sheet:#FFFCF6;--side:#F4EBDC;--line:#E5D6BF;--edge:#2D2520;--ink:#2D2520;--ink-soft:#655849;--text:#231C17;--marker:#F4BC45;--marker-ink:#2D2520;--rule:#EBDFCB}
 @media (prefers-color-scheme:dark){
-:root:not([data-theme="light"])[data-palette="pastell"],:root:not([data-theme="light"]) [data-palette="pastell"]{--paper:#1D1915;--sheet:#28221C;--side:#221D18;--line:#3D342B;--edge:#D9CBB6;--ink:#F4EADB;--ink-soft:#BBAD9A;--text:#F4ECE0;--marker:#E8B848;--marker-ink:#1D1915;--rule:#3A3129;--sec-ink:#1D1915;--sec-chat:#86BF98;--sec-notes:#E39A8A;--sec-files:#8DB3E2;--sec-learn:#AE9AD8;--sec-progress:#E6C46F;--call-bg:#120D0A;--call-bg2:#3E2F24}
 :root:not([data-theme="light"])[data-palette="mitternacht"],:root:not([data-theme="light"]) [data-palette="mitternacht"]{--paper:#11131C;--sheet:#1A1D2A;--side:#151824;--line:#2B3044;--ink:#A9B4FF;--ink-soft:#8C93B8;--text:#E8EAF4;--marker:#D8C445;--marker-ink:#1C1800;--rule:#2C3149;--call-bg:#080B20;--call-bg2:#1B2263}
 :root:not([data-theme="light"])[data-palette="lavendel"],:root:not([data-theme="light"]) [data-palette="lavendel"]{--paper:#14111C;--sheet:#1D1929;--side:#181423;--line:#322B45;--ink:#C9B5FF;--ink-soft:#9D93B9;--text:#ECE8F5;--marker:#D294BF;--marker-ink:#22061A;--rule:#352D4B;--call-bg:#0D0820;--call-bg2:#2D1B5E}
 :root:not([data-theme="light"])[data-palette="rose"],:root:not([data-theme="light"]) [data-palette="rose"]{--paper:#1B1216;--sheet:#261A20;--side:#20151A;--line:#432C36;--ink:#FF9CC2;--ink-soft:#BC94A4;--text:#F6EAEF;--marker:#D9A06E;--marker-ink:#2A1400;--rule:#472E39;--call-bg:#1B0610;--call-bg2:#5A1535}
 :root:not([data-theme="light"])[data-palette="salbei"],:root:not([data-theme="light"]) [data-palette="salbei"]{--paper:#0F1612;--sheet:#17211B;--side:#121A15;--line:#283A30;--ink:#8FD9B0;--ink-soft:#8AA898;--text:#E6F0EA;--marker:#B2CB50;--marker-ink:#1A2000;--rule:#2B3E33;--call-bg:#06140D;--call-bg2:#173F2F}
 :root:not([data-theme="light"])[data-palette="ozean"],:root:not([data-theme="light"]) [data-palette="ozean"]{--paper:#0D1519;--sheet:#142027;--side:#10191E;--line:#243A44;--ink:#7CD3EE;--ink-soft:#87A6B3;--text:#E4F0F4;--marker:#4FB8AE;--marker-ink:#002220;--rule:#273E49;--call-bg:#031118;--call-bg2:#0C3D50}
 :root:not([data-theme="light"])[data-palette="sonne"],:root:not([data-theme="light"]) [data-palette="sonne"]{--paper:#18120E;--sheet:#231A14;--side:#1D1611;--line:#3D2F24;--ink:#FFAA80;--ink-soft:#B99B89;--text:#F6EDE6;--marker:#D9B640;--marker-ink:#231A00;--rule:#413227;--call-bg:#190803;--call-bg2:#5B230B}
+:root:not([data-theme="light"])[data-design="pastell"]{--sec-ink:#1D1915;--sec-chat:#86BF98;--sec-notes:#E39A8A;--sec-files:#8DB3E2;--sec-learn:#AE9AD8;--sec-progress:#E6C46F}
+:root:not([data-theme="light"])[data-design="pastell"][data-palette="mitternacht"],:root:not([data-theme="light"])[data-design="pastell"] [data-palette="mitternacht"]{--paper:#14161F;--sheet:#1D202C;--side:#181A25;--line:#343A50;--edge:#C5CCEA;--ink:#E6E9F8;--ink-soft:#A3A9C6;--text:#ECEEF8;--marker:#9AABEB;--marker-ink:#14161F;--rule:#30354A}
+:root:not([data-theme="light"])[data-design="pastell"][data-palette="lavendel"],:root:not([data-theme="light"])[data-design="pastell"] [data-palette="lavendel"]{--paper:#18141F;--sheet:#221D2C;--side:#1C1725;--line:#3C3350;--edge:#D3C8EA;--ink:#EEE8F8;--ink-soft:#B0A6C6;--text:#F0ECF8;--marker:#BCA3EC;--marker-ink:#18141F;--rule:#382F4A}
+:root:not([data-theme="light"])[data-design="pastell"][data-palette="rose"],:root:not([data-theme="light"])[data-design="pastell"] [data-palette="rose"]{--paper:#1D1418;--sheet:#281C22;--side:#22171C;--line:#46323C;--edge:#E8C8D4;--ink:#F8E9EF;--ink-soft:#C2A3B0;--text:#F8ECF1;--marker:#E99AB7;--marker-ink:#1D1418;--rule:#43303A}
+:root:not([data-theme="light"])[data-design="pastell"][data-palette="salbei"],:root:not([data-theme="light"])[data-design="pastell"] [data-palette="salbei"]{--paper:#121914;--sheet:#1B241D;--side:#161E18;--line:#2F4033;--edge:#C2D8C4;--ink:#E7F2E8;--ink-soft:#A0B5A3;--text:#EAF3EB;--marker:#98C891;--marker-ink:#121914;--rule:#2D3D30}
+:root:not([data-theme="light"])[data-design="pastell"][data-palette="ozean"],:root:not([data-theme="light"])[data-design="pastell"] [data-palette="ozean"]{--paper:#10181C;--sheet:#182329;--side:#131D22;--line:#2C404A;--edge:#BED6E1;--ink:#E5F1F6;--ink-soft:#9DB4BF;--text:#E8F2F6;--marker:#86C2DC;--marker-ink:#10181C;--rule:#2A3D46}
+:root:not([data-theme="light"])[data-design="pastell"][data-palette="sonne"],:root:not([data-theme="light"])[data-design="pastell"] [data-palette="sonne"]{--paper:#1D1915;--sheet:#28221C;--side:#221D18;--line:#3D342B;--edge:#D9CBB6;--ink:#F4EADB;--ink-soft:#BBAD9A;--text:#F4ECE0;--marker:#E8B848;--marker-ink:#1D1915;--rule:#3A3129}
 }
-:root[data-theme="dark"][data-palette="pastell"],:root[data-theme="dark"] [data-palette="pastell"]{--paper:#1D1915;--sheet:#28221C;--side:#221D18;--line:#3D342B;--edge:#D9CBB6;--ink:#F4EADB;--ink-soft:#BBAD9A;--text:#F4ECE0;--marker:#E8B848;--marker-ink:#1D1915;--rule:#3A3129;--sec-ink:#1D1915;--sec-chat:#86BF98;--sec-notes:#E39A8A;--sec-files:#8DB3E2;--sec-learn:#AE9AD8;--sec-progress:#E6C46F;--call-bg:#120D0A;--call-bg2:#3E2F24}
 :root[data-theme="dark"][data-palette="mitternacht"],:root[data-theme="dark"] [data-palette="mitternacht"]{--paper:#11131C;--sheet:#1A1D2A;--side:#151824;--line:#2B3044;--ink:#A9B4FF;--ink-soft:#8C93B8;--text:#E8EAF4;--marker:#D8C445;--marker-ink:#1C1800;--rule:#2C3149;--call-bg:#080B20;--call-bg2:#1B2263}
 :root[data-theme="dark"][data-palette="lavendel"],:root[data-theme="dark"] [data-palette="lavendel"]{--paper:#14111C;--sheet:#1D1929;--side:#181423;--line:#322B45;--ink:#C9B5FF;--ink-soft:#9D93B9;--text:#ECE8F5;--marker:#D294BF;--marker-ink:#22061A;--rule:#352D4B;--call-bg:#0D0820;--call-bg2:#2D1B5E}
 :root[data-theme="dark"][data-palette="rose"],:root[data-theme="dark"] [data-palette="rose"]{--paper:#1B1216;--sheet:#261A20;--side:#20151A;--line:#432C36;--ink:#FF9CC2;--ink-soft:#BC94A4;--text:#F6EAEF;--marker:#D9A06E;--marker-ink:#2A1400;--rule:#472E39;--call-bg:#1B0610;--call-bg2:#5A1535}
 :root[data-theme="dark"][data-palette="salbei"],:root[data-theme="dark"] [data-palette="salbei"]{--paper:#0F1612;--sheet:#17211B;--side:#121A15;--line:#283A30;--ink:#8FD9B0;--ink-soft:#8AA898;--text:#E6F0EA;--marker:#B2CB50;--marker-ink:#1A2000;--rule:#2B3E33;--call-bg:#06140D;--call-bg2:#173F2F}
 :root[data-theme="dark"][data-palette="ozean"],:root[data-theme="dark"] [data-palette="ozean"]{--paper:#0D1519;--sheet:#142027;--side:#10191E;--line:#243A44;--ink:#7CD3EE;--ink-soft:#87A6B3;--text:#E4F0F4;--marker:#4FB8AE;--marker-ink:#002220;--rule:#273E49;--call-bg:#031118;--call-bg2:#0C3D50}
 :root[data-theme="dark"][data-palette="sonne"],:root[data-theme="dark"] [data-palette="sonne"]{--paper:#18120E;--sheet:#231A14;--side:#1D1611;--line:#3D2F24;--ink:#FFAA80;--ink-soft:#B99B89;--text:#F6EDE6;--marker:#D9B640;--marker-ink:#231A00;--rule:#413227;--call-bg:#190803;--call-bg2:#5B230B}
+:root[data-theme="dark"][data-design="pastell"]{--sec-ink:#1D1915;--sec-chat:#86BF98;--sec-notes:#E39A8A;--sec-files:#8DB3E2;--sec-learn:#AE9AD8;--sec-progress:#E6C46F}
+:root[data-theme="dark"][data-design="pastell"][data-palette="mitternacht"],:root[data-theme="dark"][data-design="pastell"] [data-palette="mitternacht"]{--paper:#14161F;--sheet:#1D202C;--side:#181A25;--line:#343A50;--edge:#C5CCEA;--ink:#E6E9F8;--ink-soft:#A3A9C6;--text:#ECEEF8;--marker:#9AABEB;--marker-ink:#14161F;--rule:#30354A}
+:root[data-theme="dark"][data-design="pastell"][data-palette="lavendel"],:root[data-theme="dark"][data-design="pastell"] [data-palette="lavendel"]{--paper:#18141F;--sheet:#221D2C;--side:#1C1725;--line:#3C3350;--edge:#D3C8EA;--ink:#EEE8F8;--ink-soft:#B0A6C6;--text:#F0ECF8;--marker:#BCA3EC;--marker-ink:#18141F;--rule:#382F4A}
+:root[data-theme="dark"][data-design="pastell"][data-palette="rose"],:root[data-theme="dark"][data-design="pastell"] [data-palette="rose"]{--paper:#1D1418;--sheet:#281C22;--side:#22171C;--line:#46323C;--edge:#E8C8D4;--ink:#F8E9EF;--ink-soft:#C2A3B0;--text:#F8ECF1;--marker:#E99AB7;--marker-ink:#1D1418;--rule:#43303A}
+:root[data-theme="dark"][data-design="pastell"][data-palette="salbei"],:root[data-theme="dark"][data-design="pastell"] [data-palette="salbei"]{--paper:#121914;--sheet:#1B241D;--side:#161E18;--line:#2F4033;--edge:#C2D8C4;--ink:#E7F2E8;--ink-soft:#A0B5A3;--text:#EAF3EB;--marker:#98C891;--marker-ink:#121914;--rule:#2D3D30}
+:root[data-theme="dark"][data-design="pastell"][data-palette="ozean"],:root[data-theme="dark"][data-design="pastell"] [data-palette="ozean"]{--paper:#10181C;--sheet:#182329;--side:#131D22;--line:#2C404A;--edge:#BED6E1;--ink:#E5F1F6;--ink-soft:#9DB4BF;--text:#E8F2F6;--marker:#86C2DC;--marker-ink:#10181C;--rule:#2A3D46}
+:root[data-theme="dark"][data-design="pastell"][data-palette="sonne"],:root[data-theme="dark"][data-design="pastell"] [data-palette="sonne"]{--paper:#1D1915;--sheet:#28221C;--side:#221D18;--line:#3D342B;--edge:#D9CBB6;--ink:#F4EADB;--ink-soft:#BBAD9A;--text:#F4ECE0;--marker:#E8B848;--marker-ink:#1D1915;--rule:#3A3129}
 
 html,body{height:100%;margin:0}
 body{background:var(--paper);color:var(--text);font:16px/1.5 var(--f-body);-webkit-tap-highlight-color:transparent;overflow:hidden}
@@ -88,7 +109,14 @@ svg{flex:none}
 .brand{font:800 26px/1 var(--f-display);color:var(--ink);letter-spacing:-.02em;margin:0}
 .side-label{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin:6px 6px 0}
 .plist{display:flex;flex-direction:column;gap:2px}
-.plist button{display:flex;flex-direction:column;align-items:flex-start;text-align:left;border:0;background:none;padding:8px 10px;border-radius:10px;min-width:0}
+.plist button{display:flex;align-items:center;gap:10px;text-align:left;border:0;background:none;padding:8px 10px;border-radius:10px;min-width:0}
+.plist .ptxt{display:flex;flex-direction:column;align-items:flex-start;min-width:0;font-style:normal}
+/* Farbe pro Projekt (Punkt mit Anfangsbuchstaben an der Seite) */
+.pdot{flex:none;width:30px;height:30px;border-radius:50%;background:var(--pc);color:var(--pc-ink);display:grid;place-items:center;font:800 14px/1 var(--f-display);font-style:normal;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.pcolors{display:flex;flex-wrap:wrap;gap:10px}
+.pcol{position:relative;width:40px;height:40px;border-radius:50%;background:var(--pc);border:3px solid var(--sheet);box-shadow:0 0 0 1px var(--line);padding:0}
+.pcol[aria-pressed="true"]{box-shadow:0 0 0 2.5px var(--ink)}
+.pcol[aria-pressed="true"]::after{content:"";position:absolute;inset:0;background:var(--pc-ink);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/20px no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/20px no-repeat}
 .plist button b{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .plist button span{font-size:12px;color:var(--ink-soft)}
 .plist button:hover{background:var(--sheet)}
@@ -139,6 +167,7 @@ nav.tabs button[aria-selected="true"] svg{background:var(--marker);color:var(--m
 .msg.thinking{color:var(--ink-soft);font-style:italic}
 .saved{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .msg-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.readbtn.on{background:var(--marker);color:var(--marker-ink);border-color:transparent}
 .notebtn{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:none;color:var(--ink-soft);border-radius:999px;padding:5px 11px;font-size:13px;line-height:1.2;max-width:100%;overflow-wrap:anywhere;text-align:left}
 .notebtn svg{width:14px;height:14px;flex:none}
 .notebtn:disabled{opacity:.7}
@@ -512,125 +541,129 @@ input[type=range]{accent-color:var(--ink);width:100%}
 .swatch[aria-pressed="true"] i::before,.swatch[aria-pressed="true"] i::after{content:"";position:absolute;right:-4px;bottom:-4px;width:18px;height:18px;border-radius:50%}
 .swatch[aria-pressed="true"] i::after{background:var(--ink);box-shadow:0 0 0 2px var(--sheet)}
 .swatch[aria-pressed="true"] i::before{z-index:1;background:var(--sheet);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/12px no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/12px no-repeat}
-.swatch[data-palette="pastell"] i{background:conic-gradient(var(--sec-chat) 0 25%,var(--sec-notes) 0 50%,var(--sec-learn) 0 75%,var(--sec-files) 0);box-shadow:0 0 0 1.5px var(--edge)}
+:root[data-design="pastell"] .swatch i{background:linear-gradient(135deg,var(--edge) 0 50%,var(--marker) 50% 100%);box-shadow:0 0 0 1.5px var(--edge)}
 .swatch span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media (max-width:360px){.swatch,.seg.look button{font-size:13px}.swatches{gap:6px}}
 /* ---------- Pastell: Aufbau ---------- */
-:root[data-palette="pastell"]{--f-display:"Outfit",ui-rounded,"Segoe UI",system-ui,sans-serif}
-:root[data-palette="pastell"] .mainwrap{--sec:var(--sec-chat)}
-:root[data-palette="pastell"] .mainwrap[data-tab="notes"]{--sec:var(--sec-notes)}
-:root[data-palette="pastell"] .mainwrap[data-tab="files"]{--sec:var(--sec-files)}
-:root[data-palette="pastell"] .mainwrap[data-tab="learn"]{--sec:var(--sec-learn)}
-:root[data-palette="pastell"] .mainwrap[data-tab="progress"]{--sec:var(--sec-progress)}
-:root[data-palette="pastell"] .mainwrap[data-tab="home"]{--sec:var(--sec-progress)}
+:root[data-design="pastell"]{--f-display:"Outfit",ui-rounded,"Segoe UI",system-ui,sans-serif}
+:root[data-design="pastell"] .mainwrap{--sec:var(--sec-chat)}
+:root[data-design="pastell"] .mainwrap[data-tab="notes"]{--sec:var(--sec-notes)}
+:root[data-design="pastell"] .mainwrap[data-tab="files"]{--sec:var(--sec-files)}
+:root[data-design="pastell"] .mainwrap[data-tab="learn"]{--sec:var(--sec-learn)}
+:root[data-design="pastell"] .mainwrap[data-tab="progress"]{--sec:var(--sec-progress)}
+:root[data-design="pastell"] .mainwrap[data-tab="home"]{--sec:var(--sec-progress)}
 /* Oben die Farbe der Ansicht, darunter der Inhalt wie ein Blatt mit runden Ecken */
-:root[data-palette="pastell"] header.top{background:var(--sec);color:var(--sec-ink);border-bottom:0;padding-bottom:30px}
-:root[data-palette="pastell"] .ptitle h1,:root[data-palette="pastell"] .ptitle p{color:var(--sec-ink)}
-:root[data-palette="pastell"] .ptitle h1{font-size:24px}
-:root[data-palette="pastell"] header.top .iconbtn.plain{width:40px;height:40px;background:var(--marker);color:var(--marker-ink);border:1.5px solid var(--edge)}
-:root[data-palette="pastell"] header.top .chip{border:1.5px solid var(--edge)}
-:root[data-palette="pastell"] main{position:relative;z-index:1;margin-top:-20px;background:var(--paper);border-top:1.5px solid var(--edge);border-radius:24px 24px 0 0;padding-top:16px}
+:root[data-design="pastell"] header.top{background:var(--sec);color:var(--sec-ink);border-bottom:0;padding-bottom:30px}
+:root[data-design="pastell"] .ptitle h1,:root[data-design="pastell"] .ptitle p{color:var(--sec-ink)}
+:root[data-design="pastell"] .ptitle h1{font-size:24px}
+:root[data-design="pastell"] header.top .iconbtn.plain{width:40px;height:40px;background:var(--marker);color:var(--marker-ink);border:1.5px solid var(--edge)}
+:root[data-design="pastell"] header.top .chip{border:1.5px solid var(--edge)}
+:root[data-design="pastell"] main{position:relative;z-index:1;margin-top:-20px;background:var(--paper);border-top:1.5px solid var(--edge);border-radius:24px 24px 0 0;padding-top:16px}
 /* Leiste unten: gelb, rund, mit Namen unter den Symbolen; die gewählte Ansicht im dunklen Kreis */
-:root[data-palette="pastell"] nav.tabs{width:calc(100% - 20px);max-width:620px;align-self:center;margin:6px auto calc(8px + env(safe-area-inset-bottom,0px));padding:6px 4px;background:var(--marker);border:1.5px solid var(--edge);border-radius:28px}
-:root[data-palette="pastell"] nav.tabs button{color:var(--marker-ink);font-weight:700;font-size:11.5px;letter-spacing:-.1px;padding:3px 0;gap:3px}
-:root[data-palette="pastell"] nav.tabs button svg{width:22px;height:22px;padding:5px;box-sizing:content-box;border-radius:50%;margin:-3px 0 -2px}
-:root[data-palette="pastell"] nav.tabs button[aria-selected="true"]{color:var(--marker-ink)}
-:root[data-palette="pastell"] nav.tabs button[aria-selected="true"] svg{background:var(--sec-ink);color:var(--marker);padding:5px;margin:-3px 0 -2px;border-radius:50%}
-:root[data-palette="pastell"] .badge{border:1.5px solid var(--edge);top:0}
+:root[data-design="pastell"] nav.tabs{width:calc(100% - 20px);max-width:620px;align-self:center;margin:6px auto calc(8px + env(safe-area-inset-bottom,0px));padding:6px 4px;background:var(--marker);border:1.5px solid var(--edge);border-radius:28px}
+:root[data-design="pastell"] nav.tabs button{color:var(--marker-ink);font-weight:700;font-size:11.5px;letter-spacing:-.1px;padding:3px 0;gap:3px}
+:root[data-design="pastell"] nav.tabs button svg{width:22px;height:22px;padding:5px;box-sizing:content-box;border-radius:50%;margin:-3px 0 -2px}
+:root[data-design="pastell"] nav.tabs button[aria-selected="true"]{color:var(--marker-ink)}
+:root[data-design="pastell"] nav.tabs button[aria-selected="true"] svg{background:var(--sec-ink);color:var(--marker);padding:5px;margin:-3px 0 -2px;border-radius:50%}
+:root[data-design="pastell"] .badge{border:1.5px solid var(--edge);top:0}
 /* Seitenleiste */
-:root[data-palette="pastell"] .side{border-right:1.5px solid var(--edge)}
-:root[data-palette="pastell"] .plist button{border:1.5px solid transparent;border-radius:14px}
-:root[data-palette="pastell"] .plist button[aria-current="true"]{background:var(--marker);border-color:var(--edge);box-shadow:none}
-:root[data-palette="pastell"] .plist button[aria-current="true"] :is(b,span){color:var(--marker-ink)}
-:root[data-palette="pastell"] .side-foot{border-top:1.5px solid var(--edge)}
+:root[data-design="pastell"] .side{border-right:1.5px solid var(--edge)}
+:root[data-design="pastell"] .plist button{border:1.5px solid transparent;border-radius:14px}
+:root[data-design="pastell"] .plist button[aria-current="true"]{background:var(--marker);border-color:var(--edge);box-shadow:none}
+:root[data-design="pastell"] .plist button[aria-current="true"] :is(b,span){color:var(--marker-ink)}
+:root[data-design="pastell"] .pdot{box-shadow:none;border:1.5px solid var(--edge)}
+:root[data-design="pastell"] .pcol{box-shadow:0 0 0 1.5px var(--edge)}
+:root[data-design="pastell"] .pcol[aria-pressed="true"]{box-shadow:0 0 0 3px var(--edge)}
+:root[data-design="pastell"] .side-foot{border-top:1.5px solid var(--edge)}
 /* Alles, was ein Kasten ist: dunkler Rand, runde Ecken, kein Schatten */
-:root[data-palette="pastell"] :is(.msg.ai,.card,.file,.game,.q,.tile,.panel,.allnote,.fsum,.citem,.helpbox,.menu button,.notice,.textview,.pday,.answers button,.swatch,.flash .fs,.mcard .b,.mcard .f,.today,.ficon,.hero div,.job){border:1.5px solid var(--edge);box-shadow:none}
-:root[data-palette="pastell"] :is(.card,.file,.game,.q,.panel,.allnote,.fsum,.tile,.pday,.citem,.helpbox,.flash .fs,.hero div){border-radius:20px}
-:root[data-palette="pastell"] :is(.menu button,.notice,.textview,.answers button,.swatch){border-radius:16px}
-:root[data-palette="pastell"] .notice.err{border-color:var(--red)}
-:root[data-palette="pastell"] .notice.tip{border-left:6px solid var(--marker)}
-:root[data-palette="pastell"] .answers button.right{border-color:var(--good)}
-:root[data-palette="pastell"] .answers button.wrong{border-color:var(--red)}
-:root[data-palette="pastell"] .mcard.done .b{border-color:var(--good)}
-:root[data-palette="pastell"] .card{background-image:none;padding:14px 16px;line-height:1.5}
-:root[data-palette="pastell"] .card h3{line-height:1.35;margin-bottom:4px}
-:root[data-palette="pastell"] .flash .fs{background-image:none;padding:20px}
-:root[data-palette="pastell"] .mcard .f{background:var(--sec-learn);color:var(--sec-ink);background-image:repeating-linear-gradient(45deg,transparent 0 10px,rgba(255,255,255,.22) 10px 20px)}
-:root[data-palette="pastell"] .mcard :is(.f,.b){border-radius:16px}
-:root[data-palette="pastell"] .job{border-radius:999px}
-:root[data-palette="pastell"] .today{border-radius:18px}
+:root[data-design="pastell"] :is(.msg.ai,.card,.file,.game,.q,.tile,.panel,.allnote,.fsum,.citem,.helpbox,.menu button,.notice,.textview,.pday,.answers button,.swatch,.flash .fs,.mcard .b,.mcard .f,.today,.ficon,.hero div,.job){border:1.5px solid var(--edge);box-shadow:none}
+:root[data-design="pastell"] :is(.card,.file,.game,.q,.panel,.allnote,.fsum,.tile,.pday,.citem,.helpbox,.flash .fs,.hero div){border-radius:20px}
+:root[data-design="pastell"] :is(.menu button,.notice,.textview,.answers button,.swatch){border-radius:16px}
+:root[data-design="pastell"] .notice.err{border-color:var(--red)}
+:root[data-design="pastell"] .notice.tip{border-left:6px solid var(--marker)}
+:root[data-design="pastell"] .answers button.right{border-color:var(--good)}
+:root[data-design="pastell"] .answers button.wrong{border-color:var(--red)}
+:root[data-design="pastell"] .mcard.done .b{border-color:var(--good)}
+:root[data-design="pastell"] .card{background-image:none;padding:14px 16px;line-height:1.5}
+:root[data-design="pastell"] .card h3{line-height:1.35;margin-bottom:4px}
+:root[data-design="pastell"] .flash .fs{background-image:none;padding:20px}
+:root[data-design="pastell"] .mcard .f{background:var(--sec-learn);color:var(--sec-ink);background-image:repeating-linear-gradient(45deg,transparent 0 10px,rgba(255,255,255,.22) 10px 20px)}
+:root[data-design="pastell"] .mcard :is(.f,.b){border-radius:16px}
+:root[data-design="pastell"] .job{border-radius:999px}
+:root[data-design="pastell"] .today{border-radius:18px}
 /* Chat */
-:root[data-palette="pastell"] .msg{border-radius:20px}
-:root[data-palette="pastell"] .msg.ai{border-bottom-left-radius:6px}
-:root[data-palette="pastell"] .msg.me{background:var(--sec-chat);color:var(--sec-ink);border:1.5px solid var(--edge);border-bottom-right-radius:6px}
-:root[data-palette="pastell"] .suggest button{border:1.5px dashed var(--edge);color:var(--text)}
+:root[data-design="pastell"] .msg{border-radius:20px}
+:root[data-design="pastell"] .msg.ai{border-bottom-left-radius:6px}
+:root[data-design="pastell"] .msg.me{background:var(--sec-chat);color:var(--sec-ink);border:1.5px solid var(--edge);border-bottom-right-radius:6px}
+:root[data-design="pastell"] .suggest button{border:1.5px dashed var(--edge);color:var(--text)}
 /* Knöpfe und Felder */
-:root[data-palette="pastell"] .btn{border-radius:999px;background:var(--edge);color:var(--paper);border:1.5px solid var(--edge)}
-:root[data-palette="pastell"] .btn.alt{background:var(--sheet);color:var(--text)}
-:root[data-palette="pastell"] .btn.danger,:root[data-palette="pastell"] .btn.rec{background:var(--red);color:#fff}
-:root[data-palette="pastell"] .btn.good{background:var(--good);color:#fff}
-:root[data-palette="pastell"] .btn.bad{background:var(--sheet);color:var(--red);border-color:var(--red)}
-:root[data-palette="pastell"] .iconbtn{background:var(--edge);color:var(--paper)}
-:root[data-palette="pastell"] .iconbtn.ghost{background:var(--sheet);color:var(--text);border:1.5px solid var(--edge)}
-:root[data-palette="pastell"] .iconbtn.plain{background:none;color:var(--text);border:0}
-:root[data-palette="pastell"] :is(.field input,.field textarea,.field select,.toolbar input,.chatbar select,.composer textarea,.helpbox textarea,.dateinp){border:1.5px solid var(--edge);background:var(--sheet)}
-:root[data-palette="pastell"] :is(.field input,.field select,.field textarea,.toolbar input,.chatbar select,.helpbox textarea,.dateinp){border-radius:14px}
-:root[data-palette="pastell"] .composer textarea{border-radius:22px}
-:root[data-palette="pastell"] .chip{border:1.5px solid var(--edge);color:var(--text)}
-:root[data-palette="pastell"] .examchip{color:var(--marker-ink)}
-:root[data-palette="pastell"] :is(.filters button,.htog button,.ad-toc button){border:1.5px solid var(--edge);color:var(--text);background:var(--sheet)}
-:root[data-palette="pastell"] :is(.filters button,.htog button)[aria-pressed="true"]{background:var(--edge);color:var(--paper)}
-:root[data-palette="pastell"] .seg{background:var(--sheet);border:1.5px solid var(--edge);border-radius:999px}
-:root[data-palette="pastell"] .seg button{border-radius:999px;color:var(--ink-soft)}
-:root[data-palette="pastell"] .seg button[aria-pressed="true"]{background:var(--edge);color:var(--paper);box-shadow:none}
-:root[data-palette="pastell"] .seg.look{border-radius:20px}
-:root[data-palette="pastell"] .seg.look button{border-radius:16px}
-:root[data-palette="pastell"] .askbtn{border:1.5px solid var(--edge);background:var(--sheet);color:var(--text)}
-:root[data-palette="pastell"] .askbtn[aria-pressed="true"]{background:var(--edge);color:var(--paper);border-color:var(--edge)}
-:root[data-palette="pastell"] .notebtn{border:1.5px solid var(--edge);color:var(--text)}
-:root[data-palette="pastell"] .notebtn.done{background:var(--marker);color:var(--marker-ink);border-color:var(--edge)}
-:root[data-palette="pastell"] .call .notebtn{color:var(--c-text);border-color:var(--c-line);background:var(--c-btn)}
-:root[data-palette="pastell"] .call .notebtn.done{background:var(--c-glow);color:var(--c-glow-ink);border-color:transparent}
-:root[data-palette="pastell"] .call-type .iconbtn{background:var(--c-glow);color:var(--c-glow-ink)}
+:root[data-design="pastell"] .btn{border-radius:999px;background:var(--edge);color:var(--paper);border:1.5px solid var(--edge)}
+:root[data-design="pastell"] .btn.alt{background:var(--sheet);color:var(--text)}
+:root[data-design="pastell"] .btn.danger,:root[data-design="pastell"] .btn.rec{background:var(--red);color:#fff}
+:root[data-design="pastell"] .btn.good{background:var(--good);color:#fff}
+:root[data-design="pastell"] .btn.bad{background:var(--sheet);color:var(--red);border-color:var(--red)}
+:root[data-design="pastell"] .iconbtn{background:var(--edge);color:var(--paper)}
+:root[data-design="pastell"] .iconbtn.ghost{background:var(--sheet);color:var(--text);border:1.5px solid var(--edge)}
+:root[data-design="pastell"] .iconbtn.plain{background:none;color:var(--text);border:0}
+:root[data-design="pastell"] :is(.field input,.field textarea,.field select,.toolbar input,.chatbar select,.composer textarea,.helpbox textarea,.dateinp){border:1.5px solid var(--edge);background:var(--sheet)}
+:root[data-design="pastell"] :is(.field input,.field select,.field textarea,.toolbar input,.chatbar select,.helpbox textarea,.dateinp){border-radius:14px}
+:root[data-design="pastell"] .composer textarea{border-radius:22px}
+:root[data-design="pastell"] .chip{border:1.5px solid var(--edge);color:var(--text)}
+:root[data-design="pastell"] .examchip{color:var(--marker-ink)}
+:root[data-design="pastell"] :is(.filters button,.htog button,.ad-toc button){border:1.5px solid var(--edge);color:var(--text);background:var(--sheet)}
+:root[data-design="pastell"] :is(.filters button,.htog button)[aria-pressed="true"]{background:var(--edge);color:var(--paper)}
+:root[data-design="pastell"] .seg{background:var(--sheet);border:1.5px solid var(--edge);border-radius:999px}
+:root[data-design="pastell"] .seg button{border-radius:999px;color:var(--ink-soft)}
+:root[data-design="pastell"] .seg button[aria-pressed="true"]{background:var(--edge);color:var(--paper);box-shadow:none}
+:root[data-design="pastell"] .seg.look{border-radius:20px}
+:root[data-design="pastell"] .seg.look button{border-radius:16px}
+:root[data-design="pastell"] .askbtn{border:1.5px solid var(--edge);background:var(--sheet);color:var(--text)}
+:root[data-design="pastell"] .askbtn[aria-pressed="true"]{background:var(--edge);color:var(--paper);border-color:var(--edge)}
+:root[data-design="pastell"] .notebtn{border:1.5px solid var(--edge);color:var(--text)}
+:root[data-design="pastell"] .readbtn.on{background:var(--edge);color:var(--paper);border-color:var(--edge)}
+:root[data-design="pastell"] .notebtn.done{background:var(--marker);color:var(--marker-ink);border-color:var(--edge)}
+:root[data-design="pastell"] .call .notebtn{color:var(--c-text);border-color:var(--c-line);background:var(--c-btn)}
+:root[data-design="pastell"] .call .notebtn.done{background:var(--c-glow);color:var(--c-glow-ink);border-color:transparent}
+:root[data-design="pastell"] .call-type .iconbtn{background:var(--c-glow);color:var(--c-glow-ink)}
 /* Lernen: jede Übung in ihrer eigenen Pastellfarbe */
-:root[data-palette="pastell"] .game{border-radius:22px}
-:root[data-palette="pastell"] .game:nth-child(5n+1){background:var(--sec-learn)}
-:root[data-palette="pastell"] .game:nth-child(5n+2){background:var(--sec-notes)}
-:root[data-palette="pastell"] .game:nth-child(5n+3){background:var(--sec-files)}
-:root[data-palette="pastell"] .game:nth-child(5n+4){background:var(--sec-chat)}
-:root[data-palette="pastell"] .game:nth-child(5n){background:var(--sec-progress)}
-:root[data-palette="pastell"] .game :is(h3,svg,.muted){color:var(--sec-ink)}
-:root[data-palette="pastell"] .game .due{background:var(--sheet);color:var(--text);border:1.5px solid var(--edge);border-radius:999px;padding:1px 10px}
+:root[data-design="pastell"] .game{border-radius:22px}
+:root[data-design="pastell"] .game:nth-child(5n+1){background:var(--sec-learn)}
+:root[data-design="pastell"] .game:nth-child(5n+2){background:var(--sec-notes)}
+:root[data-design="pastell"] .game:nth-child(5n+3){background:var(--sec-files)}
+:root[data-design="pastell"] .game:nth-child(5n+4){background:var(--sec-chat)}
+:root[data-design="pastell"] .game:nth-child(5n){background:var(--sec-progress)}
+:root[data-design="pastell"] .game :is(h3,svg,.muted){color:var(--sec-ink)}
+:root[data-design="pastell"] .game .due{background:var(--sheet);color:var(--text);border:1.5px solid var(--edge);border-radius:999px;padding:1px 10px}
 /* Fortschritt: große Zahlen auf Farbe, runde Balken */
-:root[data-palette="pastell"] .hero div:nth-child(1){background:var(--sec-notes)}
-:root[data-palette="pastell"] .hero div:nth-child(2){background:var(--sec-progress)}
-:root[data-palette="pastell"] .hero div:nth-child(3){background:var(--sec-learn)}
-:root[data-palette="pastell"] .hero :is(b,span,svg){color:var(--sec-ink)}
-:root[data-palette="pastell"] .tile b{font-size:28px}
-:root[data-palette="pastell"] .progress{height:12px;background:var(--sheet);border:1.5px solid var(--edge);border-radius:999px}
-:root[data-palette="pastell"] .progress i{background:var(--sec-learn);border-radius:999px}
-:root[data-palette="pastell"] .topic .progress i{background:var(--good)}
-:root[data-palette="pastell"] .topic.weak .progress i{background:var(--red)}
-:root[data-palette="pastell"] .stack{height:14px;border:1.5px solid var(--edge);border-radius:999px;background:var(--sheet)}
-:root[data-palette="pastell"] .bars{height:110px;gap:5px}
-:root[data-palette="pastell"] .bars i{border:1.5px solid var(--edge);border-radius:999px;background:var(--sec-progress);opacity:1;min-height:12px}
-:root[data-palette="pastell"] .bars i.zero{background:transparent;border-color:var(--line)}
-:root[data-palette="pastell"] .bars i.now{background:var(--marker)}
-:root[data-palette="pastell"] .pday.now{box-shadow:inset 6px 0 0 var(--marker)}
+:root[data-design="pastell"] .hero div:nth-child(1){background:var(--sec-notes)}
+:root[data-design="pastell"] .hero div:nth-child(2){background:var(--sec-progress)}
+:root[data-design="pastell"] .hero div:nth-child(3){background:var(--sec-learn)}
+:root[data-design="pastell"] .hero :is(b,span,svg){color:var(--sec-ink)}
+:root[data-design="pastell"] .tile b{font-size:28px}
+:root[data-design="pastell"] .progress{height:12px;background:var(--sheet);border:1.5px solid var(--edge);border-radius:999px}
+:root[data-design="pastell"] .progress i{background:var(--sec-learn);border-radius:999px}
+:root[data-design="pastell"] .topic .progress i{background:var(--good)}
+:root[data-design="pastell"] .topic.weak .progress i{background:var(--red)}
+:root[data-design="pastell"] .stack{height:14px;border:1.5px solid var(--edge);border-radius:999px;background:var(--sheet)}
+:root[data-design="pastell"] .bars{height:110px;gap:5px}
+:root[data-design="pastell"] .bars i{border:1.5px solid var(--edge);border-radius:999px;background:var(--sec-progress);opacity:1;min-height:12px}
+:root[data-design="pastell"] .bars i.zero{background:transparent;border-color:var(--line)}
+:root[data-design="pastell"] .bars i.now{background:var(--marker)}
+:root[data-design="pastell"] .pday.now{box-shadow:inset 6px 0 0 var(--marker)}
 /* Dateien */
-:root[data-palette="pastell"] .drop{border:2px dashed var(--edge);border-radius:22px}
-:root[data-palette="pastell"] .drop svg{color:var(--text)}
-:root[data-palette="pastell"] .ficon{background:var(--sec-files);color:var(--sec-ink);border-radius:12px}
+:root[data-design="pastell"] .drop{border:2px dashed var(--edge);border-radius:22px}
+:root[data-design="pastell"] .drop svg{color:var(--text)}
+:root[data-design="pastell"] .ficon{background:var(--sec-files);color:var(--sec-ink);border-radius:12px}
 /* Blätter (Dialoge), Notiz-Blatt, Frag Merki */
-:root[data-palette="pastell"] .sheet{border:1.5px solid var(--edge);border-bottom:0;border-radius:26px 26px 0 0}
-@media (min-width:700px){:root[data-palette="pastell"] .sheet{border-bottom:1.5px solid var(--edge);border-radius:26px}}
-:root[data-palette="pastell"] :is(.pad-bar,.pad-tools,.ask-head){border-bottom:1.5px solid var(--edge)}
-:root[data-palette="pastell"] .pad-ask{border-color:var(--edge);border-width:1.5px}
-@media (min-width:641px){:root[data-palette="pastell"] .paper{border:1.5px solid var(--edge);border-radius:20px;box-shadow:none}}
+:root[data-design="pastell"] .sheet{border:1.5px solid var(--edge);border-bottom:0;border-radius:26px 26px 0 0}
+@media (min-width:700px){:root[data-design="pastell"] .sheet{border-bottom:1.5px solid var(--edge);border-radius:26px}}
+:root[data-design="pastell"] :is(.pad-bar,.pad-tools,.ask-head){border-bottom:1.5px solid var(--edge)}
+:root[data-design="pastell"] .pad-ask{border-color:var(--edge);border-width:1.5px}
+@media (min-width:641px){:root[data-design="pastell"] .paper{border:1.5px solid var(--edge);border-radius:20px;box-shadow:none}}
 @media (prefers-reduced-motion:reduce){.call *,.call *::before,.call *::after{animation:none!important;transition:none!important}}
 @media (prefers-reduced-motion:reduce){.mcard .in,.flash .in,.progress i,.side{transition:none}.spin{animation:none}}
 </style>
-<script>var r=document.documentElement;r.setAttribute('data-palette','pastell');try{var l=JSON.parse(localStorage.getItem('merkheft.look')||'null');if(l){if(l.theme==='light'||l.theme==='dark')r.setAttribute('data-theme',l.theme);if(l.palette==='mitternacht')r.removeAttribute('data-palette');else if(/^[a-z]{2,20}$/.test(l.palette||''))r.setAttribute('data-palette',l.palette)}}catch(e){}</script>
+<script>var r=document.documentElement;r.setAttribute('data-design','pastell');r.setAttribute('data-palette','sonne');try{var l=JSON.parse(localStorage.getItem('merkheft.look')||'null');if(l){if(l.theme==='light'||l.theme==='dark')r.setAttribute('data-theme',l.theme);var p=/^[a-z]{2,20}$/.test(l.palette||'')&&l.palette!=='pastell'?l.palette:'';if(l.design==='klassisch'){r.removeAttribute('data-design');if(!p||p==='mitternacht')r.removeAttribute('data-palette');else r.setAttribute('data-palette',p)}else if(p)r.setAttribute('data-palette',p)}}catch(e){}</script>
 </head>
 <body>
 <div class="shell">
@@ -863,9 +896,17 @@ const ICON = {
 const MODE = window.claude && typeof window.claude.use === 'function' ? 'artifact' : 'server';
 
 // ---------- Zustand ----------
-const state = { projects: [], notes: [], chats: [], files: [], parts: [], cards: [], plans: [], progress: [], inks: [], notedocs: [], stats: { xp: 0, streak: 0, lastDay: '', name: '', theme: '', palette: '', lookV: 2, help: {} }, legacyChat: null };
-// lookV 2: Pastell wurde der neue Standard. Wer vorher eine Farbe gewählt hatte, sieht einmal Pastell und kann zurückwechseln.
-const normStats = d => ({ xp: d.xp || 0, streak: d.streak || 0, lastDay: d.lastDay || '', name: d.name || '', theme: d.theme || '', palette: d.lookV >= 2 ? d.palette || '' : '', lookV: 2, help: d.help && typeof d.help === 'object' ? d.help : {} });
+const state = { projects: [], notes: [], chats: [], files: [], parts: [], cards: [], plans: [], progress: [], inks: [], notedocs: [], stats: { xp: 0, streak: 0, lastDay: '', name: '', theme: '', design: '', palette: '', lookV: 3, help: {} }, legacyChat: null };
+// Aussehen: design (pastell oder klassisch) und palette (eine von sechs Farben, leer heißt Standardfarbe des Designs).
+// Ältere Stände: vor lookV 2 gab es nur das klassische Design, jetzt zeigt es dieselbe Farbe in Pastell (Mitternacht war dort der Standard).
+// lookV 2 hatte Pastell als eigene Farbe: „pastell“ oder leer heißt Pastell, jede andere Farbe war im klassischen Design gewählt.
+function lookFields(d) {
+  const v = d.lookV || 0;
+  if (v >= 3) return { design: d.design === 'klassisch' ? 'klassisch' : '', palette: d.palette || '' };
+  if (v === 2) return !d.palette || d.palette === 'pastell' ? { design: '', palette: '' } : { design: 'klassisch', palette: d.palette };
+  return { design: '', palette: d.palette && d.palette !== 'mitternacht' ? d.palette : '' };
+}
+const normStats = d => ({ xp: d.xp || 0, streak: d.streak || 0, lastDay: d.lastDay || '', name: d.name || '', theme: d.theme || '', ...lookFields(d), lookV: 3, help: d.help && typeof d.help === 'object' ? d.help : {} });
 const ui = { pid: null, cid: null, tab: 'chat', filter: 'all', noteView: 'cards' };
 const LISTS = { project: 'projects', note: 'notes', chat: 'chats', file: 'files', part: 'parts', card: 'cards', plan: 'plans', progress: 'progress', ink: 'inks', notedoc: 'notedocs' };
 let db = null, coll = null, sample = null, connecting = true, busy = false, migrated = false;
@@ -1441,10 +1482,57 @@ function saveNoteLines(full, pid, skip = '') {
   return saved;
 }
 function trimTurns(turns) { let t = turns.slice(-60); while (t.length > 2 && JSON.stringify(t).length > 150000) t = t.slice(2); return t; }
+// Knopf „Vorlesen“ unter Merkis Antworten: Die Stimme des Geräts liest vor, das kostet nichts
+const readOut = { key: null, gen: 0, u: null };
+const canRead = () => !!window.speechSynthesis && typeof window.SpeechSynthesisUtterance === 'function';
+const readBtnHtml = (t, i) => readOut.key === t.content
+  ? `<button type="button" class="notebtn readbtn on" data-tread="${i}" aria-pressed="true">${ICON.stop}Stopp</button>`
+  : `<button type="button" class="notebtn readbtn" data-tread="${i}" aria-pressed="false">${ICON.sound}Vorlesen</button>`;
+// Nur den Knopf zurücksetzen (wenn jemand anderes die Stimme braucht, zum Beispiel das Gespräch)
+function readReset() {
+  if (readOut.key === null) return;
+  readOut.key = null; readOut.u = null; readOut.gen++;
+  document.querySelectorAll('.readbtn.on').forEach(b => { b.classList.remove('on'); b.setAttribute('aria-pressed', 'false'); b.innerHTML = `${ICON.sound}Vorlesen`; });
+}
+function readStop() { if (readOut.key === null) return; readReset(); try { speechSynthesis.cancel(); } catch {} }
+function readParts(text) {
+  const clean = speakable(text).replace(/([^\s.!?…:;,])[ \t]*\n\s*/g, '$1. ').replace(/\s+/g, ' ').trim(), out = [];
+  let from = 0;
+  for (let end; (end = nextEnd(clean, from, 1)) > 0; from = end) {
+    const s = clean.slice(from, end).trim(), last = out[out.length - 1];
+    if (last && last.length + s.length < 220) out[out.length - 1] = last + ' ' + s; else out.push(...splitLong(s, 300));
+  }
+  const rest = clean.slice(from).trim(), last = out[out.length - 1];
+  if (/[\p{L}\p{N}]/u.test(rest)) { if (last && last.length + rest.length < 220) out[out.length - 1] = last + ' ' + rest; else out.push(...splitLong(rest, 300)); }
+  return out;
+}
+function readAloud(t, btn) {
+  if (!t) return;
+  if (readOut.key === t.content) { readStop(); return; }
+  readStop();
+  if (!canRead()) { toast('Dieses Gerät kann leider nicht vorlesen.'); return; }
+  const parts = readParts(t.content); if (!parts.length) return;
+  readOut.key = t.content; const gen = ++readOut.gen;
+  if (btn) { btn.classList.add('on'); btn.setAttribute('aria-pressed', 'true'); btn.innerHTML = `${ICON.stop}Stopp`; }
+  let k = 0;
+  const next = () => {
+    if (gen !== readOut.gen) return;
+    if (k >= parts.length) { readReset(); return; }
+    const u = new SpeechSynthesisUtterance(parts[k++]);
+    u.lang = 'de-DE';
+    const v = pickVoice(); if (v) u.voice = v;
+    u.rate = Math.min(1.5, Math.max(0.6, +pref('rate', '1') || 1));
+    u.onend = next;
+    u.onerror = e => { if (gen !== readOut.gen) return; if (e && /interrupted|canceled/.test(e.error || '')) readReset(); else next(); };
+    readOut.u = u; // festhalten, sonst meldet Chrome das Ende manchmal nicht
+    try { speechSynthesis.speak(u); } catch { readReset(); }
+  };
+  next();
+}
 function chatTurnHtml(t, i) {
   if (t.role === 'user') return `<div class="msg me">${esc(t.content).replace(/\n/g, '<br>')}</div>`;
   const can = Number.isInteger(i) && !t.err && /[\p{L}\p{N}]/u.test(t.content);
-  const btn = !can ? '' : t.noted ? notedHtml(t.noted) : `<button type="button" class="notebtn" data-tnote="${i}">${ICON.pin}Als Notiz</button>`;
+  const btn = !can ? '' : (t.noted ? notedHtml(t.noted) : `<button type="button" class="notebtn" data-tnote="${i}">${ICON.pin}Als Notiz</button>`) + (canRead() ? readBtnHtml(t, i) : '');
   return `<div class="msg ai">${md(t.content)}${t.saved && t.saved.length ? `<div class="saved">${t.saved.map(x => `<span>${ICON.pin}${esc(x)}</span>`).join('')}</div>` : ''}${btn ? `<div class="msg-acts">${btn}</div>` : ''}</div>`;
 }
 const notedHtml = title => `<span class="notebtn done">${ICON.check}Notiz gespeichert: ${esc(typeof title === 'string' ? title : '')}</span>`;
@@ -1496,6 +1584,7 @@ function renderChat() {
     const nf = pFiles().length, nn = pNotes().length;
     log.innerHTML = `<div class="msg ai"><p>Hi, ich bin <mark>Merki</mark>. Frag mich alles zu „${esc(p.name)}“. Was du behalten willst, speicherst du mit <b>Als Notiz</b> unter meiner Antwort.</p><p>${nf || nn ? `Ich kenne hier schon ${nf} ${nf === 1 ? 'Datei' : 'Dateien'} und ${nn} ${nn === 1 ? 'Notiz' : 'Notizen'}.` : 'Mit der Büroklammer kannst du mir Dateien geben, zum Beispiel ein Skript oder ein Foto von deinen Notizen.'}</p></div>`;
   } else log.innerHTML = c.turns.map((t, i) => chatTurnHtml(t, i)).join('');
+  if (readOut.key !== null && !document.querySelector('.readbtn.on')) readStop(); // anderer Chat: Vorlesen hört auf
   $('#suggest').hidden = !!(c && c.turns.length);
   scrollDown();
 }
@@ -1792,21 +1881,31 @@ const inkSize = strokes => { let b = 3; for (const s of strokes) b += 6 + s.pts.
 const isDark = () => { const t = document.documentElement.dataset.theme; return t ? t === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches; };
 // Aussehen (hell/dunkel, Farbe): steht in stats, gilt also auf allen Geräten. Das Gerät merkt es sich zusätzlich,
 // damit beim Start nichts aufblitzt (kleines Skript im <head>).
-const PALETTES = [['pastell', 'Pastell'], ['mitternacht', 'Mitternacht'], ['lavendel', 'Lavendel'], ['rose', 'Rosé'], ['salbei', 'Salbei'], ['ozean', 'Ozean'], ['sonne', 'Sonne']];
+const PALETTES = [['mitternacht', 'Mitternacht'], ['lavendel', 'Lavendel'], ['rose', 'Rosé'], ['salbei', 'Salbei'], ['ozean', 'Ozean'], ['sonne', 'Sonne']];
+const DESIGNS = [
+  ['pastell', 'Pastell', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="6"/><path d="M3 10h18"/><circle cx="8" cy="15.5" r="1.6" fill="currentColor" stroke="none"/></svg>'],
+  ['klassisch', 'Klassisch', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M7.5 9h9M7.5 13h9M7.5 17h5"/></svg>'],
+];
 const THEMES = [
   ['auto', 'Automatisch', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg>'],
   ['light', 'Hell', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></svg>'],
   ['dark', 'Dunkel', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>'],
 ];
-const lookOf = st => ({ theme: ['light', 'dark'].includes(st && st.theme) ? st.theme : 'auto', palette: PALETTES.some(x => x[0] === (st && st.palette)) ? st.palette : 'pastell' });
+// Ohne gewählte Farbe: im Pastell-Design Sonne (Creme und Gold), im klassischen Design Mitternacht
+const lookOf = st => {
+  const design = st && st.design === 'klassisch' ? 'klassisch' : 'pastell';
+  const pal = PALETTES.some(x => x[0] === (st && st.palette)) ? st.palette : design === 'pastell' ? 'sonne' : 'mitternacht';
+  return { theme: ['light', 'dark'].includes(st && st.theme) ? st.theme : 'auto', design, palette: pal };
+};
 let lookNow = '', darkNow = null;
 function applyLook() {
-  const l = lookOf(state.stats), key = l.theme + ' ' + l.palette;
+  const l = lookOf(state.stats), key = l.theme + ' ' + l.design + ' ' + l.palette;
   if (key === lookNow) return;
   lookNow = key;
   const r = document.documentElement;
   if (l.theme === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', l.theme);
-  if (l.palette === 'mitternacht') r.removeAttribute('data-palette'); else r.setAttribute('data-palette', l.palette);
+  if (l.design === 'pastell') r.setAttribute('data-design', 'pastell'); else r.removeAttribute('data-design');
+  if (l.palette === 'mitternacht' && l.design !== 'pastell') r.removeAttribute('data-palette'); else r.setAttribute('data-palette', l.palette);
   try { localStorage.setItem('merkheft.look', JSON.stringify(l)); } catch {}
   lookChanged();
 }
@@ -2218,6 +2317,7 @@ function openPad(orig, opts = {}) {
   q('#askClose').onclick = () => setAsk(false, true);
   q('#askSug').addEventListener('click', e => { const b = e.target.closest('button'); if (b) askSend(b.dataset.s); });
   askLog.addEventListener('click', e => {
+    const r = e.target.closest('[data-tread]'); if (r) { readAloud(qa[+r.dataset.tread], r); return; }
     const b = e.target.closest('[data-tnote]'); if (!b) return;
     noteFromTurn(qa, +b.dataset.tnote, n.projectId, () => {
       n.qa = qa;
@@ -2240,6 +2340,7 @@ function openPad(orig, opts = {}) {
   window.addEventListener('merkheft-dark', onTheme);
   const teardown = () => {
     dead = true; if (askCtl) askCtl.abort();
+    if (askLog.querySelector('.readbtn.on')) readStop();
     clearTimeout(saveT); cancelAnimationFrame(glide);
     document.removeEventListener('visibilitychange', onVis);
     window.removeEventListener('resize', onResize);
@@ -2291,6 +2392,7 @@ function dictation(ta, btn, hint) {
   return { supported: !!SR, stop, abort: () => { if (rec) { try { rec.abort(); } catch {} rec = null; } } };
 }
 function voiceNote(fromChat) {
+  readStop(); // sonst nimmt das Mikrofon die Vorlese-Stimme mit auf
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   let dict = null;
   openSheet(`<h2>Sprachnotiz</h2>
@@ -2374,7 +2476,7 @@ const voice = {
     this.live.push(u);
     try { speechSynthesis.speak(u); } catch { end(); }
   },
-  stop() { cloud.stop(); this.live = []; if (TTS_OK) { try { speechSynthesis.cancel(); } catch {} } },
+  stop() { readReset(); cloud.stop(); this.live = []; if (TTS_OK) { try { speechSynthesis.cancel(); } catch {} } },
 };
 const canSpeak = () => TTS_OK || cloudReady();
 
@@ -2567,6 +2669,7 @@ function openCall(opts = {}) {
   if (!p || call.open || padClose) return;
   if (busy) { toast('Merki antwortet gerade noch im Chat.'); return; }
   if (!aiReady()) { toast(MODE === 'artifact' ? 'Zum Reden braucht Merki die KI. Öffne das Merkheft in Claude und erlaube sie.' : 'Zum Reden braucht Merki die KI. Sie ist auf dem Server noch nicht eingerichtet.'); return; }
+  readStop();
   const name = myName(), quiz = !!opts.quiz;
   Object.assign(call, {
     open: true, pid: p.id, quiz, turn: 0, gen: 0, pending: 0, spoken: 0, streamDone: true, answer: '', ctl: null, rec: null,
@@ -3129,8 +3232,8 @@ function renderFiles() {
   const files = pFiles();
   $('#flist').innerHTML = files.length ? files.map(f => {
     const nn = state.notes.filter(n => n.projectId === f.projectId && n.fileName === f.name).length;
-    const pages = Math.round(fileLen(f) / 2500);
-    const pg = f.pages ? (f.readPages < f.pages ? `Scan: ${f.readPages} von ${f.pages} Seiten gelesen` : `${f.pages} ${f.pages === 1 ? 'Seite' : 'Seiten'}${f.scan ? ' (Scan)' : ''}`) : pages > 1 ? `etwa ${pages} Seiten Text` : '';
+    // Ältere Dateien kennen ihre Seitenzahl nicht. Früher stand hier eine Schätzung aus der Textmenge („etwa 15 Seiten“), die wie „nur 15 Seiten gelesen“ aussah.
+    const pg = f.pages ? (f.readPages < f.pages ? `Scan: ${f.readPages} von ${f.pages} Seiten gelesen` : `${f.pages} ${f.pages === 1 ? 'Seite' : 'Seiten'}${f.scan ? ' (Scan)' : ''}`) : '';
     return `<div class="file"><div class="ficon">${esc(f.kind || '')}</div><div class="fbody"><b>${esc(f.name)}</b>
       <p>${fmtSize(f.size || 0)}${pg ? ` · ${pg}` : ''} · ${new Date(f.createdAt).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}${nn ? ` · ${nn} ${nn === 1 ? 'Notiz' : 'Notizen'}` : ''}</p>
       ${f.summary ? `<p class="sum">${inl(f.summary)}</p>` : ''}
@@ -3198,31 +3301,38 @@ function deleteFile(f) {
 // ---------- Projekte ----------
 function projectSheet(p) {
   const isNew = !p;
+  let color = p ? projColor(p) : nextColor();
   openSheet(`<h2>${isNew ? 'Neues Projekt' : 'Projekt bearbeiten'}</h2>
     <div class="field"><label for="pnName">Name</label><input id="pnName" maxlength="60" value="${esc(p ? p.name : '')}" placeholder="z. B. Bio Klausur"></div>
     <div class="field"><label for="pnDesc">Worum geht's? Merki liest das bei jedem Chat.</label><textarea id="pnDesc" style="min-height:80px" placeholder="z. B. Klausur über Zellbiologie und Genetik">${esc(p ? p.desc : '')}</textarea></div>
     <div class="field"><label for="pnExam">Prüfungstermin (wenn es einen gibt)</label><input id="pnExam" type="date" value="${esc(p && p.examDate || '')}" min="${today()}"></div>
+    <div class="field"><span class="label" id="pnColL">Farbe an der Seite</span><div class="pcolors" role="group" aria-labelledby="pnColL" id="pnColor">${PCOLORS.map(([k, t]) => `<button type="button" class="pcol" data-c="${k}" style="--pc:var(--pc-${k})" aria-label="${t}" title="${t}" aria-pressed="${k === color}"></button>`).join('')}</div></div>
     <div class="row"><button class="btn" type="button" id="pnSave">${isNew ? 'Anlegen' : 'Speichern'}</button><button class="btn alt" type="button" id="pnNo">Abbrechen</button></div>`, el => {
     el.querySelector('#pnNo').onclick = closeSheet;
+    el.querySelector('#pnColor').addEventListener('click', e => {
+      const b = e.target.closest('[data-c]'); if (!b) return;
+      color = b.dataset.c;
+      el.querySelectorAll('#pnColor [data-c]').forEach(x => x.setAttribute('aria-pressed', x === b));
+    });
     el.querySelector('#pnSave').onclick = () => {
       const name = el.querySelector('#pnName').value.trim(); if (!name) return el.querySelector('#pnName').focus();
       const desc = el.querySelector('#pnDesc').value.trim().slice(0, 1000);
       const ex = el.querySelector('#pnExam').value, examDate = isDate(ex) ? ex : '';
       closeSheet();
-      if (isNew) createProject(name, desc, examDate); else put('project', { ...p, name, desc, examDate });
+      if (isNew) createProject(name, desc, examDate, color); else put('project', { ...p, name, desc, examDate, color });
     };
     setTimeout(() => el.querySelector('#pnName').focus(), 50);
   });
 }
-function createProject(name, desc = '', examDate = '') {
-  const p = { id: 'p-' + uid8(), name: name.slice(0, 60), desc, examDate, createdAt: Date.now() };
+function createProject(name, desc = '', examDate = '', color = nextColor()) {
+  const p = { id: 'p-' + uid8(), name: name.slice(0, 60), desc, examDate, color, createdAt: Date.now() };
   ui.pid = p.id; ui.cid = null; ui.tab = 'chat'; ui.filter = 'all'; saveUi();
   put('project', p); closeSide(); backHome();
 }
 function projectMenu() {
   const p = proj(); if (!p) return;
   openSheet(`<h2>${esc(p.name)}</h2><div class="menu">
-    <button type="button" id="mEdit">${ICON.edit}Name, Beschreibung und Prüfungstermin</button>
+    <button type="button" id="mEdit">${ICON.edit}Name, Farbe, Beschreibung und Prüfungstermin</button>
     <button type="button" class="danger" id="mDel">${ICON.trash}Projekt löschen</button></div>
     <button class="btn alt" type="button" id="mNo">Schließen</button>`, el => {
     el.querySelector('#mNo').onclick = closeSheet;
@@ -3244,9 +3354,23 @@ function projectMenu() {
 function renderSide() {
   $('#plist').innerHTML = sortedProjects().map(p => {
     const nn = state.notes.filter(n => n.projectId === p.id).length, nf = state.files.filter(f => f.projectId === p.id).length;
-    return `<button type="button" data-p="${esc(p.id)}" aria-current="${p.id === ui.pid}"><b>${esc(p.name)}</b><span>${nn} ${nn === 1 ? 'Notiz' : 'Notizen'}${nf ? ` · ${nf} ${nf === 1 ? 'Datei' : 'Dateien'}` : ''}</span></button>`;
+    return `<button type="button" data-p="${esc(p.id)}" aria-current="${p.id === ui.pid}"><i class="pdot" style="--pc:var(--pc-${projColor(p)})" aria-hidden="true">${esc(initial(p.name))}</i><i class="ptxt"><b>${esc(p.name)}</b><span>${nn} ${nn === 1 ? 'Notiz' : 'Notizen'}${nf ? ` · ${nf} ${nf === 1 ? 'Datei' : 'Dateien'}` : ''}</span></i></button>`;
   }).join('') || '<p class="muted" style="padding:0 6px">Noch keine Projekte</p>';
 }
+// Farbe pro Projekt: gewählt beim Anlegen oder Bearbeiten. Ohne Wahl eine feste Farbe aus der Kennung, damit jedes Projekt eine hat.
+const PCOLORS = [['gelb', 'Gelb'], ['gruen', 'Grün'], ['rosa', 'Rosa'], ['blau', 'Blau'], ['lila', 'Lila'], ['orange', 'Orange'], ['tuerkis', 'Türkis'], ['pink', 'Pink']];
+function projColor(p) {
+  if (p && PCOLORS.some(x => x[0] === p.color)) return p.color;
+  let h = 0; for (const ch of String(p && p.id || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return PCOLORS[h % PCOLORS.length][0];
+}
+// Für ein neues Projekt: die Farbe, die am seltensten vorkommt
+function nextColor() {
+  const n = Object.fromEntries(PCOLORS.map(([k]) => [k, 0]));
+  state.projects.forEach(p => { n[projColor(p)]++; });
+  return PCOLORS.reduce((a, [k]) => n[k] < n[a] ? k : a, PCOLORS[0][0]);
+}
+const initial = name => (String(name).trim().match(/[\p{L}\p{N}]/u) || ['?'])[0].toUpperCase();
 function openSide() { $('#side').classList.add('open'); $('#scrim').hidden = false; }
 function closeSide() { $('#side').classList.remove('open'); $('#scrim').hidden = true; }
 
@@ -3811,7 +3935,7 @@ function renderView() {
   ['chat', 'notes', 'files', 'learn', 'progress'].forEach(v => { $('#v-' + v).hidden = !p || ui.tab !== v; });
   document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === ui.tab));
   const mw = document.querySelector('.mainwrap'), dt = p ? ui.tab : 'home';
-  if (mw.dataset.tab !== dt) { mw.dataset.tab = dt; barColor(); }
+  if (mw.dataset.tab !== dt) { mw.dataset.tab = dt; barColor(); if (!padClose) readStop(); }
 }
 function renderAll(withChat = true) {
   ensureSelection();
@@ -3851,6 +3975,7 @@ function settingsSheet() {
   openSheet(`<h2>Einstellungen</h2>
     <div class="field"><label for="sName">Dein Name (so spricht Merki dich an)</label><input id="sName" maxlength="40" autocomplete="given-name" enterkeyhint="done" placeholder="z. B. Lena" value="${esc(myName())}"></div>
     <div class="field"><span class="label" id="sThemeL">Hell oder dunkel</span><div class="seg look" role="group" aria-labelledby="sThemeL" id="sTheme">${THEMES.map(([v, t, svg]) => `<button type="button" data-v="${v}" aria-pressed="${look.theme === v}">${svg}${t}</button>`).join('')}</div></div>
+    <div class="field"><span class="label" id="sDesignL">Design</span><div class="seg look" role="group" aria-labelledby="sDesignL" id="sDesign">${DESIGNS.map(([v, t, svg]) => `<button type="button" data-v="${v}" aria-pressed="${look.design === v}">${svg}${t}</button>`).join('')}</div></div>
     <div class="field"><span class="label" id="sPalL">Farbe</span><div class="swatches" role="group" aria-labelledby="sPalL" id="sPal">${PALETTES.map(([v, t]) => `<button type="button" class="swatch" data-palette="${v}" data-v="${v}" aria-pressed="${look.palette === v}"><i aria-hidden="true"></i><span>${t}</span></button>`).join('')}</div></div>
     <div class="field"><span class="label" id="sHelpL">So soll Merki dir helfen</span><div class="helpbox" id="sHelp" role="group" aria-labelledby="sHelpL">
       ${HELP_SEGS.map(([k, label, opts]) => `<div class="hrow"><span id="sh-${k}">${label}</span><div class="seg hs" role="group" aria-labelledby="sh-${k}" data-k="${k}">${opts.map(([v, t]) => `<button type="button" data-v="${v}" aria-pressed="${help[k] === v}">${t}</button>`).join('')}</div></div>`).join('')}
@@ -3875,10 +4000,14 @@ function settingsSheet() {
     // Farbe und Hell/Dunkel wirken sofort, das Blatt bleibt offen
     const pick = (k, box) => box.addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b || lookOf(state.stats)[k] === b.dataset.v) return;
-      state.stats[k] = b.dataset.v; saveStats();
+      // Beim Wechsel des Designs bleibt eine gewählte Farbe, die Standardfarbe passt sich an
+      if (k === 'palette' && !state.stats.design) state.stats.design = lookOf(state.stats).design === 'klassisch' ? 'klassisch' : '';
+      state.stats[k] = k === 'design' && b.dataset.v === 'pastell' ? '' : b.dataset.v; saveStats();
       box.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+      const pal = lookOf(state.stats).palette;
+      q('#sPal').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x.dataset.v === pal));
     });
-    pick('theme', q('#sTheme')); pick('palette', q('#sPal'));
+    pick('theme', q('#sTheme')); pick('design', q('#sDesign')); pick('palette', q('#sPal'));
     // Wie Merki helfen soll: wirkt ab der nächsten Antwort
     q('#sHelp').addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b) return;
@@ -3969,6 +4098,8 @@ const autoGrow = () => { const t = $('#chatin'); t.style.height = 'auto'; t.styl
 $('#chatin').addEventListener('input', autoGrow);
 $('#chatin').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && window.matchMedia('(hover:hover)').matches) { e.preventDefault(); if (!busy) $('#chatform').requestSubmit(); } });
 $('#chatlog').addEventListener('click', e => {
+  const r = e.target.closest('[data-tread]'), cr = curChat();
+  if (r && cr) { readAloud(cr.turns[+r.dataset.tread], r); return; }
   const b = e.target.closest('[data-tnote]'), c = curChat(); if (!b || !c) return;
   noteFromTurn(c.turns, +b.dataset.tnote, c.projectId, () => saveChat(c), b);
 });

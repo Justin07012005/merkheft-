@@ -122,6 +122,7 @@ const server = http.createServer((req, res) => {
     let text;
     if (isJson) text = JSON.stringify(sample(p.output_config.format.schema));
     else if (last.includes('LANG')) text = 'Teil '.repeat(400);
+    else if (last.includes('VORLESEN')) text = Array.from({ length: 12 }, (_, i) => `Satz ${i + 1}: Die Zelle teilt sich in der Mitose in **zwei** gleiche Tochterzellen.`).join(' ') + '\n- Punkt eins\n- Punkt zwei';
     else text = `Hallo! Das ist eine **Testantwort** von Merki.\n- Punkt eins\n- Punkt zwei\nNOTIZ: Testbegriff :: Das ist eine Test-Notiz aus dem Chat.`;
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' });
     let gone = false;
