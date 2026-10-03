@@ -12,6 +12,8 @@ Die App läuft als Cloudflare Worker. Die KI läuft über deinen Claude-API-Schl
    - `APP_CODE`: ein Zugangscode, mindestens 8 Zeichen
 
    Wichtig: Typ **Secret**, nicht Text. Sonst sind die Werte beim nächsten Deploy weg.
+
+   Prüfen: `https://merkheft.<deine-subdomain>.workers.dev/api/health` muss `"key":true` und `"code":true` zeigen. Steht dort noch `false`, hat die laufende Version die Secrets noch nicht. Dann unter **Deployments** die neueste Version deployen oder mit einem Push auf `main` neu bauen lassen.
 3. Der Link zum Weitergeben: `https://merkheft.<deine-subdomain>.workers.dev/#code=<APP_CODE>`
 
    Das Gerät merkt sich den Code beim ersten Öffnen.
