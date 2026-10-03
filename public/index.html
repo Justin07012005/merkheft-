@@ -226,6 +226,25 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .fbody p.sum{color:var(--text)}
 .file .acts{flex-direction:column}
 .file .acts svg{width:18px;height:18px}
+/* Zusammenfassung einer Datei */
+.fs-open{margin-top:6px;text-align:left}
+.seg.fs-tabs{margin:0;align-self:flex-start}
+.fs-pane{display:flex;flex-direction:column;gap:10px;min-width:0}
+.fsum{display:flex;flex-direction:column;gap:14px;background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:14px 16px;line-height:1.55;overflow-wrap:anywhere}
+.fs-intro{margin:0;font-size:16px;color:var(--text)}
+.fsum h3{display:flex;align-items:center;gap:6px;font:700 16px/1.3 var(--f-body);color:var(--ink);margin:0 0 6px;padding-bottom:3px;border-bottom:2px solid var(--marker)}
+.fsum h3 svg{width:16px;height:16px;flex:none}
+.fsum ul{margin:0;padding-left:1.2em}
+.fsum li{margin:.25em 0}
+.fsum strong{color:var(--ink)}
+.fsum dl{margin:0;display:flex;flex-direction:column;gap:6px}
+.fsum dl div{display:grid;grid-template-columns:minmax(80px,30%) 1fr;gap:12px}
+.fsum dt{font-weight:700;color:var(--ink)}
+.fsum dd{margin:0}
+@media (max-width:480px){.fsum dl div{grid-template-columns:1fr;gap:0}}
+.fs-merke{background:var(--paper);border-left:4px solid var(--marker);border-radius:0 10px 10px 0;padding:8px 12px 10px}
+.fs-merke h3{border-bottom:0;padding-bottom:0}
+#fsGen .spin{width:14px;height:14px}
 .textview{white-space:pre-wrap;background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:14px;max-height:50vh;overflow-y:auto;overflow-wrap:anywhere}
 
 /* Sheet (Dialog) */
@@ -1086,6 +1105,7 @@ const SCHEMA = {
   tip: obj({ tipp: S }),
   ink: obj({ titel: S, text: S }),
   notedoc: obj({ abschnitte: arr(obj({ titel: S, text: S, notizen: arr(I) })) }),
+  fsum: obj({ ueberblick: S, abschnitte: arr(obj({ titel: S, punkte: arr(S) })), begriffe: arr(obj({ begriff: S, erklaerung: S })), merke: arr(S) }),
 };
 async function imageBlock(blob) {
   const bmp = await createImageBitmap(blob).catch(() => null);
@@ -2678,6 +2698,51 @@ ${sums.map((s, i) => `Teil ${i + 1}: ${s}`).join('\n')}`, { schema: SCHEMA.sum, 
     return String((x && x.zusammenfassung) || sums.join(' '));
   } catch { return sums.join(' '); }
 }
+// Zusammenfassung einer Datei zum Lernen: Überblick, Themen mit Stichpunkten, Begriffe, Merksätze
+const SUM_JSON = `{"ueberblick": "2 bis 3 Sätze", "abschnitte": [{"titel": "...", "punkte": ["..."]}], "begriffe": [{"begriff": "...", "erklaerung": "..."}], "merke": ["..."]}`;
+function normSum(x) {
+  const s = v => String(v ?? '').trim();
+  const list = (a, n, len) => (Array.isArray(a) ? a : []).map(s).filter(Boolean).slice(0, n).map(t => t.slice(0, len));
+  const o = {
+    ueberblick: s(x && x.ueberblick).slice(0, 1200),
+    abschnitte: (Array.isArray(x && x.abschnitte) ? x.abschnitte : []).map(a => ({ titel: s(a && a.titel).slice(0, 120), punkte: list(a && a.punkte, 10, 600) })).filter(a => a.titel && a.punkte.length).slice(0, 12),
+    begriffe: (Array.isArray(x && x.begriffe) ? x.begriffe : []).map(b => ({ begriff: s(b && b.begriff).slice(0, 80), erklaerung: s(b && b.erklaerung).slice(0, 400) })).filter(b => b.begriff && b.erklaerung).slice(0, 15),
+    merke: list(x && x.merke, 6, 400),
+  };
+  return o.ueberblick || o.abschnitte.length ? o : null;
+}
+// Kurze Texte liest Merki dafür ganz, lange über die Zusammenfassungen der Teile und die Notizen daraus
+async function fileSummary(name, p, text, sums = [], notes = [], step = () => {}) {
+  let src;
+  if (text && text.length <= PART) src = `Dokument:\n${text}`;
+  else {
+    sums = sums.filter(Boolean);
+    if (!sums.length && text) {
+      const chunks = splitText(text, PART);
+      for (let k = 0; k < chunks.length; k++) {
+        step(`Teil ${k + 1} von ${chunks.length}`);
+        const x = await aiJson(`Fasse Teil ${k + 1} von ${chunks.length} des Lern-Dokuments „${name}“ auf Deutsch in 8 bis 12 Sätzen zusammen. Nenne alle wichtigen Punkte, Begriffe, Regeln und Zahlen.
+Antworte nur mit JSON: {"zusammenfassung": "..."}
+
+Teil:
+${chunks[k]}`, { schema: SCHEMA.sum });
+        sums.push(String((x && x.zusammenfassung) || ''));
+      }
+    }
+    src = `Zusammenfassungen der Teile (in Reihenfolge):\n${sums.filter(Boolean).map((t, i) => `Teil ${i + 1}: ${t}`).join('\n')}`
+      + (notes.length ? `\n\nNotizen aus dem Dokument:\n${notes.filter(n => n && (n.titel || n.inhalt)).map(n => `- ${n.titel || ''}: ${n.inhalt || ''}`).join('\n').slice(0, 20000)}` : '');
+  }
+  step('Zusammenfassung');
+  const x = await aiJson(`Schreib eine Lern-Zusammenfassung auf Deutsch für „${name}“ (Projekt „${p.name}“${p.desc ? ', ' + p.desc : ''}). Sie soll beim Lernen und Wiederholen helfen: klar gegliedert, leicht verständlich, nichts Wichtiges weglassen, nichts erfinden.
+- ueberblick: 2 bis 3 Sätze, worum es geht.
+- abschnitte: die Hauptthemen in einer sinnvollen Reihenfolge (meist der des Dokuments), 3 bis 8, bei kurzen Texten weniger. Jeder Abschnitt hat einen kurzen Titel und 2 bis 6 Punkte. Ein Punkt ist ein kurzer, vollständiger Satz, eine Regel oder eine Formel. **fett** für den wichtigsten Begriff im Punkt.
+- begriffe: die wichtigsten Fachbegriffe (höchstens 10), jeweils mit einer Erklärung in einem Satz. Leer, wenn es keine gibt.
+- merke: 3 bis 5 Sätze, die man sich unbedingt merken sollte, zum Beispiel für die Prüfung.${wishLine()}
+Antworte nur mit JSON: ${SUM_JSON}
+
+${src}`, { schema: SCHEMA.fsum, maxTokens: 8000 });
+  return normSum(x);
+}
 async function readOne(file, p, step) {
   const ext = (file.name.split('.').pop() || '').toLowerCase();
   const isImg = (file.type || '').startsWith('image/');
@@ -2701,12 +2766,13 @@ async function readOne(file, p, step) {
     if (ext === 'html' || ext === 'htm') text = (new DOMParser().parseFromString(text, 'text/html').body.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
   } else throw { msg: 'Diese Dateiart kennt Merki nicht. Es gehen PDF, Word (.docx), Text und Fotos.' };
 
-  let summary = '', notes = [];
+  let summary = '', sum = null, notes = [];
+  const sums = [];
   const known = () => pNotes(p.id).map(n => n.title).concat(notes.map(n => n && n.titel)).join('; ').slice(0, 2000) || 'keine';
   if (images) {
     const caps = await imageCaps();
     if (!caps) throw { msg: 'Fotos kann Merki nur lesen, wenn die KI verfügbar ist.' };
-    const per = Math.max(1, Math.min(caps.maxCount || 1, 8)), sums = [];
+    const per = Math.max(1, Math.min(caps.maxCount || 1, 8));
     const batches = []; for (let i = 0; i < images.length; i += per) batches.push(images.slice(i, i + per));
     for (let b = 0; b < batches.length; b++) {
       if (batches.length > 1) step(`Teil ${b + 1} von ${batches.length}`);
@@ -2717,16 +2783,15 @@ Schon vorhandene Notizen (nicht doppelt): ${known()}`, { images: batches[b], sch
       sums.push(String((x && x.zusammenfassung) || ''));
       if (x && Array.isArray(x.notizen)) notes.push(...x.notizen);
     }
-    summary = await mergeSummaries(sums, file.name);
-    if (!text && !summary) throw { msg: 'Merki konnte darauf keinen Text erkennen.' };
+    if (!text && !sums.some(Boolean)) throw { msg: 'Merki konnte darauf keinen Text erkennen.' };
   } else {
     if (!text) throw { msg: 'In der Datei steht kein lesbarer Text.' };
     if (aiReady()) {
-      const chunks = splitText(text.slice(0, MAX_TEXT), PART), sums = [];
+      const chunks = splitText(text.slice(0, MAX_TEXT), PART);
       for (let k = 0; k < chunks.length; k++) {
         if (chunks.length > 1) step(`Teil ${k + 1} von ${chunks.length}`);
         const x = await aiJson(`Du bekommst ${chunks.length > 1 ? `Teil ${k + 1} von ${chunks.length} des Lern-Dokuments` : 'ein Lern-Dokument'} „${file.name}“ für das Projekt „${p.name}“${p.desc ? ' (' + p.desc + ')' : ''}. Lies ${chunks.length > 1 ? 'diesen Teil' : 'es'} vollständig.
-Antworte nur mit JSON: {"zusammenfassung": "3 bis 5 Sätze, worum es ${chunks.length > 1 ? 'in diesem Teil' : ''} geht", ${NOTES_JSON(chunks.length > 1 ? '4 bis 10' : '5 bis 12')}}
+Antworte nur mit JSON: {"zusammenfassung": "${chunks.length > 1 ? '8 bis 12 Sätze mit allen wichtigen Punkten, Begriffen, Regeln und Zahlen dieses Teils' : '2 bis 3 Sätze, worum es geht'}", ${NOTES_JSON(chunks.length > 1 ? '4 bis 10' : '5 bis 12')}}
 Schon vorhandene Notizen (nicht doppelt): ${known()}
 
 ${chunks.length > 1 ? 'Teil' : 'Dokument'}:
@@ -2734,11 +2799,14 @@ ${chunks[k]}`, { schema: SCHEMA.doc });
         sums.push(String((x && x.zusammenfassung) || ''));
         if (x && Array.isArray(x.notizen)) notes.push(...x.notizen);
       }
-      summary = await mergeSummaries(sums, file.name);
     }
   }
   const full = text.slice(0, MAX_TEXT);
-  const f = { id: 'f-' + uid8(), projectId: p.id, name: file.name.slice(0, 120), kind, size: file.size, textLen: full.length, truncated: text.length > MAX_TEXT, summary, createdAt: Date.now() };
+  if (aiReady()) {
+    try { sum = await fileSummary(file.name, p, full, sums, notes, step); } catch (e) { console.warn('summary', e); }
+    summary = sum ? sum.ueberblick : await mergeSummaries(sums, file.name);
+  }
+  const f = { id: 'f-' + uid8(), projectId: p.id, name: file.name.slice(0, 120), kind, size: file.size, textLen: full.length, truncated: text.length > MAX_TEXT, summary, ...(sum ? { sum } : {}), createdAt: Date.now() };
   if (full.length > PART) {
     const parts = splitText(full, PART);
     f.parts = parts.length;
@@ -2768,7 +2836,7 @@ async function handleFiles(list, fromChat) {
       if (fromChat && ui.pid === p.id && !busy) {
         const c = getOrCreateChat('Datei: ' + f.name);
         c.turns.push({ role: 'user', content: 'Datei hochgeladen: ' + f.name });
-        c.turns.push({ role: 'assistant', content: `Ich habe **${f.name}** gelesen.${f.summary ? '\n\n' + f.summary : ''}${saved.length ? '\n\nDas Wichtigste steht jetzt in deinen Notizen. Frag mich gern dazu oder lass dich abfragen.' : ''}`, saved });
+        c.turns.push({ role: 'assistant', content: `Ich habe **${f.name}** gelesen.${f.summary ? '\n\n' + f.summary : ''}${f.sum ? '\n\nDie ganze Zusammenfassung mit Stichpunkten steht unter **Dateien**.' : ''}${saved.length ? '\n\nDas Wichtigste steht jetzt in deinen Notizen. Frag mich gern dazu oder lass dich abfragen.' : ''}`, saved });
         saveChat(c);
       }
       toast(saved.length ? `„${f.name}“ gelesen · ${saved.length} neue Notizen` : `„${f.name}“ gespeichert`);
@@ -2789,16 +2857,62 @@ function renderFiles() {
     const pages = Math.round(fileLen(f) / 2500);
     return `<div class="file"><div class="ficon">${esc(f.kind || '')}</div><div class="fbody"><b>${esc(f.name)}</b>
       <p>${fmtSize(f.size || 0)}${pages > 1 ? ` · etwa ${pages} Seiten Text` : ''} · ${new Date(f.createdAt).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}${nn ? ` · ${nn} ${nn === 1 ? 'Notiz' : 'Notizen'}` : ''}</p>
-      ${f.summary ? `<p class="sum">${esc(f.summary)}</p>` : ''}</div>
-      <div class="acts"><button type="button" data-view="${esc(f.id)}" aria-label="Text ansehen">${ICON.eye}</button><button type="button" data-fdel="${esc(f.id)}" aria-label="Datei löschen">${ICON.trash}</button></div></div>`;
+      ${f.summary ? `<p class="sum">${inl(f.summary)}</p>` : ''}
+      ${f.sum ? `<button type="button" class="linkbtn fs-open" data-view="${esc(f.id)}">Zusammenfassung ansehen${f.sum.abschnitte.length > 1 ? ` · ${f.sum.abschnitte.length} Themen` : ''}</button>` : ''}</div>
+      <div class="acts"><button type="button" data-view="${esc(f.id)}" aria-label="Zusammenfassung und Text ansehen">${ICON.eye}</button><button type="button" data-fdel="${esc(f.id)}" aria-label="Datei löschen">${ICON.trash}</button></div></div>`;
   }).join('') : `<p class="muted">Noch keine Dateien in diesem Projekt.</p>`;
+}
+// Fett im Fließtext (aus **...**), sonst nur Text
+const inl = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+function sumHtml(sum) {
+  return `<div class="fsum">${sum.ueberblick ? `<p class="fs-intro">${inl(sum.ueberblick)}</p>` : ''}
+    ${sum.abschnitte.map(a => `<section><h3>${esc(a.titel)}</h3><ul>${a.punkte.map(t => `<li>${inl(t)}</li>`).join('')}</ul></section>`).join('')}
+    ${sum.begriffe.length ? `<section><h3>Wichtige Begriffe</h3><dl>${sum.begriffe.map(b => `<div><dt>${esc(b.begriff)}</dt><dd>${inl(b.erklaerung)}</dd></div>`).join('')}</dl></section>` : ''}
+    ${sum.merke.length ? `<section class="fs-merke"><h3>${ICON.star}Das solltest du dir merken</h3><ul>${sum.merke.map(t => `<li>${inl(t)}</li>`).join('')}</ul></section>` : ''}</div>`;
 }
 function viewFile(f) {
   if (!f) return;
   const t = fileText(f), show = t.slice(0, 120000);
-  openSheet(`<h2>${esc(f.name)}</h2>${f.summary ? `<p class="notice">${esc(f.summary)}</p>` : ''}
-    <div class="textview">${esc(show || '(kein Text)')}</div>${t.length > show.length ? `<p class="muted">Hier siehst du den Anfang. Merki kennt die ganze Datei (${Math.round(t.length / 1000)}.000 Zeichen).</p>` : ''}${f.truncated ? '<p class="muted">Die Datei ist sehr lang. Merki hat die ersten 500.000 Zeichen gelesen.</p>' : ''}
-    <div class="row"><button class="btn alt" type="button" id="fClose">Schließen</button></div>`, el => { el.querySelector('#fClose').onclick = closeSheet; });
+  let working = false;
+  openSheet(`<h2>${esc(f.name)}</h2>
+    <div class="seg fs-tabs" role="group" aria-label="Was möchtest du sehen?" id="fsTabs"><button type="button" data-tab="sum" aria-pressed="true">Zusammenfassung</button><button type="button" data-tab="text" aria-pressed="false">Ganzer Text</button></div>
+    <div class="fs-pane" id="fsPane" aria-live="polite"></div>
+    <div class="fs-pane" id="ftPane" hidden><div class="textview">${esc(show || '(kein Text)')}</div>${t.length > show.length ? `<p class="muted">Hier siehst du den Anfang. Merki kennt die ganze Datei (${Math.round(t.length / 1000)}.000 Zeichen).</p>` : ''}${f.truncated ? '<p class="muted">Die Datei ist sehr lang. Merki hat die ersten 500.000 Zeichen gelesen.</p>' : ''}</div>
+    <div class="row"><button class="btn alt" type="button" id="fClose">Schließen</button></div>`, el => {
+    const q = sel => el.querySelector(sel);
+    q('#fClose').onclick = closeSheet;
+    const paint = (msg = '') => {
+      const cur = state.files.find(x => x.id === f.id) || f, can = aiReady() && !!t;
+      q('#fsPane').innerHTML = (cur.sum ? sumHtml(cur.sum)
+        : cur.summary ? `<div class="fsum"><p class="fs-intro">${inl(cur.summary)}</p></div>${can ? '<p class="notice tip">Das ist noch die alte, kurze Zusammenfassung. Merki kann sie jetzt ausführlich und übersichtlich schreiben, mit Themen, Stichpunkten und Merksätzen.</p>' : ''}`
+        : `<p class="muted">Zu dieser Datei gibt es noch keine Zusammenfassung.</p>`)
+        + (msg ? `<p class="notice err">${esc(msg)}</p>` : '')
+        + (can ? `<button class="btn${cur.sum ? ' alt' : ''}" type="button" id="fsGen"${working ? ' disabled' : ''}>${working ? '<span class="spin"></span>Merki fasst zusammen …' : ICON.refresh + (cur.sum ? 'Neu zusammenfassen' : 'Besser zusammenfassen')}</button>` : '');
+      const b = q('#fsGen'); if (b) b.onclick = regen;
+    };
+    const regen = async () => {
+      const p = state.projects.find(x => x.id === f.projectId);
+      if (working || !p) return;
+      working = true; paint();
+      let msg = '';
+      try {
+        const notes = state.notes.filter(n => n.projectId === f.projectId && n.fileName === f.name).map(n => ({ titel: n.title, inhalt: n.text || '' }));
+        const sum = await fileSummary(f.name, p, t, [], notes);
+        if (!sum) throw { code: 'invalid_json' };
+        const cur = state.files.find(x => x.id === f.id);
+        if (cur) put('file', { ...cur, sum, summary: sum.ueberblick || cur.summary }, false);
+        renderFiles();
+      } catch (e) { msg = aiError(e); }
+      working = false;
+      if (el.isConnected) paint(msg);
+    };
+    q('#fsTabs').addEventListener('click', e => {
+      const b = e.target.closest('button[data-tab]'); if (!b) return;
+      q('#fsTabs').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+      q('#fsPane').hidden = b.dataset.tab !== 'sum'; q('#ftPane').hidden = b.dataset.tab !== 'text';
+    });
+    paint();
+  });
 }
 function deleteFile(f) {
   fileParts(f).forEach(x => remove('part', x.id, false));
