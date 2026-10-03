@@ -1,0 +1,10 @@
+# Nur für lokale Tests. Kopieren nach .dev.vars (die Datei wird nicht hochgeladen).
+ANTHROPIC_API_KEY=hier-ein-test-schluessel
+APP_CODE=testcode123
+# Statt der echten API den Test-Server nutzen (node test/mock-anthropic.mjs, Schlüssel dann: test-key)
+# ANTHROPIC_BASE_URL=http://127.0.0.1:8788
+# Echte Stimme ausprobieren: eigener Schlüssel, oder mit dem Test-Server test-g-key bzw. test-el-key und die Adresse darunter
+# GOOGLE_TTS_KEY=
+# GOOGLE_TTS_BASE_URL=http://127.0.0.1:8788
+# ELEVENLABS_API_KEY=
+# ELEVENLABS_BASE_URL=http://127.0.0.1:8788

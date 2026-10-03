@@ -1,0 +1,19 @@
+{
+  "name": "merkheft",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Merkheft: Lern-App mit KI (Cloudflare Worker + Claude API)",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261001.1",
+    "typescript": "^5.9.0",
+    "wrangler": "^4.146.0"
+  }
+}

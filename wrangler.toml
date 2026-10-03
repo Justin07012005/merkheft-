@@ -1,0 +1,43 @@
+name = "merkheft"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+# Merkt, wenn die App die Verbindung beendet, damit Claude dann auch aufhört
+compatibility_flags = ["enable_request_signal"]
+
+# Die App selbst (index.html usw.)
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# Speicher für Notizen, Chats, Dateien usw.
+[[durable_objects.bindings]]
+name = "STORE"
+class_name = "Store"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Store"]
+
+[vars]
+# Welches Claude-Modell Merki nutzt (ein Opus-Modell ist noch stärker, kostet aber etwa das Doppelte)
+MODEL = "claude-sonnet-5-5"
+# Höchstens so viele US-Dollar KI-Kosten pro Tag (danach Pause bis morgen)
+TAGES_BUDGET_USD = "3"
+# Echte Stimme (nur mit Google- oder ElevenLabs-Schlüssel): höchstens so viele Zeichen pro Tag,
+# danach spricht Merki bis morgen mit der Gerätestimme. Etwa 1000 Zeichen sind 1 Minute.
+TTS_TAGES_ZEICHEN = "5000"
+# Höchstens so viele Zeichen pro Monat. Google schenkt 1 Million im Monat, so bleibt es kostenlos.
+TTS_MONATS_ZEICHEN = "900000"
+# Freiwillig: google oder elevenlabs, falls beide Schlüssel da sind (sonst Google)
+# TTS_ANBIETER = "google"
+# Freiwillig: feste Stimme (Google z. B. de-DE-Chirp3-HD-Leda, ElevenLabs die voice_id).
+# Nur ElevenLabs: anderes Modell. Standard ist eleven_v4_turbo, bei Problemen springt eleven_flash_v2_5 ein.
+# TTS_STIMME = ""
+# TTS_MODELL = "eleven_multilingual_v2"
+
+# Geheim, NICHT hier eintragen, sondern in Cloudflare unter
+# Settings > Variables and Secrets (Typ "Secret"):
+#   ANTHROPIC_API_KEY  dein Claude-API-Schlüssel
+#   APP_CODE           Zugangscode für die App (mindestens 8 Zeichen)
+#   GOOGLE_TTS_KEY     freiwillig: Google-Schlüssel für Merkis echte Stimme (kostenlos)
+#   ELEVENLABS_API_KEY freiwillig: ElevenLabs-Schlüssel für Merkis echte Stimme (braucht ein Abo)
