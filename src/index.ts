@@ -381,7 +381,8 @@ async function postAi(request: Request, env: Env, ctx: ExecutionContext): Promis
   const purpose = typeof input.purpose === 'string' && PURPOSES.has(input.purpose) ? input.purpose : 'other';
   const smart = !/haiku/.test(model); // Die kleinen Modelle kennen weder effort noch fallbacks
   const effort = kind === 'chat' || input.tier === 'quick' ? 'low' : 'medium';
-  const maxTokens = Math.min(Math.max(Number(input.maxTokens) || (kind === 'chat' ? 6000 : 8000), 1000), 16000);
+  // Ausführliche Zusammenfassungen langer Dateien brauchen viel Platz, darum bis 32.000
+  const maxTokens = Math.min(Math.max(Number(input.maxTokens) || (kind === 'chat' ? 6000 : 8000), 1000), 32000);
 
   const params: Anthropic.Beta.MessageCreateParamsStreaming = {
     model,

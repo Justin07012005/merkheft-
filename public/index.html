@@ -166,6 +166,15 @@ nav.tabs button[aria-selected="true"] svg{background:var(--marker);color:var(--m
 .msg ul{margin:.2em 0 .5em;padding-left:1.2em}
 .msg.thinking{color:var(--ink-soft);font-style:italic}
 .saved{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.mdtable{overflow-x:auto;margin:8px 0;max-width:100%}
+.mdtable table{border-collapse:collapse;min-width:100%;font-size:14.5px;line-height:1.4}
+.mdtable th,.mdtable td{border:1px solid var(--line);padding:6px 9px;text-align:left;vertical-align:top}
+.mdtable th{background:var(--side);font-weight:700;color:var(--ink)}
+.mdh{font:700 16px/1.3 var(--f-body);color:var(--ink);margin:12px 0 4px}
+.mdpre{white-space:pre-wrap;background:var(--side);border-radius:8px;padding:8px 10px;font-size:13.5px;overflow-x:auto}
+.mmd{margin:10px 0;overflow-x:auto;text-align:center;max-width:100%}
+.mmd svg{max-width:100%;height:auto}
+.mmd .muted{font-size:13px}
 .msg-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .readbtn.on{background:var(--marker);color:var(--marker-ink);border-color:transparent}
 .notebtn{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:none;color:var(--ink-soft);border-radius:999px;padding:5px 11px;font-size:13px;line-height:1.2;max-width:100%;overflow-wrap:anywhere;text-align:left}
@@ -219,6 +228,11 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
   background-position:0 0,0 34px;line-height:24px}
 .card h3{font:700 16px/24px var(--f-body);margin:0;color:var(--ink);overflow-wrap:anywhere}
 .card p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.ntext{overflow-wrap:anywhere;min-width:0}
+.ntext p{margin:0 0 6px}
+.ntext ul,.ntext ol{margin:0 0 6px;padding-left:1.2em}
+.ntext .mdh{margin:6px 0 2px;font-size:15px}
+.ntext>:last-child{margin-bottom:0}
 .spoken{margin-top:8px;border-left:3px solid var(--marker);padding:4px 8px 4px 10px;line-height:1.45;background:var(--paper);border-radius:0 8px 8px 0}
 .spoken b{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--ink-soft);letter-spacing:.04em;text-transform:uppercase}
 .spoken b svg{width:13px;height:13px}
@@ -285,6 +299,16 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 @media (max-width:480px){.fsum dl div{grid-template-columns:1fr;gap:0}}
 .fs-merke{background:var(--paper);border-left:4px solid var(--marker);border-radius:0 10px 10px 0;padding:8px 12px 10px}
 .fs-merke h3{border-bottom:0;padding-bottom:0}
+.fsum ol{margin:0;padding-left:1.4em}
+.fs-text p{margin:0 0 8px}
+.fs-text>:last-child{margin-bottom:6px}
+.fsum section .mdtable{margin:10px 0 4px}
+.fs-toc{background:var(--paper);border-radius:10px;padding:8px 12px 10px}
+.fs-toc b{display:block;color:var(--ink);margin-bottom:2px}
+.fs-toc li{margin:.15em 0}
+.fs-toc .linkbtn{text-align:left;padding:2px 0;min-height:0}
+.fs-fragen ol li{margin:.35em 0}
+.fs-fragen .muted{margin:8px 0 0;font-size:13.5px}
 #fsGen .spin{width:14px;height:14px}
 .textview{white-space:pre-wrap;background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:14px;max-height:50vh;overflow-y:auto;overflow-wrap:anywhere}
 
@@ -620,6 +644,8 @@ input[type=range]{accent-color:var(--ink);width:100%}
 :root[data-design="pastell"] .askbtn{border:1.5px solid var(--edge);background:var(--sheet);color:var(--text)}
 :root[data-design="pastell"] .askbtn[aria-pressed="true"]{background:var(--edge);color:var(--paper);border-color:var(--edge)}
 :root[data-design="pastell"] .notebtn{border:1.5px solid var(--edge);color:var(--text)}
+:root[data-design="pastell"] .mdtable th{background:var(--marker);color:var(--marker-ink)}
+:root[data-design="pastell"] .mdtable :is(th,td){border-color:var(--edge)}
 :root[data-design="pastell"] .readbtn.on{background:var(--edge);color:var(--paper);border-color:var(--edge)}
 :root[data-design="pastell"] .notebtn.done{background:var(--marker);color:var(--marker-ink);border-color:var(--edge)}
 :root[data-design="pastell"] .call .notebtn{color:var(--c-text);border-color:var(--c-line);background:var(--c-btn)}
@@ -953,14 +979,17 @@ async function loadLocal() {
   }
 }
 let saveT = 0;
-function saveLocal() {
+// now: sofort (wenn die App in den Hintergrund geht, kann iOS sie danach beenden)
+function saveLocal(now) {
   clearTimeout(saveT);
-  saveT = setTimeout(() => {
+  const save = () => {
+    saveT = 0;
     const d = { stats: state.stats };
     for (const k of Object.values(LISTS)) d[k] = state[k];
     if (MODE === 'server') d.sync = { rev: SYNC.rev, outbox: SYNC.outbox };
     kv.set(CACHE_KEY, d);
-  }, 250);
+  };
+  if (now) save(); else saveT = setTimeout(save, 250);
 }
 function saveUi() { try { localStorage.setItem('merkheft.ui', JSON.stringify(ui)); } catch {} }
 // Kleine Einstellungen nur für dieses Gerät (Stimme, Tempo, Stift)
@@ -1235,7 +1264,7 @@ async function startServer() {
   if (serverStarted) return;
   serverStarted = true;
   setInterval(() => { if (document.visibilityState === 'visible') pull(); }, 20000);
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { pull(); renderAll(!busy); } else flush(); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { pull(); renderAll(!busy); } else { if (saveT) saveLocal(true); flush(); } });
   window.addEventListener('online', () => flush().then(pull));
 }
 
@@ -1256,6 +1285,8 @@ function progressOf(pid) {
 }
 // Was in einer Notiz steht: getippter Text und, wenn Merki sie gelesen hat, die Handschrift
 const noteBody = n => [n.text, n.inkText ? (n.text ? 'Handschrift: ' : '') + n.inkText : ''].filter(Boolean).join('\n');
+// Notiztext mit Fett, Listen, Tabellen und Diagrammen
+const noteMd = t => `<div class="ntext">${md(t)}</div>`;
 const myName = () => String(state.stats.name || '').trim();
 function fileParts(f) { return state.parts.filter(x => x.fileId === f.id).sort((a, b) => a.i - b.i); }
 function fileText(f) { return f.parts ? fileParts(f).map(x => x.text).join('') : (f.text || ''); }
@@ -1272,12 +1303,9 @@ const S = { type: 'string' }, I = { type: 'integer' };
 const arr = items => ({ type: 'array', items });
 const obj = props => ({ type: 'object', properties: props, required: Object.keys(props), additionalProperties: false });
 const NOTE_ITEMS = arr(obj({ titel: S, inhalt: S }));
-const FSUM = obj({ ueberblick: S, abschnitte: arr(obj({ titel: S, punkte: arr(S) })), begriffe: arr(obj({ begriff: S, erklaerung: S })), merke: arr(S) });
+const FSUM = obj({ ueberblick: S, abschnitte: arr(obj({ titel: S, text: S, punkte: arr(S), tabelle: S, diagramm: S })), begriffe: arr(obj({ begriff: S, erklaerung: S })), merke: arr(S), fragen: arr(S) });
 const SCHEMA = {
   voice: obj({ titel: S, inhalt: S }),
-  doc: obj({ zusammenfassung: S, notizen: NOTE_ITEMS }),
-  scan: obj({ abschrift: S, zusammenfassung: S, notizen: NOTE_ITEMS }),
-  sum: obj({ zusammenfassung: S }),
   quiz: obj({ fragen: arr(obj({ frage: S, antworten: arr(S), richtig: I, erklaerung: S, thema: S })) }),
   memory: obj({ paare: arr(obj({ begriff: S, partner: S })) }),
   cards: obj({ karten: arr(obj({ vorderseite: S, rueckseite: S, thema: S })) }),
@@ -1289,6 +1317,8 @@ const SCHEMA = {
   fsum: FSUM,
   docsum: obj({ zusammenfassung: FSUM, notizen: NOTE_ITEMS }),
   scansum: obj({ abschrift: S, zusammenfassung: FSUM, notizen: NOTE_ITEMS }),
+  pages: obj({ seiten: arr(obj({ seite: I, text: S })) }),
+  sumtop: obj({ ueberblick: S, merke: arr(S), fragen: arr(S) }),
 };
 async function imageBlock(blob) {
   const bmp = await createImageBitmap(blob).catch(() => null);
@@ -1449,17 +1479,40 @@ function withPassages(turns, ctx) {
 
 // ---------- Chat ----------
 let ctl = null;
+// Markdown von Merki: **fett**, Listen, Zwischenüberschriften, Tabellen und Diagramme (```mermaid)
 function md(s) {
-  const lines = esc(s).replace(/\*\*(.+?)\*\*/g, '<mark>$1</mark>').split('\n');
-  let html = '', list = false, para = [];
+  const blocks = [];
+  const text = String(s ?? '').replace(/```(\w*)[^\n]*\n([\s\S]*?)(?:```|$)/g, (m, lang, body) => { blocks.push({ lang: lang.toLowerCase(), body: body.replace(/\s+$/, '') }); return `\n\u0000${blocks.length - 1}\u0000\n`; });
+  const lines = esc(text).replace(/\*\*(.+?)\*\*/g, '<mark>$1</mark>').split('\n');
+  let html = '', list = '', para = [];
   const flush = () => { if (para.length) { html += '<p>' + para.join('<br>') + '</p>'; para = []; } };
-  for (const l of lines) {
-    const m = l.match(/^\s*(?:[-*•]|\d+\.)\s+(.*)/);
-    if (m) { flush(); if (!list) { html += '<ul>'; list = true; } html += '<li>' + m[1] + '</li>'; continue; }
-    if (list) { html += '</ul>'; list = false; }
-    if (!l.trim()) flush(); else para.push(l.replace(/^#+\s*/, ''));
+  const endList = () => { if (list) { html += `</${list}>`; list = ''; } };
+  const cells = l => l.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
+  const row = l => /^\s*\|.*\|\s*$/.test(l), sep = l => /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(l);
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i], b = l.match(/^\u0000(\d+)\u0000$/);
+    if (b) {
+      flush(); endList();
+      const k = blocks[+b[1]];
+      html += k.lang === 'mermaid' ? `<div class="mmd" data-src="${esc(k.body)}"></div>` : `<pre class="mdpre">${esc(k.body)}</pre>`;
+      continue;
+    }
+    if (row(l) && i + 1 < lines.length && sep(lines[i + 1])) {
+      flush(); endList();
+      const head = cells(l), rows = [];
+      for (i += 2; i < lines.length && row(lines[i]); i++) rows.push(cells(lines[i]));
+      i--;
+      html += `<div class="mdtable"><table><thead><tr>${head.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${head.map((_, j) => `<td>${r[j] ?? ''}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+      continue;
+    }
+    const h = l.match(/^\s*#{1,4}\s+(.*)/);
+    if (h) { flush(); endList(); html += `<h4 class="mdh">${h[1]}</h4>`; continue; }
+    const m = l.match(/^\s*(?:[-*•]|(\d+)[.)])\s+(.*)/);
+    if (m) { flush(); const kind = m[1] ? 'ol' : 'ul'; if (list !== kind) { endList(); html += `<${kind}>`; list = kind; } html += '<li>' + m[2] + '</li>'; continue; }
+    endList();
+    if (!l.trim()) flush(); else para.push(l);
   }
-  flush(); if (list) html += '</ul>';
+  flush(); endList();
   return html;
 }
 const NOTE_RE = /^\s*NOTIZ:\s*(.+?)\s*::\s*(.+?)(?:\s*::\s*(.+?))?\s*$/gm;
@@ -1554,17 +1607,17 @@ async function noteFromTurn(turns, i, pid, persist, btn) {
   let title = '', text = '';
   if (aiReady()) {
     try {
-      const x = await aiJson(`Mach aus dieser Antwort von Merki eine Lernnotiz auf Deutsch. Übernimm alle Lerninhalte vollständig (Erklärungen, Regeln, Formeln, Zahlen, Beispiele, Eselsbrücken) und gliedere sie übersichtlich. Lass nur Begrüßung, Lob, Smalltalk und Rückfragen an die Person weg. Erfinde nichts dazu. Formatierung: **fett** für Schlüsselbegriffe, Listen mit "- ".
+      const x = await aiJson(`Mach aus dieser Antwort von Merki eine Lernnotiz auf Deutsch. Übernimm alle Lerninhalte vollständig (Erklärungen, Regeln, Formeln, Zahlen, Beispiele, Eselsbrücken) und gliedere sie übersichtlich. Lass nur Begrüßung, Lob, Smalltalk und Rückfragen an die Person weg. Erfinde nichts dazu. Formatierung: **fett** für Schlüsselbegriffe, Listen mit "- ". Tabellen (Markdown) und Diagramme (\`\`\`mermaid … \`\`\`) aus der Antwort übernimmst du vollständig.
 "titel" ist ein kurzer, passender Titel mit höchstens 6 Wörtern.
 Antworte nur mit JSON: {"titel": "...", "inhalt": "..."}
 ${qText ? `\nFrage der Person dazu: ${qText.slice(0, 1500)}\n` : ''}
 Antwort von Merki:
-${t.content.slice(0, 12000)}`, { schema: SCHEMA.voice, tier: 'quick', maxTokens: 4000, purpose: 'note' });
+${t.content.slice(0, 12000)}`, { schema: SCHEMA.voice, tier: 'quick', maxTokens: 8000, purpose: 'note' });
       title = String((x && x.titel) || '').trim().slice(0, 120);
-      text = String((x && x.inhalt) || '').trim().slice(0, 6000);
+      text = String((x && x.inhalt) || '').trim().slice(0, 12000);
     } catch (e) { console.warn('note', e); }
   }
-  if (!text) text = t.content.replace(/\s*…$/, '').slice(0, 6000);
+  if (!text) text = t.content.replace(/\s*…$/, '').slice(0, 12000);
   if (!title) title = noteTitleFallback(t.content, qText);
   put('note', { id: 'n-' + uid8(), projectId: pid, title, text, source: 'chat', createdAt: Date.now() }, false);
   t.noted = title;
@@ -1601,7 +1654,7 @@ const NOTE_RULE = `Notizen: Unter jeder deiner Antworten hat die Person einen Kn
 Nur wenn sie dich in ihrer letzten Nachricht ausdrücklich bittet, etwas zu notieren oder zu merken, hänge GANZ AM ENDE deiner Antwort pro Punkt eine eigene Zeile in genau diesem Format an:
 NOTIZ: <kurzer Titel> :: <Inhalt in 1 bis 4 klaren Sätzen>
 Höchstens 6 solche Zeilen, keine doppelten zu vorhandenen Notizen. Erwähne diese Zeilen nicht im Text, sag nur kurz, dass du es notiert hast.`;
-const RULES = `Du bist "Merki", ein freundlicher, geduldiger Lernbegleiter in der Lern-App "Merkheft". Antworte immer auf Deutsch, locker und leicht verständlich, eher kurz, mit Beispielen und Eselsbrücken. Formatierung: **fett** für Schlüsselbegriffe, Listen mit "- ". Keine Überschriften, keine Tabellen.
+const RULES = `Du bist "Merki", ein freundlicher, geduldiger Lernbegleiter in der Lern-App "Merkheft". Antworte immer auf Deutsch, verständlich und fachlich genau, mit Beispielen und Eselsbrücken. So ausführlich, wie die Frage es braucht. Formatierung: **fett** für Schlüsselbegriffe, Listen mit "- ", bei langen Antworten Zwischenüberschriften mit "### ". Wenn es etwas zu vergleichen oder einzuordnen gibt, nutze eine Markdown-Tabelle. Wenn ein Ablauf, Kreislauf oder Zusammenhang mit einem Bild besser zu verstehen ist, zeichne ein Mermaid-Diagramm in einem Block \`\`\`mermaid (flowchart TD, flowchart LR, mindmap oder timeline, jede Beschriftung in Anführungszeichen, zum Beispiel A["Prophase"] --> B["Metaphase"]). Tabellen und Diagramme nur, wenn sie wirklich helfen.
 Nutze die Dateien und Notizen des Projekts. Wenn du etwas daraus hast, sag aus welcher Datei. Wenn du abfragst: immer nur eine Frage, warte auf die Antwort, lobe ehrlich und korrigiere freundlich.
 
 ` + NOTE_RULE;
@@ -1617,21 +1670,28 @@ So redest du:
 
 ` + NOTE_RULE;
 // Fragebot neben einer Notiz
-const ASK_RULES = `Du bist "Merki", ein freundlicher, geduldiger Lernbegleiter in der Lern-App "Merkheft". Gerade schaut sich die Person eine einzelne Notiz an und stellt dir Fragen dazu. Beziehe dich vor allem auf diese Notiz und nutze die Dateien und anderen Notizen des Projekts, wenn sie helfen. Antworte immer auf Deutsch, locker, eher kurz und leicht verständlich, mit Beispielen und Eselsbrücken. Formatierung: **fett** für Schlüsselbegriffe, Listen mit "- ". Keine Überschriften, keine Tabellen.
+const ASK_RULES = `Du bist "Merki", ein freundlicher, geduldiger Lernbegleiter in der Lern-App "Merkheft". Gerade schaut sich die Person eine einzelne Notiz an und stellt dir Fragen dazu. Beziehe dich vor allem auf diese Notiz und nutze die Dateien und anderen Notizen des Projekts, wenn sie helfen. Antworte immer auf Deutsch, verständlich und fachlich genau, mit Beispielen und Eselsbrücken. Formatierung: **fett** für Schlüsselbegriffe, Listen mit "- ", bei langen Antworten Zwischenüberschriften mit "### ". Wenn es etwas zu vergleichen oder einzuordnen gibt, nutze eine Markdown-Tabelle. Wenn ein Ablauf, Kreislauf oder Zusammenhang mit einem Bild besser zu verstehen ist, zeichne ein Mermaid-Diagramm in einem Block \`\`\`mermaid (flowchart TD, flowchart LR, mindmap oder timeline, jede Beschriftung in Anführungszeichen, zum Beispiel A["Prophase"] --> B["Metaphase"]). Tabellen und Diagramme nur, wenn sie wirklich helfen.
 Wenn in der Notiz etwas falsch oder unklar ist, sag es freundlich. Wenn du abfragst: immer nur eine Frage, warte auf die Antwort, lobe ehrlich und korrigiere freundlich.
 
 ` + NOTE_RULE;
 // Wie Merki helfen soll (Einstellungen). Steht in stats, gilt also auf allen Geräten.
-const HELP_DEF = { len: 'normal', tone: 'locker', ex: true, mnemo: true, quiz: false, steps: false, wish: '' };
+const HELP_DEF = { level: 'uni', len: 'normal', tone: 'locker', ex: true, mnemo: true, quiz: false, steps: false, wish: '' };
 const helpOf = () => ({ ...HELP_DEF, ...(state.stats.help || {}) });
 const HELP_SEGS = [
+  ['level', 'Niveau', [['schule', 'Schule'], ['uni', 'Uni']]],
   ['len', 'Antworten', [['kurz', 'Kurz'], ['normal', 'Normal'], ['lang', 'Ausführlich']]],
   ['tone', 'Ton', [['locker', 'Locker'], ['sachlich', 'Sachlich']]],
 ];
 const HELP_TOGS = [['ex', 'Mit Beispielen'], ['mnemo', 'Mit Eselsbrücken'], ['quiz', 'Oft abfragen'], ['steps', 'Schritt für Schritt']];
 const helpWish = () => String(helpOf().wish || '').replace(/\s+/g, ' ').trim().slice(0, 600);
+// Niveau: Sie lernt für Klausuren an der Uni, deshalb ist „Uni“ der Standard
+const LEVEL_TEXT = {
+  uni: 'Niveau Universität: Die Person bereitet sich auf Klausuren an der Uni vor. Arbeite fachlich genau und anspruchsvoll, mit Fachbegriffen, Definitionen, Herleitungen, Zusammenhängen und Beispielen. Vereinfache nie so stark, dass etwas Prüfungsrelevantes verloren geht.',
+  schule: 'Niveau Schule: Erkläre verständlich und mit einfachen Worten, Fachbegriffe immer kurz erklären.',
+};
+const levelText = () => LEVEL_TEXT[helpOf().level] || LEVEL_TEXT.uni;
 function helpText(spoken) {
-  const h = helpOf(), out = [];
+  const h = helpOf(), out = [levelText()];
   if (h.len === 'kurz') out.push(spoken ? 'Antworte besonders kurz, meistens 1 bis 2 Sätze.' : 'Antworte besonders kurz und knapp, nur das Wichtigste.');
   if (h.len === 'lang') out.push(spoken ? 'Du darfst etwas ausführlicher erklären, bis zu 6 Sätze.' : 'Erkläre ausführlich und gründlich, mit Hintergründen und Zusammenhängen.');
   if (h.tone === 'sachlich') out.push('Bleib sachlich und ruhig, wenig Smalltalk, keine Emojis.');
@@ -1644,7 +1704,7 @@ function helpText(spoken) {
   return out.length ? '\n\nSo möchte die Person mit dir lernen. Das gilt vor den Regeln oben:\n- ' + out.join('\n- ') : '';
 }
 // Für Quiz, Karten und Co.: nur der Wunsch aus den Einstellungen
-const wishLine = () => helpWish() ? `\nWunsch der Person (beachte ihn, wenn er hier passt, zum Beispiel Schwerpunkt oder Schwierigkeit): „${helpWish()}“` : '';
+const wishLine = () => `\n${levelText()}` + (helpWish() ? `\nWunsch der Person (beachte ihn, wenn er hier passt, zum Beispiel Schwerpunkt oder Schwierigkeit): „${helpWish()}“` : '');
 const who = (spoken = false) => (myName() ? `\n\nDie Person, mit der du lernst, heißt ${myName()}. Sprich sie ab und zu mit ihrem Namen an.` : '') + helpText(spoken);
 
 async function send(text) {
@@ -1707,7 +1767,7 @@ function renderNotes() {
     const spoken = n.source === 'voice' && n.raw && n.raw.trim() !== (n.text || '').trim() ? `<div class="spoken"><b>${ICON.mic}Gesprochen</b><p>${esc(n.raw)}</p></div>` : '';
     const read = !ink ? '' : reading.has(n.id) ? `<p class="inkread"><span class="spin"></span>Merki liest deine Handschrift …</p>`
       : n.inkText && n.inkRead === ink.v ? `<p class="inkread">Merki liest: ${esc(n.inkText.length > 160 ? n.inkText.slice(0, 160) + ' …' : n.inkText)}</p>` : '';
-    return `<article class="card clickable" data-open="${esc(n.id)}"><h3>${esc(n.title)}</h3>${n.text ? `<p>${esc(n.text)}</p>` : ''}${thumb ? `<img class="inkthumb" src="${thumb}" alt="Handschrift">` : ''}${read}${spoken}
+    return `<article class="card clickable" data-open="${esc(n.id)}"><h3>${esc(n.title)}</h3>${n.text ? noteMd(n.text) : ''}${thumb ? `<img class="inkthumb" src="${thumb}" alt="Handschrift">` : ''}${read}${spoken}
       <div class="meta"><span>${src} ${new Date(n.createdAt || Date.now()).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}</span>
       <span class="acts">${aiReady() ? `<button type="button" data-ask="${esc(n.id)}" aria-label="Merki zu dieser Notiz fragen">${ICON.ask}</button>` : ''}<button type="button" data-edit="${esc(n.id)}" aria-label="Bearbeiten">${ICON.edit}</button><button type="button" data-del="${esc(n.id)}" aria-label="Löschen">${ICON.trash}</button></span></div></article>`;
   }).join('');
@@ -1784,7 +1844,7 @@ function renderAllNote() {
   const canAi = aiReady() && notes.length >= 2;
   const noteHtml = n => {
     const ink = inkOf(n), body = noteBody(n);
-    return `<div class="ad-note"><button type="button" class="ad-t" data-open="${esc(n.id)}">${esc(n.title)}</button>${body ? `<p>${esc(body)}</p>` : ''}${ink && !n.inkText ? `<img class="inkthumb" src="${inkThumb(ink)}" alt="Handschrift">` : ''}</div>`;
+    return `<div class="ad-note"><button type="button" class="ad-t" data-open="${esc(n.id)}">${esc(n.title)}</button>${body ? noteMd(body) : ''}${ink && !n.inkText ? `<img class="inkthumb" src="${inkThumb(ink)}" alt="Handschrift">` : ''}</div>`;
   };
   const secHtml = (a, i) => {
     const src = a.n.map(id => byId.get(id)).filter(Boolean);
@@ -1920,6 +1980,7 @@ function barColor() {
 // Statusleiste in der Farbe des Hintergrunds; Handschrift-Vorschauen neu zeichnen, wenn hell/dunkel wechselt
 function lookChanged() {
   barColor();
+  document.querySelectorAll('.mmd[data-state]').forEach(e => e.removeAttribute('data-state')); // Diagramme in den neuen Farben
   const d = isDark();
   if (darkNow !== null && d !== darkNow) { if (proj()) renderNotes(); window.dispatchEvent(new Event('merkheft-dark')); }
   darkNow = d;
@@ -2614,7 +2675,8 @@ function splitLong(t, max = 600) {
 }
 // Vorlesbarer Text: ohne Sternchen, Listenzeichen, Pfeile und Emojis
 function speakable(t) {
-  return String(t).replace(/\*\*|__|`/g, '').replace(/^\s*(?:[-*•]|\d+[.)])\s+/gm, '').replace(/[#>*_~|]/g, '')
+  return String(t).replace(/```[\s\S]*?(?:```|$)/g, ' ').replace(/^[ \t]*\|?[ \t]*:?-{2,}[-:| \t]*$/gm, '')
+    .replace(/^[ \t]*\|(.*)\|[ \t]*$/gm, (m, r) => r.split('|').map(c => c.trim()).filter(Boolean).join(', ') + '.').replace(/\*\*|__|`/g, '').replace(/^\s*(?:[-*•]|\d+[.)])\s+/gm, '').replace(/[#>*_~|]/g, '')
     .replace(/\s*(?:->|→|⇒)\s*/g, ', ').replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, '').replace(/[ \t]+/g, ' ');
 }
 // Ende des nächsten fertigen Satzes ab "from", mindestens "min" Zeichen lang (nicht bei "z. B." oder "3. Mai")
@@ -2992,8 +3054,35 @@ const LIBS = {
   pdf: [['https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'],
         ['https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js', 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js']],
   docx: [['https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js'], ['https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js']],
+  mermaid: [['https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.12.0/mermaid.min.js'], ['https://cdn.jsdelivr.net/npm/mermaid@11.12.0/dist/mermaid.min.js']],
 };
-const LIB_OK = { pdf: () => window.pdfjsLib && window.pdfjsWorker, docx: () => window.mammoth };
+const LIB_OK = { pdf: () => window.pdfjsLib && window.pdfjsWorker, docx: () => window.mammoth, mermaid: () => window.mermaid && typeof window.mermaid.render === 'function' };
+// Diagramme (Mermaid) zeichnen, sobald welche auf dem Bildschirm sind. Das Programm dafür lädt erst beim ersten Diagramm.
+// Gezeichnet wird erst, wenn sich eine halbe Sekunde nichts mehr ändert (nicht mitten in einer Antwort, die noch kommt).
+let mmdTimer = 0, mmdN = 0, mmdLook = '', mmdBusy = false;
+function mmdTheme() {
+  const cs = getComputedStyle(document.documentElement), v = k => cs.getPropertyValue('--' + k).trim();
+  return { theme: 'base', darkMode: isDark(), themeVariables: { fontFamily: 'Atkinson Hyperlegible, system-ui, sans-serif', fontSize: '15px', primaryColor: v('marker'), primaryTextColor: v('marker-ink'), primaryBorderColor: v('ink'), lineColor: v('ink-soft'), secondaryColor: v('side'), tertiaryColor: v('sheet'), background: v('sheet'), textColor: v('text'), mainBkg: v('marker'), nodeTextColor: v('marker-ink') } };
+}
+async function drawDiagrams() {
+  if (mmdBusy) { clearTimeout(mmdTimer); mmdTimer = setTimeout(drawDiagrams, 300); return; }
+  const els = [...document.querySelectorAll('.mmd:not([data-state])')]; if (!els.length) return;
+  mmdBusy = true;
+  els.forEach(e => { e.dataset.state = 'wait'; if (!e.querySelector('svg')) e.innerHTML = '<span class="muted">Diagramm wird gezeichnet …</span>'; });
+  try {
+    try { await lib('mermaid'); } catch { els.forEach(e => { e.dataset.state = 'err'; e.innerHTML = '<span class="muted">Für das Diagramm braucht Merki Internet.</span>'; }); return; }
+    const key = (isDark() ? 'd' : 'l') + document.documentElement.dataset.palette + document.documentElement.dataset.design;
+    if (key !== mmdLook) { mmdLook = key; window.mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', ...mmdTheme(), flowchart: { htmlLabels: false, useMaxWidth: true } }); }
+    for (const e of els) {
+      if (!e.isConnected) continue;
+      const id = 'mmd' + (++mmdN);
+      try { const { svg } = await window.mermaid.render(id, e.dataset.src || ''); e.innerHTML = svg; e.dataset.state = 'ok'; }
+      catch { e.dataset.state = 'err'; e.innerHTML = '<span class="muted">Dieses Diagramm konnte Merki nicht zeichnen.</span>'; }
+      const junk = document.getElementById('d' + id); if (junk) junk.remove();
+    }
+  } finally { mmdBusy = false; }
+}
+new MutationObserver(() => { clearTimeout(mmdTimer); mmdTimer = setTimeout(drawDiagrams, 500); }).observe(document.body, { childList: true, subtree: true });
 function loadScript(src) {
   return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => { s.remove(); rej(new Error(src)); }; document.head.appendChild(s); });
 }
@@ -3009,18 +3098,25 @@ async function pdfDoc(file) {
   await lib('pdf');
   return window.pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false }).promise;
 }
-async function pdfText(pdf, onPage) {
-  let out = '';
-  for (let i = 1; i <= pdf.numPages && out.length < MAX_TEXT; i++) {
+const PIC_TEXT = 200; // Seiten mit weniger Zeichen und einem Bild darauf liest Merki als Bild
+const MAX_PIC = 80;   // so viele Bildseiten pro Datei höchstens
+// Text jeder Seite (bis MAX_TEXT insgesamt, Seiten danach sind null)
+async function pdfPageTexts(pdf, onPage) {
+  const out = []; let len = 0;
+  for (let i = 1; i <= pdf.numPages; i++) {
     if (onPage && i % 10 === 0) onPage(i, pdf.numPages);
+    if (len >= MAX_TEXT) { out.push(null); continue; }
     const tc = await (await pdf.getPage(i)).getTextContent();
-    out += tc.items.map(it => it.str + (it.hasEOL ? '\n' : ' ')).join('') + '\n\n';
+    const t = tc.items.map(it => it.str + (it.hasEOL ? '\n' : ' ')).join('').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+    out.push(t); len += t.length;
   }
-  return out.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  return out;
 }
-async function pdfImages(pdf, max) {
+async function pdfText(pdf, onPage) { return (await pdfPageTexts(pdf, onPage)).filter(Boolean).join('\n\n'); }
+// Seiten als Bilder (Liste von Seitenzahlen)
+async function pdfImages(pdf, list) {
   const blobs = [];
-  for (let i = 1; i <= Math.min(pdf.numPages, max); i++) {
+  for (const i of list) {
     const page = await pdf.getPage(i), vp1 = page.getViewport({ scale: 1 }), vp = page.getViewport({ scale: Math.min(2, 1400 / vp1.width) });
     const cv = document.createElement('canvas'); cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
     await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
@@ -3037,79 +3133,157 @@ function splitText(t, size) {
   if (t.trim()) out.push(t);
   return out;
 }
-const NOTES_JSON = n => `"notizen": [{"titel": "kurzer Titel", "inhalt": "1 bis 4 klare Sätze"}] mit ${n} Lernpunkten (Begriffe, Regeln, Formeln, Daten, Beispiele, Zusammenhänge)`;
-async function mergeSummaries(sums, name) {
-  sums = sums.filter(Boolean);
-  if (sums.length < 2) return sums[0] || '';
-  try {
-    const x = await aiJson(`Das sind Zusammenfassungen der Teile von „${name}“ (in Reihenfolge). Fasse sie zu einer Gesamtzusammenfassung in 4 bis 6 Sätzen auf Deutsch zusammen.
-Antworte nur mit JSON: {"zusammenfassung": "..."}
-
-${sums.map((s, i) => `Teil ${i + 1}: ${s}`).join('\n')}`, { schema: SCHEMA.sum, tier: 'quick', purpose: 'file' });
-    return String((x && x.zusammenfassung) || sums.join(' '));
-  } catch { return sums.join(' '); }
-}
+const NOTE_HOW = 'Jede Notiz ist ein eigener Lernpunkt (Begriff, Regel, Formel, Mechanismus, Ablauf, Daten, Beispiel, Zusammenhang). "inhalt": 2 bis 8 Sätze, fachlich genau: Definition, Erklärung, Beispiel, bei Formeln die Bedeutung der Zeichen. Für Vergleiche darf eine Markdown-Tabelle drin sein.';
+const NOTES_JSON = n => `"notizen": [{"titel": "kurzer Titel", "inhalt": "2 bis 8 Sätze"}] mit ${n} Lernpunkten. ${NOTE_HOW}`;
 // Zusammenfassung einer Datei zum Lernen: Überblick, Themen mit Stichpunkten, Begriffe, Merksätze
-const SUM_JSON = `{"ueberblick": "2 bis 3 Sätze", "abschnitte": [{"titel": "...", "punkte": ["..."]}], "begriffe": [{"begriff": "...", "erklaerung": "..."}], "merke": ["..."]}`;
-const SUM_RULES = `Sie soll beim Lernen und Wiederholen helfen: klar gegliedert, leicht verständlich, nichts Wichtiges weglassen, nichts erfinden.
-- ueberblick: 2 bis 3 Sätze, worum es geht.
-- abschnitte: die Hauptthemen in einer sinnvollen Reihenfolge (meist der des Dokuments), 3 bis 8, bei kurzen Texten weniger. Jeder Abschnitt hat einen kurzen Titel und 2 bis 6 Punkte. Ein Punkt ist ein kurzer, vollständiger Satz, eine Regel oder eine Formel. **fett** für den wichtigsten Begriff im Punkt.
-- begriffe: die wichtigsten Fachbegriffe (höchstens 10), jeweils mit einer Erklärung in einem Satz. Leer, wenn es keine gibt.
-- merke: 3 bis 5 Sätze, die man sich unbedingt merken sollte, zum Beispiel für die Prüfung.`;
-function normSum(x) {
+const SUM_JSON = `{"ueberblick": "3 bis 5 Sätze", "abschnitte": [{"titel": "...", "text": "Erklärung in ganzen Sätzen", "punkte": ["..."], "tabelle": "Markdown-Tabelle oder leer", "diagramm": "Mermaid oder leer"}], "begriffe": [{"begriff": "...", "erklaerung": "..."}], "merke": ["..."], "fragen": ["..."]}`;
+// Uni-Niveau: lieber vollständig als knapp. Tabellen und Diagramme, wo sie beim Verstehen helfen.
+const SUM_RULES = `Sie muss zum Lernen für die Klausur reichen: vollständig, fachlich genau und gut gegliedert. Nichts Prüfungsrelevantes weglassen, nichts erfinden, lieber zu viel Inhalt als zu wenig.
+- ueberblick: 3 bis 5 Sätze: worum es geht und wie die Themen zusammenhängen.
+- abschnitte: alle Themen in sinnvoller Reihenfolge (meist der des Dokuments), so viele wie nötig, bis 20. Jeder Abschnitt hat:
+  - titel: kurz.
+  - text: eine Erklärung in ganzen Sätzen (1 bis 3 Absätze), die Zusammenhänge, Ursachen, Mechanismen und Abläufe erklärt, wie ein gutes Lehrbuch.
+  - punkte: 3 bis 12 Punkte mit allen Einzelheiten: Definitionen, Formeln mit der Bedeutung der Zeichen, Regeln, Zahlen, Ausnahmen, Beispiele. **fett** für Schlüsselbegriffe.
+  - tabelle: wenn es etwas zu vergleichen oder einzuordnen gibt (Unterschiede, Eigenschaften, Einteilungen, Phasen), eine Markdown-Tabelle (erste Zeile | Spalte | Spalte |, zweite Zeile |---|---|), sonst "".
+  - diagramm: wenn ein Ablauf, Kreislauf, eine Einteilung oder eine Zeitleiste mit Bild besser zu verstehen ist, ein Mermaid-Diagramm, sonst "". Es beginnt mit "flowchart TD", "flowchart LR", "mindmap" oder "timeline". Jede Beschriftung steht in Anführungszeichen, zum Beispiel A["Prophase"] --> B["Metaphase"]. Kurze Beschriftungen. Nur wo es wirklich hilft, nicht in jedem Abschnitt.
+- begriffe: alle wichtigen Fachbegriffe (bis 30), jeweils mit einer genauen Erklärung in 1 bis 2 Sätzen.
+- merke: 5 bis 10 Kernaussagen, die man in der Klausur sicher wissen muss.
+- fragen: 5 bis 10 typische Klausurfragen zu diesem Stoff, ohne Antwort, auch Verständnis- und Transferfragen.`;
+// Diagramme nur mit bekannten Arten, Codeblock-Zeichen weg
+const cleanMermaid = t => { t = String(t || '').replace(/^\s*```(?:mermaid)?\s*/i, '').replace(/```\s*$/, '').trim(); return /^(flowchart|graph|mindmap|timeline|sequenceDiagram|stateDiagram(-v2)?|classDiagram|pie|quadrantChart)\b/.test(t) ? t.slice(0, 3000) : ''; };
+const cleanTable = t => { t = String(t || '').replace(/^\s*```\w*\s*/, '').replace(/```\s*$/, '').trim(); return /^\s*\|.*\|\s*\n\s*\|?\s*:?-{2,}/.test(t) ? t.slice(0, 5000) : ''; };
+function normSum(x, maxSecs = 20) {
   const s = v => String(v ?? '').trim();
   const list = (a, n, len) => (Array.isArray(a) ? a : []).map(s).filter(Boolean).slice(0, n).map(t => t.slice(0, len));
   const o = {
-    ueberblick: s(x && x.ueberblick).slice(0, 1200),
-    abschnitte: (Array.isArray(x && x.abschnitte) ? x.abschnitte : []).map(a => ({ titel: s(a && a.titel).slice(0, 120), punkte: list(a && a.punkte, 10, 600) })).filter(a => a.titel && a.punkte.length).slice(0, 12),
-    begriffe: (Array.isArray(x && x.begriffe) ? x.begriffe : []).map(b => ({ begriff: s(b && b.begriff).slice(0, 80), erklaerung: s(b && b.erklaerung).slice(0, 400) })).filter(b => b.begriff && b.erklaerung).slice(0, 15),
-    merke: list(x && x.merke, 6, 400),
+    ueberblick: s(x && x.ueberblick).slice(0, 2000),
+    abschnitte: (Array.isArray(x && x.abschnitte) ? x.abschnitte : []).map(a => ({ titel: s(a && a.titel).slice(0, 120), text: s(a && a.text).slice(0, 5000), punkte: list(a && a.punkte, 14, 900), tabelle: cleanTable(a && a.tabelle), diagramm: cleanMermaid(a && a.diagramm) }))
+      .filter(a => a.titel && (a.punkte.length || a.text)).slice(0, maxSecs),
+    begriffe: (Array.isArray(x && x.begriffe) ? x.begriffe : []).map(b => ({ begriff: s(b && b.begriff).slice(0, 80), erklaerung: s(b && b.erklaerung).slice(0, 600) })).filter(b => b.begriff && b.erklaerung).slice(0, 40),
+    merke: list(x && x.merke, 12, 500),
+    fragen: list(x && x.fragen, 12, 400),
   };
   return o.ueberblick || o.abschnitte.length ? o : null;
 }
-// Kurze Texte liest Merki dafür ganz, lange über die Zusammenfassungen der Teile und die Notizen daraus
-async function fileSummary(name, p, text, sums = [], notes = [], step = () => {}) {
-  let src;
-  if (text && text.length <= PART) src = `Dokument:\n${text}`;
-  else {
-    sums = sums.filter(Boolean);
-    if (!sums.length && text) {
-      const chunks = splitText(text, PART);
-      for (let k = 0; k < chunks.length; k++) {
-        step(`Teil ${k + 1} von ${chunks.length}`);
-        const x = await aiJson(`Fasse Teil ${k + 1} von ${chunks.length} des Lern-Dokuments „${name}“ auf Deutsch in 8 bis 12 Sätzen zusammen. Nenne alle wichtigen Punkte, Begriffe, Regeln und Zahlen.
-Antworte nur mit JSON: {"zusammenfassung": "..."}
+// Lange Dateien: jeder Teil bekommt seine eigene ausführliche Zusammenfassung, die Abschnitte werden aneinandergehängt.
+// Überblick, Merksätze und Klausurfragen schreibt Merki danach einmal für alles.
+async function joinSums(parts, name, p) {
+  parts = parts.filter(Boolean);
+  if (parts.length < 2) return parts[0] || null;
+  const seen = new Set(), begriffe = [];
+  for (const b of parts.flatMap(x => x.begriffe)) { const k = b.begriff.toLowerCase(); if (!seen.has(k)) { seen.add(k); begriffe.push(b); } }
+  const out = { ueberblick: parts.map(x => x.ueberblick).join(' ').slice(0, 2000), abschnitte: parts.flatMap(x => x.abschnitte).slice(0, 60), begriffe: begriffe.slice(0, 60),
+    merke: parts.flatMap(x => x.merke).slice(0, 12), fragen: parts.flatMap(x => x.fragen).slice(0, 12) };
+  try {
+    const x = await aiJson(`Das ist die Gliederung einer ausführlichen Lern-Zusammenfassung von „${name}“ (Projekt „${p.name}“), Teil für Teil. Schreib dazu auf Deutsch:
+- ueberblick: 3 bis 6 Sätze, worum es im ganzen Dokument geht und wie die Themen zusammenhängen.
+- merke: 6 bis 12 Kernaussagen, die man in der Klausur sicher wissen muss.
+- fragen: 6 bis 12 typische Klausurfragen zum ganzen Stoff, ohne Antwort, auch Verständnis- und Transferfragen.${wishLine()}
+Antworte nur mit JSON: {"ueberblick": "...", "merke": ["..."], "fragen": ["..."]}
 
-Teil:
-${chunks[k]}`, { schema: SCHEMA.sum, purpose: 'file' });
-        sums.push(String((x && x.zusammenfassung) || ''));
-      }
-    }
-    src = `Zusammenfassungen der Teile (in Reihenfolge):\n${sums.filter(Boolean).map((t, i) => `Teil ${i + 1}: ${t}`).join('\n')}`
-      + (notes.length ? `\n\nNotizen aus dem Dokument:\n${notes.filter(n => n && (n.titel || n.inhalt)).map(n => `- ${n.titel || ''}: ${n.inhalt || ''}`).join('\n').slice(0, 20000)}` : '');
-  }
-  step('Zusammenfassung');
-  const x = await aiJson(`Schreib eine Lern-Zusammenfassung auf Deutsch für „${name}“ (Projekt „${p.name}“${p.desc ? ', ' + p.desc : ''}). ${SUM_RULES}${wishLine()}
+${parts.map((x, i) => `Teil ${i + 1}: ${x.ueberblick}\nThemen: ${x.abschnitte.map(a => a.titel).join('; ')}\nMerksätze: ${x.merke.join(' ')}`).join('\n\n').slice(0, 60000)}`, { schema: SCHEMA.sumtop, maxTokens: 4000, purpose: 'file' });
+    const t = normSum({ ueberblick: x && x.ueberblick, merke: x && x.merke, fragen: x && x.fragen, abschnitte: [] });
+    if (t && t.ueberblick) out.ueberblick = t.ueberblick;
+    if (t && t.merke.length) out.merke = t.merke;
+    if (t && t.fragen.length) out.fragen = t.fragen;
+  } catch (e) { console.warn('joinSums', e); }
+  return out;
+}
+// Zusammenfassung (auch „Neu zusammenfassen“): kurze Texte in einer Anfrage, lange Teil für Teil, jeder Teil ausführlich
+async function fileSummary(name, p, text, step = () => {}) {
+  if (!text) return null;
+  const chunks = splitText(text.slice(0, MAX_TEXT), PART), parts = [];
+  for (let k = 0; k < chunks.length; k++) {
+    if (chunks.length > 1) step(`Teil ${k + 1} von ${chunks.length}`);
+    const x = await aiJson(`Schreib eine ausführliche Lern-Zusammenfassung auf Deutsch für ${chunks.length > 1 ? `Teil ${k + 1} von ${chunks.length} von ` : ''}„${name}“ (Projekt „${p.name}“${p.desc ? ', ' + p.desc : ''}). Lies ${chunks.length > 1 ? 'den Teil' : 'das Dokument'} vollständig.${chunks[k].includes('als Bild gelesen]') ? ' Stellen mit „[Seite …, als Bild gelesen]“ sind abgeschriebene Seiten und Abbildungen, sie gehören genauso dazu.' : ''} ${SUM_RULES}${wishLine()}
 Antworte nur mit JSON: ${SUM_JSON}
 
-${src}`, { schema: SCHEMA.fsum, maxTokens: 8000, purpose: 'file' });
-  return normSum(x);
+${chunks.length > 1 ? 'Teil' : 'Dokument'}:
+${chunks[k]}`, { schema: SCHEMA.fsum, maxTokens: 32000, purpose: 'file' });
+    parts.push(normSum(x));
+  }
+  if (parts.length > 1) step('Überblick über alles');
+  return joinSums(parts, name, p);
+}
+// Seiten, die nur aus Bildern bestehen (eingescannt, Folien mit Abbildungen): Merki schreibt sie ab und beschreibt Abbildungen,
+// je 4 Seiten pro Anfrage, 3 Anfragen gleichzeitig (ein langer Scan dauert sonst sehr lange).
+// Ergebnis: Seitenzahl -> Text. Klappt ein Teil nicht, fehlen nur diese Seiten (err sagt, warum).
+async function readPicPages(pdf, list, name, step, label, per = 4) {
+  const out = new Map(), batches = [];
+  for (let i = 0; i < list.length; i += per) batches.push(list.slice(i, i + per));
+  let err = null, stop = null, next = 0, done = 0;
+  const tell = () => step(`${label}: ${Math.min(done * per, list.length)} von ${list.length}${list.length > 12 ? ' · App bitte offen lassen' : ''}`);
+  const one = async batch => {
+    let x;
+    try {
+      const imgs = await pdfImages(pdf, batch);
+      x = await aiJson(`${batch.length > 1 ? `Auf den Bildern sind die Seiten ${batch.join(', ')}` : `Auf dem Bild ist Seite ${batch[0]}`} aus „${name}“, in dieser Reihenfolge. Schreib für jede Seite alles ab, was darauf steht, vollständig und sauber. Beschreibe Abbildungen, Diagramme, Grafiken und Fotos genau mit ihrer fachlichen Aussage (zum Beispiel „Abbildung: Ablauf der Mitose in vier Phasen …“). Tabellen als Markdown-Tabelle, Formeln so, dass man sie lesen kann. Erfinde nichts.
+Antworte nur mit JSON: {"seiten": [{"seite": ${batch[0]}, "text": "..."}]}`, { images: imgs, schema: SCHEMA.pages, maxTokens: 16000, purpose: 'file' });
+    } catch (e) {
+      if (e && e.code === 'cancelled') { stop = e; return; }
+      err = err || e;
+      // Ohne Geld oder Verbindung klappen die nächsten Teile auch nicht
+      if (e && ['budget', 'offline', 'bad_key', 'no_key'].includes(e.code)) stop = stop || {};
+      return;
+    }
+    const got = (Array.isArray(x && x.seiten) ? x.seiten : []).filter(y => y && String(y.text || '').trim());
+    const byNo = got.every(y => batch.includes(+y.seite)) && new Set(got.map(y => +y.seite)).size === got.length;
+    got.slice(0, batch.length).forEach((y, k) => out.set(byNo ? +y.seite : batch[k], String(y.text).trim()));
+  };
+  tell();
+  await Promise.all(Array.from({ length: Math.min(3, batches.length) }, async () => {
+    while (!stop && next < batches.length) { await one(batches[next++]); done++; tell(); }
+  }));
+  if (stop && stop.code === 'cancelled') throw stop;
+  return { pics: out, err };
+}
+// Seiten mit (fast) keinem Text, aber Bildern darauf
+async function picOnlyPages(pdf, texts) {
+  const OPS = window.pdfjsLib.OPS || {}, img = new Set([OPS.paintImageXObject, OPS.paintInlineImageXObject, OPS.paintImageMaskXObject, OPS.paintJpegXObject, OPS.paintImageXObjectRepeat].filter(x => x !== undefined));
+  const out = [];
+  for (let i = 0; i < texts.length; i++) {
+    if (texts[i] === null || texts[i].replace(/\s/g, '').length >= PIC_TEXT) continue;
+    try { const ol = await (await pdf.getPage(i + 1)).getOperatorList(); if (ol.fnArray.some(f => img.has(f))) out.push(i + 1); } catch {}
+  }
+  return out;
 }
 async function readOne(file, p, step) {
   const ext = (file.name.split('.').pop() || '').toLowerCase();
   const isImg = (file.type || '').startsWith('image/');
   if (file.size > 40 * 1024 * 1024) throw { msg: 'Die Datei ist größer als 40 MB.' };
-  let text = '', images = null, pages = 0;
+  let text = '', images = null, pg = null, err = null;
   const kind = isImg ? 'FOTO' : ext.toUpperCase().slice(0, 4);
   if (isImg) images = [file];
   else if (ext === 'pdf') {
     const pdf = await pdfDoc(file);
-    pages = pdf.numPages;
-    text = await pdfText(pdf, (i, n) => step(`Seite ${i} von ${n}`));
-    if (text.replace(/\s/g, '').length < 80) {
+    const pt = await pdfPageTexts(pdf, (i, n) => step(`Seite ${i} von ${n}`));
+    pg = { all: pdf.numPages, read: pt.filter(t => t !== null).length, pics: 0, scan: false };
+    if (pt.join('').replace(/\s/g, '').length < 80) {
+      // Eingescannt: alle Seiten als Bild lesen (bis MAX_PIC)
       const caps = await imageCaps();
       if (!caps) throw { msg: 'Diese PDF ist eingescannt. Scans kann Merki nur mit KI lesen.' };
-      images = await pdfImages(pdf, MODE === 'server' ? 24 : Math.min(caps.maxCount || 5, 6)); text = '';
+      const per = Math.max(1, Math.min(caps.maxCount || 1, 4));
+      const list = Array.from({ length: Math.min(pg.all, MODE === 'server' ? MAX_PIC : 24) }, (_, i) => i + 1);
+      pg.scan = true;
+      if (list.length <= per) { images = await pdfImages(pdf, list); pg.read = pg.pics = list.length; }
+      else {
+        const r = await readPicPages(pdf, list, file.name, step, 'Seiten lesen', per);
+        if (!r.pics.size) throw r.err || { msg: 'Merki konnte darauf keinen Text erkennen.' };
+        err = r.err; pg.read = pg.pics = r.pics.size;
+        text = [...r.pics].sort((a, b) => a[0] - b[0]).map(([n, t]) => `[Seite ${n}]\n${t}`).join('\n\n');
+      }
+    } else {
+      // Seiten ohne Text, aber mit Bild (Abbildungen, eingescannte Seiten mitten im Skript): als Bild lesen
+      if (MODE === 'server' && aiReady()) {
+        const found = await picOnlyPages(pdf, pt).catch(() => []), list = found.slice(0, MAX_PIC);
+        if (list.length) {
+          const r = await readPicPages(pdf, list, file.name, step, 'Bildseiten lesen');
+          err = r.err; pg.pics = r.pics.size;
+          pg.read -= found.length - r.pics.size;
+          for (const [n, t] of r.pics) pt[n - 1] = (pt[n - 1] ? pt[n - 1] + '\n' : '') + `[Seite ${n}, als Bild gelesen]\n${t}`;
+        }
+      }
+      text = pt.filter(Boolean).join('\n\n');
     }
   } else if (ext === 'docx') {
     await lib('docx');
@@ -3119,71 +3293,60 @@ async function readOne(file, p, step) {
     if (ext === 'html' || ext === 'htm') text = (new DOMParser().parseFromString(text, 'text/html').body.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
   } else throw { msg: 'Diese Dateiart kennt Merki nicht. Es gehen PDF, Word (.docx), Text und Fotos.' };
 
-  let summary = '', sum = null, notes = [];
-  const sums = [];
+  let sum = null;
+  const notes = [];
   const known = () => pNotes(p.id).map(n => n.title).concat(notes.map(n => n && n.titel)).join('; ').slice(0, 2000) || 'keine';
   if (images) {
+    // Foto oder kurzer Scan: Abschrift, Zusammenfassung und Notizen in einer Anfrage
     const caps = await imageCaps();
     if (!caps) throw { msg: 'Fotos kann Merki nur lesen, wenn die KI verfügbar ist.' };
-    const per = Math.max(1, Math.min(caps.maxCount || 1, 8));
-    const batches = []; for (let i = 0; i < images.length; i += per) batches.push(images.slice(i, i + per));
-    for (let b = 0; b < batches.length; b++) {
-      if (batches.length > 1) step(`Teil ${b + 1} von ${batches.length}`);
-      // Nur ein Teil: Abschrift, Zusammenfassung und Notizen in einer Anfrage (spart eine zweite)
-      const one = batches.length === 1;
-      const x = await aiJson(`Auf ${batches[b].length > 1 ? 'den Bildern' : 'dem Bild'} ist Lernstoff (zum Beispiel Buchseite, Mitschrift oder Tafelbild) aus „${file.name}“${batches.length > 1 ? ` (Teil ${b + 1} von ${batches.length})` : ''} für das Projekt „${p.name}“.${one ? `
-- abschrift: der vollständige Text, den du lesen kannst, sauber abgeschrieben.
-- zusammenfassung: eine Lern-Zusammenfassung auf Deutsch. ${SUM_RULES}
-- notizen: 5 bis 12 Lernpunkte (Begriffe, Regeln, Formeln, Daten, Beispiele, Zusammenhänge).${wishLine()}
-Antworte nur mit JSON: {"abschrift": "...", "zusammenfassung": ${SUM_JSON}, "notizen": [{"titel": "kurzer Titel", "inhalt": "1 bis 4 klare Sätze"}]}` : `
-Antworte nur mit JSON: {"abschrift": "der vollständige Text, den du lesen kannst, sauber abgeschrieben", "zusammenfassung": "6 bis 10 Sätze mit allen wichtigen Punkten", ${NOTES_JSON('5 bis 12')}}`}
-Schon vorhandene Notizen (nicht doppelt): ${known()}`, { images: batches[b], schema: one ? SCHEMA.scansum : SCHEMA.scan, maxTokens: 16000, purpose: 'file' });
-      text += (text ? '\n\n' : '') + String((x && x.abschrift) || '').trim();
-      if (one) sum = normSum(x && x.zusammenfassung);
-      else sums.push(String((x && x.zusammenfassung) || ''));
-      if (x && Array.isArray(x.notizen)) notes.push(...x.notizen);
-    }
-    if (!text && !sums.some(Boolean) && !sum) throw { msg: 'Merki konnte darauf keinen Text erkennen.' };
-    if (pages) pages = { all: pages, read: images.length };
+    step('Zusammenfassung und Notizen');
+    const x = await aiJson(`Auf ${images.length > 1 ? 'den Bildern' : 'dem Bild'} ist Lernstoff (zum Beispiel Buchseite, Folie, Mitschrift oder Tafelbild) aus „${file.name}“ für das Projekt „${p.name}“${p.desc ? ' (' + p.desc + ')' : ''}.
+- abschrift: alles, was du lesen kannst, vollständig und sauber abgeschrieben. Abbildungen und Diagramme beschreibst du mit ihrer fachlichen Aussage, Tabellen als Markdown-Tabelle.
+- zusammenfassung: eine ausführliche Lern-Zusammenfassung auf Deutsch. ${SUM_RULES}
+- ${NOTES_JSON('5 bis 15')}${wishLine()}
+Antworte nur mit JSON: {"abschrift": "...", "zusammenfassung": ${SUM_JSON}, "notizen": [{"titel": "kurzer Titel", "inhalt": "2 bis 8 Sätze"}]}
+Schon vorhandene Notizen (nicht doppelt): ${known()}`, { images, schema: SCHEMA.scansum, maxTokens: 32000, purpose: 'file' });
+    text = String((x && x.abschrift) || '').trim();
+    sum = normSum(x && x.zusammenfassung);
+    if (x && Array.isArray(x.notizen)) notes.push(...x.notizen);
+    if (!text && !sum) throw { msg: 'Merki konnte darauf keinen Text erkennen.' };
   } else {
     if (!text) throw { msg: 'In der Datei steht kein lesbarer Text.' };
     if (aiReady()) {
-      const chunks = splitText(text.slice(0, MAX_TEXT), PART);
+      // Jeder Teil (bis 100.000 Zeichen) bekommt seine eigene ausführliche Zusammenfassung und Notizen, in einer Anfrage
+      const chunks = splitText(text.slice(0, MAX_TEXT), PART), parts = [];
       for (let k = 0; k < chunks.length; k++) {
-        if (chunks.length > 1) step(`Teil ${k + 1} von ${chunks.length}`);
-        if (chunks.length === 1) {
-          // Normale Datei: Zusammenfassung und Notizen in einer Anfrage, Merki liest den Text nur einmal
-          const x = await aiJson(`Du bekommst ein Lern-Dokument „${file.name}“ für das Projekt „${p.name}“${p.desc ? ' (' + p.desc + ')' : ''}. Lies es vollständig.
-- zusammenfassung: eine Lern-Zusammenfassung auf Deutsch. ${SUM_RULES}
-- notizen: 5 bis 12 Lernpunkte (Begriffe, Regeln, Formeln, Daten, Beispiele, Zusammenhänge).${wishLine()}
-Antworte nur mit JSON: {"zusammenfassung": ${SUM_JSON}, "notizen": [{"titel": "kurzer Titel", "inhalt": "1 bis 4 klare Sätze"}]}
+        const many = chunks.length > 1;
+        step(many ? `Teil ${k + 1} von ${chunks.length} zusammenfassen` : 'Zusammenfassung und Notizen');
+        let x;
+        try {
+          x = await aiJson(`Du bekommst ${many ? `Teil ${k + 1} von ${chunks.length} des Lern-Dokuments` : 'das Lern-Dokument'} „${file.name}“ für das Projekt „${p.name}“${p.desc ? ' (' + p.desc + ')' : ''}. Lies ${many ? 'diesen Teil' : 'es'} vollständig.${pg && pg.pics ? ' Stellen mit „[Seite …, als Bild gelesen]“ sind abgeschriebene Seiten und Abbildungen, sie gehören genauso dazu.' : ''}
+- zusammenfassung: eine ausführliche Lern-Zusammenfassung auf Deutsch${many ? ' für diesen Teil' : ''}. ${SUM_RULES}
+- ${NOTES_JSON(many ? '6 bis 15' : '6 bis 20')}${wishLine()}
+Antworte nur mit JSON: {"zusammenfassung": ${SUM_JSON}, "notizen": [{"titel": "kurzer Titel", "inhalt": "2 bis 8 Sätze"}]}
 Schon vorhandene Notizen (nicht doppelt): ${known()}
 
-Dokument:
-${chunks[k]}`, { schema: SCHEMA.docsum, maxTokens: 12000, purpose: 'file' });
-          sum = normSum(x && x.zusammenfassung);
-          if (x && Array.isArray(x.notizen)) notes.push(...x.notizen);
+${many ? 'Teil' : 'Dokument'}:
+${chunks[k]}`, { schema: SCHEMA.docsum, maxTokens: 32000, purpose: 'file' });
+        } catch (e) {
+          // Der erste Teil klappt nicht: Fehler zeigen. Ein späterer: das Fertige behalten, „Neu zusammenfassen“ holt den Rest
+          if (!parts.some(Boolean) || (e && e.code === 'cancelled')) throw e;
+          err = err || e;
+          if (e && (e.code === 'budget' || e.code === 'offline')) break;
           continue;
         }
-        const x = await aiJson(`Du bekommst Teil ${k + 1} von ${chunks.length} des Lern-Dokuments „${file.name}“ für das Projekt „${p.name}“${p.desc ? ' (' + p.desc + ')' : ''}. Lies diesen Teil vollständig.
-Antworte nur mit JSON: {"zusammenfassung": "8 bis 12 Sätze mit allen wichtigen Punkten, Begriffen, Regeln und Zahlen dieses Teils", ${NOTES_JSON('4 bis 10')}}
-Schon vorhandene Notizen (nicht doppelt): ${known()}
-
-Teil:
-${chunks[k]}`, { schema: SCHEMA.doc, purpose: 'file' });
-        sums.push(String((x && x.zusammenfassung) || ''));
+        parts.push(normSum(x && x.zusammenfassung));
         if (x && Array.isArray(x.notizen)) notes.push(...x.notizen);
       }
+      if (parts.filter(Boolean).length > 1) step('Überblick über alles');
+      sum = await joinSums(parts, file.name, p);
     }
   }
   const full = text.slice(0, MAX_TEXT);
-  if (aiReady()) {
-    if (!sum) { try { sum = await fileSummary(file.name, p, full, sums, notes, step); } catch (e) { console.warn('summary', e); } }
-    summary = sum ? sum.ueberblick : await mergeSummaries(sums, file.name);
-  }
-  // Echte Seitenzahl (PDF); bei Scans auch, wie viele Seiten Merki gelesen hat
-  const pg = typeof pages === 'object' ? pages : pages ? { all: pages, read: pages } : null;
-  const f = { id: 'f-' + uid8(), projectId: p.id, name: file.name.slice(0, 120), kind, size: file.size, textLen: full.length, truncated: text.length > MAX_TEXT, summary, ...(sum ? { sum } : {}), ...(pg ? { pages: pg.all, readPages: pg.read } : {}), ...(typeof pages === 'object' ? { scan: true } : {}), createdAt: Date.now() };
+  // Echte Seitenzahl (PDF), wie viele Seiten Merki gelesen hat und wie viele davon als Bild
+  const f = { id: 'f-' + uid8(), projectId: p.id, name: file.name.slice(0, 120), kind, size: file.size, textLen: full.length, truncated: text.length > MAX_TEXT, summary: sum ? sum.ueberblick : '', ...(sum ? { sum } : {}),
+    ...(pg ? { pages: pg.all, readPages: pg.read, ...(pg.pics ? { picPages: pg.pics } : {}), ...(pg.scan ? { scan: true } : {}) } : {}), ...(err ? { partial: aiError(err) } : {}), createdAt: Date.now() };
   if (full.length > PART) {
     const parts = splitText(full, PART);
     f.parts = parts.length;
@@ -3191,14 +3354,23 @@ ${chunks[k]}`, { schema: SCHEMA.doc, purpose: 'file' });
   } else f.text = full;
   put('file', f, false);
   const saved = [];
-  for (const n of notes.slice(0, 40)) {
+  for (const n of notes.slice(0, 60)) {
     if (!n || !(n.titel || n.inhalt)) continue;
     const title = String(n.titel || n.inhalt).slice(0, 120);
     if (pNotes(p.id).some(o => o.title.toLowerCase() === title.toLowerCase())) continue;
-    put('note', { id: 'n-' + uid8(), projectId: p.id, title, text: String(n.inhalt || '').slice(0, 1500), source: 'file', fileName: f.name, createdAt: Date.now() }, false);
+    put('note', { id: 'n-' + uid8(), projectId: p.id, title, text: String(n.inhalt || '').slice(0, 4000), source: 'file', fileName: f.name, createdAt: Date.now() }, false);
     saved.push(title);
   }
   return { f, saved };
+}
+// Seitenzahl für Karte und Chat: „70 Seiten (12 als Bild gelesen)“
+// Im Chat (long): „alle 70 Seiten, 12 davon als Bild“
+function pagesText(f, long) {
+  if (!f.pages) return '';
+  if (f.readPages < f.pages) return `${f.readPages} von ${f.pages} Seiten gelesen`;
+  const n = `${long && f.pages > 1 ? 'alle ' : ''}${f.pages} ${f.pages === 1 ? 'Seite' : 'Seiten'}`;
+  if (long) return f.scan ? `${n}, eingescannt` : f.picPages ? `${n}, ${f.picPages} davon als Bild` : n;
+  return f.scan ? `${n} (Scan)` : f.picPages ? `${n} (${f.picPages} als Bild gelesen)` : n;
 }
 let jobs = 0;
 function job(text) { $('#job').hidden = !text; $('#jobText').textContent = text || ''; }
@@ -3213,10 +3385,11 @@ async function handleFiles(list, fromChat) {
       if (fromChat && ui.pid === p.id && !busy) {
         const c = getOrCreateChat('Datei: ' + f.name);
         c.turns.push({ role: 'user', content: 'Datei hochgeladen: ' + f.name });
-        c.turns.push({ role: 'assistant', content: `Ich habe **${f.name}** gelesen${f.pages ? (f.readPages < f.pages ? ` (die ersten ${f.readPages} von ${f.pages} Seiten, mehr Seiten eines Scans auf einmal gehen nicht)` : ` (alle ${f.pages} ${f.pages === 1 ? 'Seite' : 'Seiten'})`) : ''}.${f.summary ? '\n\n' + f.summary : ''}${f.sum ? '\n\nDie ganze Zusammenfassung mit Stichpunkten steht unter **Dateien**.' : ''}${saved.length ? '\n\nDas Wichtigste steht jetzt in deinen Notizen. Frag mich gern dazu oder lass dich abfragen.' : ''}`, saved });
+        const more = f.partial || !(f.readPages < f.pages) ? '' : f.truncated ? ' Die Datei ist sehr lang, Merki hat die ersten 500.000 Zeichen gelesen.' : ' Mehr Seiten als Bild liest Merki in einer Datei nicht.';
+        c.turns.push({ role: 'assistant', content: `Ich habe **${f.name}** gelesen${f.pages ? ` (${pagesText(f, true)})` : ''}.${more}${f.summary ? '\n\n' + f.summary : ''}${f.sum ? `\n\nDie ganze Zusammenfassung${f.sum.abschnitte.length > 1 ? ` mit ${f.sum.abschnitte.length} Themen` : ''}, Begriffen und typischen Klausurfragen steht unter **Dateien**.` : ''}${f.partial ? `\n\nEin Teil hat gerade nicht geklappt: ${f.partial} Lösch die Datei später und lade sie nochmal hoch, dann liest Merki alles.` : ''}${saved.length ? '\n\nDas Wichtigste steht jetzt in deinen Notizen. Frag mich gern dazu oder lass dich abfragen.' : ''}`, saved });
         saveChat(c);
       }
-      const part = f.pages && f.readPages < f.pages ? ` · Scan: die ersten ${f.readPages} von ${f.pages} Seiten gelesen` : '';
+      const part = f.partial ? ' · Ein Teil hat nicht geklappt' : f.pages && f.readPages < f.pages ? ` · ${pagesText(f)}` : '';
       toast((saved.length ? `„${f.name}“ gelesen · ${saved.length} neue Notizen` : `„${f.name}“ gespeichert`) + part, part ? 6000 : 2800);
     } catch (e) {
       console.warn(e);
@@ -3233,7 +3406,7 @@ function renderFiles() {
   $('#flist').innerHTML = files.length ? files.map(f => {
     const nn = state.notes.filter(n => n.projectId === f.projectId && n.fileName === f.name).length;
     // Ältere Dateien kennen ihre Seitenzahl nicht. Früher stand hier eine Schätzung aus der Textmenge („etwa 15 Seiten“), die wie „nur 15 Seiten gelesen“ aussah.
-    const pg = f.pages ? (f.readPages < f.pages ? `Scan: ${f.readPages} von ${f.pages} Seiten gelesen` : `${f.pages} ${f.pages === 1 ? 'Seite' : 'Seiten'}${f.scan ? ' (Scan)' : ''}`) : '';
+    const pg = pagesText(f);
     return `<div class="file"><div class="ficon">${esc(f.kind || '')}</div><div class="fbody"><b>${esc(f.name)}</b>
       <p>${fmtSize(f.size || 0)}${pg ? ` · ${pg}` : ''} · ${new Date(f.createdAt).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}${nn ? ` · ${nn} ${nn === 1 ? 'Notiz' : 'Notizen'}` : ''}</p>
       ${f.summary ? `<p class="sum">${inl(f.summary)}</p>` : ''}
@@ -3243,11 +3416,16 @@ function renderFiles() {
 }
 // Fett im Fließtext (aus **...**), sonst nur Text
 const inl = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+// Ausführliche Zusammenfassung: Überblick, Themen (bei vielen mit Inhaltsverzeichnis), je Erklärung, Stichpunkte, Tabelle und Diagramm,
+// dann Begriffe, Merksätze und typische Klausurfragen. Ältere Zusammenfassungen haben nur Stichpunkte.
 function sumHtml(sum) {
-  return `<div class="fsum">${sum.ueberblick ? `<p class="fs-intro">${inl(sum.ueberblick)}</p>` : ''}
-    ${sum.abschnitte.map(a => `<section><h3>${esc(a.titel)}</h3><ul>${a.punkte.map(t => `<li>${inl(t)}</li>`).join('')}</ul></section>`).join('')}
+  const secs = sum.abschnitte, fragen = sum.fragen || [];
+  const toc = secs.length >= 3 ? `<nav class="fs-toc" aria-label="Themen"><b>Themen</b><ol>${secs.map((a, i) => `<li><button type="button" class="linkbtn" data-jump="${i}">${esc(a.titel)}</button></li>`).join('')}</ol></nav>` : '';
+  return `<div class="fsum">${sum.ueberblick ? `<p class="fs-intro">${inl(sum.ueberblick)}</p>` : ''}${toc}
+    ${secs.map((a, i) => `<section data-sec="${i}"><h3>${esc(a.titel)}</h3>${a.text ? `<div class="fs-text">${md(a.text)}</div>` : ''}${a.punkte.length ? `<ul>${a.punkte.map(t => `<li>${inl(t)}</li>`).join('')}</ul>` : ''}${a.tabelle ? md(a.tabelle) : ''}${a.diagramm ? `<div class="mmd" data-src="${esc(a.diagramm)}"></div>` : ''}</section>`).join('')}
     ${sum.begriffe.length ? `<section><h3>Wichtige Begriffe</h3><dl>${sum.begriffe.map(b => `<div><dt>${esc(b.begriff)}</dt><dd>${inl(b.erklaerung)}</dd></div>`).join('')}</dl></section>` : ''}
-    ${sum.merke.length ? `<section class="fs-merke"><h3>${ICON.star}Das solltest du dir merken</h3><ul>${sum.merke.map(t => `<li>${inl(t)}</li>`).join('')}</ul></section>` : ''}</div>`;
+    ${sum.merke.length ? `<section class="fs-merke"><h3>${ICON.star}Das solltest du dir merken</h3><ul>${sum.merke.map(t => `<li>${inl(t)}</li>`).join('')}</ul></section>` : ''}
+    ${fragen.length ? `<section class="fs-fragen"><h3>Typische Klausurfragen</h3><ol>${fragen.map(t => `<li>${inl(t)}</li>`).join('')}</ol><p class="muted">Antworte selbst und frag Merki im Chat, ob es stimmt.</p></section>` : ''}</div>`;
 }
 function viewFile(f) {
   if (!f) return;
@@ -3262,11 +3440,13 @@ function viewFile(f) {
     q('#fClose').onclick = closeSheet;
     const paint = (msg = '') => {
       const cur = state.files.find(x => x.id === f.id) || f, can = aiReady() && !!t;
-      q('#fsPane').innerHTML = (cur.sum ? sumHtml(cur.sum)
-        : cur.summary ? `<div class="fsum"><p class="fs-intro">${inl(cur.summary)}</p></div>${can ? '<p class="notice tip">Das ist noch die alte, kurze Zusammenfassung. Merki kann sie jetzt ausführlich und übersichtlich schreiben, mit Themen, Stichpunkten und Merksätzen.</p>' : ''}`
+      const old = cur.sum && !cur.sum.abschnitte.some(a => a.text) && !(cur.sum.fragen || []).length;
+      q('#fsPane').innerHTML = (cur.partial ? `<p class="notice">Ein Teil dieser Datei hat beim Hochladen nicht geklappt. Lösch sie und lade sie nochmal hoch, dann liest Merki alles.</p>` : '')
+        + (cur.sum ? sumHtml(cur.sum) + (old && can ? '<p class="notice tip">Diese Zusammenfassung ist noch die kürzere Fassung. Mit „Neu zusammenfassen“ schreibt Merki sie ausführlich, mit Erklärungen, Tabellen, Diagrammen und Klausurfragen.</p>' : '')
+        : cur.summary ? `<div class="fsum"><p class="fs-intro">${inl(cur.summary)}</p></div>${can ? '<p class="notice tip">Das ist noch die alte, kurze Zusammenfassung. Merki kann sie jetzt ausführlich schreiben, auf Uni-Niveau mit Erklärungen, Tabellen, Diagrammen und typischen Klausurfragen.</p>' : ''}`
         : `<p class="muted">Zu dieser Datei gibt es noch keine Zusammenfassung.</p>`)
         + (msg ? `<p class="notice err">${esc(msg)}</p>` : '')
-        + (can ? `<button class="btn${cur.sum ? ' alt' : ''}" type="button" id="fsGen"${working ? ' disabled' : ''}>${working ? '<span class="spin"></span>Merki fasst zusammen …' : ICON.refresh + (cur.sum ? 'Neu zusammenfassen' : 'Besser zusammenfassen')}</button>` : '');
+        + (can ? `<button class="btn${cur.sum && !old ? ' alt' : ''}" type="button" id="fsGen"${working ? ' disabled' : ''}>${working ? `<span class="spin"></span>${esc(working === true ? 'Merki fasst zusammen …' : working)}` : ICON.refresh + (cur.sum ? 'Neu zusammenfassen' : 'Besser zusammenfassen')}</button>` : '');
       const b = q('#fsGen'); if (b) b.onclick = regen;
     };
     const regen = async () => {
@@ -3275,8 +3455,7 @@ function viewFile(f) {
       working = true; paint();
       let msg = '';
       try {
-        const notes = state.notes.filter(n => n.projectId === f.projectId && n.fileName === f.name).map(n => ({ titel: n.title, inhalt: n.text || '' }));
-        const sum = await fileSummary(f.name, p, t, [], notes);
+        const sum = await fileSummary(f.name, p, t, s => { working = `Merki fasst zusammen: ${s} …`; const b = q('#fsGen'); if (b) b.innerHTML = '<span class="spin"></span>' + esc(working); });
         if (!sum) throw { code: 'invalid_json' };
         const cur = state.files.find(x => x.id === f.id);
         if (cur) put('file', { ...cur, sum, summary: sum.ueberblick || cur.summary }, false);
@@ -3285,6 +3464,11 @@ function viewFile(f) {
       working = false;
       if (el.isConnected) paint(msg);
     };
+    // Inhaltsverzeichnis: zum Thema springen
+    q('#fsPane').addEventListener('click', e => {
+      const b = e.target.closest('[data-jump]'); if (!b) return;
+      const sec = q(`#fsPane [data-sec="${b.dataset.jump}"]`); if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
     q('#fsTabs').addEventListener('click', e => {
       const b = e.target.closest('button[data-tab]'); if (!b) return;
       q('#fsTabs').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));

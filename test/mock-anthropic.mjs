@@ -22,6 +22,7 @@ function sample(schema, key = '', depth = 0) {
       if (typeof v === 'string') return `${v} ${i + 1}`;
       if (v && typeof v === 'object') {
         for (const kk of Object.keys(v)) {
+          if (kk === 'tabelle' || kk === 'diagramm') { if (i > 0) v[kk] = ''; continue; } // nur das erste Thema hat Tabelle und Diagramm
           if (kk === 'datum') v[kk] = new Date(Date.now() + i * 864e5).toISOString().slice(0, 10); // Lernplan: ein Tag nach dem anderen
           else if (typeof v[kk] === 'string') v[kk] = `${v[kk]} ${i + 1}`;
         }
@@ -36,6 +37,8 @@ function sample(schema, key = '', depth = 0) {
   }
   if (t === 'boolean') return true;
   if (key === 'datum') return new Date(Date.now() + 864e5).toISOString().slice(0, 10);
+  if (key === 'tabelle') return '| Phase | Was passiert |\n|---|---|\n| Prophase | Chromosomen verdichten sich |\n| Metaphase | Chromosomen ordnen sich in der Mitte |';
+  if (key === 'diagramm') return 'flowchart LR\n  A["Prophase"] --> B["Metaphase"] --> C["Anaphase"] --> D["Telophase"]';
   return `Test ${key || 'text'} r${reqNo}`;
 }
 
@@ -120,8 +123,17 @@ const server = http.createServer((req, res) => {
     reqNo++;
     const isJson = p.output_config && p.output_config.format;
     let text;
-    if (isJson) text = JSON.stringify(sample(p.output_config.format.schema));
+    const schema = isJson && p.output_config.format.schema;
+    // Bildseiten abschreiben: eine Seite pro Seitenzahl aus der Frage
+    const pageNos = schema && schema.properties && schema.properties.seiten ? (last.match(/Auf (?:den Bildern sind die Seiten ([\d, ]+)|dem Bild ist Seite (\d+)) aus/) || []).slice(1).filter(Boolean).join(',').split(/[, ]+/).filter(Boolean).map(Number) : null;
+    if (pageNos && last.includes('SEITENFEHLER') && pageNos.includes(5)) {
+      res.writeHead(400, { 'content-type': 'application/json' });
+      return res.end(JSON.stringify({ type: 'error', error: { type: 'invalid_request_error', message: 'test: Seite 5 kaputt' } }));
+    }
+    if (pageNos) text = JSON.stringify({ seiten: pageNos.map(n => ({ seite: n, text: `Abgeschrieben Seite ${n}: Abbildung der Zellteilung r${reqNo}` })) });
+    else if (isJson) text = JSON.stringify(sample(schema));
     else if (last.includes('LANG')) text = 'Teil '.repeat(400);
+    else if (last.includes('TABELLE')) text = 'Hier der Vergleich:\n\n| Phase | Was passiert |\n|---|---|\n| Prophase | Chromosomen verdichten sich |\n| Metaphase | Chromosomen in der Mitte |\n\n```mermaid\nflowchart LR\n  A["Prophase"] --> B["Metaphase"]\n```\n\nSo läuft die Mitose ab.';
     else if (last.includes('VORLESEN')) text = Array.from({ length: 12 }, (_, i) => `Satz ${i + 1}: Die Zelle teilt sich in der Mitose in **zwei** gleiche Tochterzellen.`).join(' ') + '\n- Punkt eins\n- Punkt zwei';
     else text = `Hallo! Das ist eine **Testantwort** von Merki.\n- Punkt eins\n- Punkt zwei\nNOTIZ: Testbegriff :: Das ist eine Test-Notiz aus dem Chat.`;
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' });
