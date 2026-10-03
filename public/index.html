@@ -133,8 +133,15 @@ nav.tabs button[aria-selected="true"] svg{background:var(--marker);color:var(--m
 .msg ul{margin:.2em 0 .5em;padding-left:1.2em}
 .msg.thinking{color:var(--ink-soft);font-style:italic}
 .saved{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.msg-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.notebtn{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:none;color:var(--ink-soft);border-radius:999px;padding:5px 11px;font-size:13px;line-height:1.2;max-width:100%;overflow-wrap:anywhere;text-align:left}
+.notebtn svg{width:14px;height:14px;flex:none}
+.notebtn:disabled{opacity:.7}
+.notebtn.done{background:var(--marker);color:var(--marker-ink);border-color:transparent}
 .saved span{font-size:12px;background:var(--marker);color:var(--marker-ink);padding:2px 8px;border-radius:6px;display:inline-flex;gap:4px;align-items:center}
 .saved svg{width:12px;height:12px}
+.saved .notebtn{font-size:13px;padding:5px 11px;border-radius:999px}
+.saved .notebtn svg{width:14px;height:14px}
 .suggest{display:flex;flex-wrap:wrap;gap:8px}
 .suggest button{border:1px dashed var(--ink-soft);background:transparent;color:var(--ink);border-radius:999px;padding:6px 12px;font-size:14px}
 .composer{position:sticky;bottom:0;display:flex;gap:6px;align-items:flex-end;background:var(--paper);padding-top:8px}
@@ -450,12 +457,15 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .cap.me{color:var(--c-soft);font-size:15px;font-style:italic}
 .cap.ai{font-size:19px;line-height:1.45}
 .call .saved{justify-content:center;margin:0}
+.call .notebtn{color:var(--c-text);border-color:var(--c-line);background:var(--c-btn)}
+.call .notebtn.done{background:var(--c-glow);color:var(--c-glow-ink)}
 .call-type{display:flex;gap:8px;width:100%;max-width:560px}
 .call-type input{flex:1;min-width:0;border:1px solid var(--c-line);background:var(--c-btn);color:var(--c-text);border-radius:22px;padding:11px 16px}
 .call-type input::placeholder{color:var(--c-soft)}
 .call-type .iconbtn{background:var(--c-glow);color:var(--c-glow-ink)}
-.call-ctrl{display:flex;align-items:flex-start;justify-content:center;gap:clamp(16px,8vw,44px);width:100%}
-.cbtn{display:flex;flex-direction:column;align-items:center;gap:6px;border:0;background:none;color:var(--c-text);font-size:13px;padding:0;min-width:70px}
+.call-ctrl{display:flex;align-items:flex-start;justify-content:center;gap:clamp(6px,4vw,36px);width:100%}
+.cbtn{display:flex;flex-direction:column;align-items:center;gap:6px;border:0;background:none;color:var(--c-text);font-size:13px;padding:0;min-width:64px}
+.cbtn[hidden]{display:none}
 .cbtn i{display:grid;place-items:center;width:58px;height:58px;border-radius:50%;background:var(--c-btn);border:1px solid var(--c-line)}
 .cbtn svg{width:24px;height:24px}
 .cbtn.big i{width:78px;height:78px;background:var(--c-glow);color:var(--c-glow-ink);border:0;box-shadow:0 6px 24px var(--call-halo)}
@@ -463,6 +473,7 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .cbtn.end i{background:var(--c-end);border:0;color:#fff}
 .cbtn[aria-pressed="true"] i{background:var(--c-text);color:var(--c-bg)}
 .cbtn:disabled{opacity:.4}
+@media (max-width:380px){.cbtn{min-width:54px;font-size:12px}.cbtn i{width:50px;height:50px}.cbtn.big i{width:66px;height:66px}}
 .call .linkbtn{color:var(--c-soft)}
 .call :focus-visible{outline-color:var(--c-glow)}
 input[type=range]{accent-color:var(--ink);width:100%}
@@ -702,6 +713,7 @@ const ICON = {
   star: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>',
   cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
   micBig: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
+  micOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 9.5V6a3 3 0 0 0-5.7-1.3M9 9v2a3 3 0 0 0 4.9 2.3M5 11a7 7 0 0 0 11.2 5.6M19 11a7 7 0 0 1-.6 2.8M12 18v3M3 3l18 18"/></svg>',
   check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
   hang: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 9.2c-3.4 0-6.5.9-8.9 2.6-.7.5-.9 1.4-.6 2.2l.8 1.9c.3.8 1.2 1.2 2 1l2.8-.8c.7-.2 1.2-.9 1.2-1.6v-1.6c.8-.2 1.7-.3 2.7-.3s1.9.1 2.7.3v1.6c0 .7.5 1.4 1.2 1.6l2.8.8c.8.2 1.7-.2 2-1l.8-1.9c.3-.8.1-1.7-.6-2.2-2.4-1.7-5.5-2.6-8.9-2.6z"/></svg>',
   sound: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>',
@@ -1252,9 +1264,8 @@ function projectContext(p, query, key) {
   return { files: files.length ? `${head}\n\nHochgeladene Dateien:${ftext}` : head, stable: true, notes: snap.notes, passages };
 }
 // Verlauf für die KI. Der Anfang rückt nur in Schritten weiter, damit der Verlauf zwischengespeichert bleibt.
-// Die Notizliste im Kontext bleibt während des Gesprächs gleich, darum steht an Merkis Antworten, was davon schon gespeichert ist.
 function windowTurns(all, maxTurns, maxChars, step = 6) {
-  const list = all.map(t => ({ role: t.role, content: t.role === 'assistant' && t.saved && t.saved.length ? `${t.content}\n\n[Schon als Notiz gespeichert: ${t.saved.join('; ')}]` : t.content }));
+  const list = all.map(t => ({ role: t.role, content: t.content }));
   let start = Math.max(0, Math.ceil((list.length - maxTurns) / step) * step);
   while (start < list.length - 2 && JSON.stringify(list.slice(start)).length > maxChars) start += step;
   start = Math.min(start, Math.max(0, list.length - 1));
@@ -1303,9 +1314,49 @@ function saveNoteLines(full, pid, skip = '') {
   return saved;
 }
 function trimTurns(turns) { let t = turns.slice(-60); while (t.length > 2 && JSON.stringify(t).length > 150000) t = t.slice(2); return t; }
-function chatTurnHtml(t) {
+function chatTurnHtml(t, i) {
   if (t.role === 'user') return `<div class="msg me">${esc(t.content).replace(/\n/g, '<br>')}</div>`;
-  return `<div class="msg ai">${md(t.content)}${t.saved && t.saved.length ? `<div class="saved">${t.saved.map(x => `<span>${ICON.pin}${esc(x)}</span>`).join('')}</div>` : ''}</div>`;
+  const can = Number.isInteger(i) && !t.err && /[\p{L}\p{N}]/u.test(t.content);
+  const btn = !can ? '' : t.noted ? notedHtml(t.noted) : `<button type="button" class="notebtn" data-tnote="${i}">${ICON.pin}Als Notiz</button>`;
+  return `<div class="msg ai">${md(t.content)}${t.saved && t.saved.length ? `<div class="saved">${t.saved.map(x => `<span>${ICON.pin}${esc(x)}</span>`).join('')}</div>` : ''}${btn ? `<div class="msg-acts">${btn}</div>` : ''}</div>`;
+}
+const notedHtml = title => `<span class="notebtn done">${ICON.check}Notiz gespeichert: ${esc(typeof title === 'string' ? title : '')}</span>`;
+// Knopf „Als Notiz“: Merki macht aus ihrer Antwort eine saubere Notiz (Titel und Inhalt, nichts weglassen, nichts dazu)
+const noting = new Set();
+function noteTitleFallback(text, q) {
+  const bold = /\*\*(.+?)\*\*/.exec(text);
+  const t = (bold ? bold[1] : String(q || text).replace(/[*_#>`-]/g, ' ')).replace(/\s+/g, ' ').trim();
+  return (t.split(' ').slice(0, 6).join(' ') || 'Notiz aus dem Chat').slice(0, 120);
+}
+async function noteFromTurn(turns, i, pid, persist, btn) {
+  const t = turns[i], key = t;
+  if (!t || t.role !== 'assistant' || t.noted || noting.has(key) || !pid) return;
+  if (!state.projects.some(x => x.id === pid)) { toast('Das Projekt gibt es nicht mehr.'); return; }
+  noting.add(key);
+  if (btn) { btn.disabled = true; btn.innerHTML = `${ICON.pin}Merki schreibt die Notiz …`; }
+  const q = turns.slice(0, i).reverse().find(x => x.role === 'user');
+  const qText = q && !/^Frag mich mündlich ab/.test(q.content) ? q.content : '';
+  let title = '', text = '';
+  if (aiReady()) {
+    try {
+      const x = await aiJson(`Mach aus dieser Antwort von Merki eine Lernnotiz auf Deutsch. Übernimm alle Lerninhalte vollständig (Erklärungen, Regeln, Formeln, Zahlen, Beispiele, Eselsbrücken) und gliedere sie übersichtlich. Lass nur Begrüßung, Lob, Smalltalk und Rückfragen an die Person weg. Erfinde nichts dazu. Formatierung: **fett** für Schlüsselbegriffe, Listen mit "- ".
+"titel" ist ein kurzer, passender Titel mit höchstens 6 Wörtern.
+Antworte nur mit JSON: {"titel": "...", "inhalt": "..."}
+${qText ? `\nFrage der Person dazu: ${qText.slice(0, 1500)}\n` : ''}
+Antwort von Merki:
+${t.content.slice(0, 12000)}`, { schema: SCHEMA.voice, tier: 'quick', maxTokens: 4000, purpose: 'note' });
+      title = String((x && x.titel) || '').trim().slice(0, 120);
+      text = String((x && x.inhalt) || '').trim().slice(0, 6000);
+    } catch (e) { console.warn('note', e); }
+  }
+  if (!text) text = t.content.replace(/\s*…$/, '').slice(0, 6000);
+  if (!title) title = noteTitleFallback(t.content, qText);
+  put('note', { id: 'n-' + uid8(), projectId: pid, title, text, source: 'chat', createdAt: Date.now() }, false);
+  t.noted = title;
+  noting.delete(key);
+  persist();
+  if (btn && btn.isConnected) btn.outerHTML = notedHtml(title);
+  toast(`Als Notiz gespeichert: „${title}“`);
 }
 function renderChat() {
   const p = proj(); if (!p) return;
@@ -1316,8 +1367,8 @@ function renderChat() {
   const log = $('#chatlog');
   if (!c || !c.turns.length) {
     const nf = pFiles().length, nn = pNotes().length;
-    log.innerHTML = `<div class="msg ai"><p>Hi, ich bin <mark>Merki</mark>. Frag mich alles zu „${esc(p.name)}“. Was wichtig ist, schreibe ich dir automatisch in die Notizen.</p><p>${nf || nn ? `Ich kenne hier schon ${nf} ${nf === 1 ? 'Datei' : 'Dateien'} und ${nn} ${nn === 1 ? 'Notiz' : 'Notizen'}.` : 'Mit der Büroklammer kannst du mir Dateien geben, zum Beispiel ein Skript oder ein Foto von deinen Notizen.'}</p></div>`;
-  } else log.innerHTML = c.turns.map(chatTurnHtml).join('');
+    log.innerHTML = `<div class="msg ai"><p>Hi, ich bin <mark>Merki</mark>. Frag mich alles zu „${esc(p.name)}“. Was du behalten willst, speicherst du mit <b>Als Notiz</b> unter meiner Antwort.</p><p>${nf || nn ? `Ich kenne hier schon ${nf} ${nf === 1 ? 'Datei' : 'Dateien'} und ${nn} ${nn === 1 ? 'Notiz' : 'Notizen'}.` : 'Mit der Büroklammer kannst du mir Dateien geben, zum Beispiel ein Skript oder ein Foto von deinen Notizen.'}</p></div>`;
+  } else log.innerHTML = c.turns.map((t, i) => chatTurnHtml(t, i)).join('');
   $('#suggest').hidden = !!(c && c.turns.length);
   scrollDown();
 }
@@ -1329,9 +1380,11 @@ function getOrCreateChat(title) {
 }
 function saveChat(c) { c.turns = trimTurns(c.turns); c.updatedAt = Date.now(); put('chat', { ...c }, false); }
 
-const NOTE_RULE = `Merke Wichtiges, und zwar großzügig: Immer wenn im Gespräch etwas Lernrelevantes vorkommt oder du etwas erklärst (Definition, Regel, Formel, Fakt, Datum, Vokabel, Beispiel, Eselsbrücke, Zusammenhang, typischer Fehler, Lernziel, Prüfungstermin), hänge GANZ AM ENDE deiner Antwort pro Punkt eine eigene Zeile in genau diesem Format an:
+// Notizen macht die Person selbst mit dem Knopf „Als Notiz“ an Merkis Antworten. Merki schreibt nur auf ausdrücklichen Wunsch welche.
+const NOTE_RULE = `Notizen: Unter jeder deiner Antworten hat die Person einen Knopf „Als Notiz“, damit speichert sie selbst, was sie behalten will. Schreib deshalb nicht von dir aus Notizen und biete es auch nicht ständig an.
+Nur wenn sie dich in ihrer letzten Nachricht ausdrücklich bittet, etwas zu notieren oder zu merken, hänge GANZ AM ENDE deiner Antwort pro Punkt eine eigene Zeile in genau diesem Format an:
 NOTIZ: <kurzer Titel> :: <Inhalt in 1 bis 4 klaren Sätzen>
-Jede Antwort, die etwas erklärt oder abfragt, bekommt mindestens eine solche Zeile, höchstens 6. Keine für reinen Smalltalk, keine doppelten zu vorhandenen Notizen (auch nicht zu denen in eckigen Klammern unter deinen früheren Antworten, die setzt die App, nicht du). Erwähne diese Zeilen nicht im Text.`;
+Höchstens 6 solche Zeilen, keine doppelten zu vorhandenen Notizen. Erwähne diese Zeilen nicht im Text, sag nur kurz, dass du es notiert hast.`;
 const RULES = `Du bist "Merki", ein freundlicher, geduldiger Lernbegleiter in der Lern-App "Merkheft". Antworte immer auf Deutsch, locker und leicht verständlich, eher kurz, mit Beispielen und Eselsbrücken. Formatierung: **fett** für Schlüsselbegriffe, Listen mit "- ". Keine Überschriften, keine Tabellen.
 Nutze die Dateien und Notizen des Projekts. Wenn du etwas daraus hast, sag aus welcher Datei. Wenn du abfragst: immer nur eine Frage, warte auf die Antwort, lobe ehrlich und korrigiere freundlich.
 
@@ -1353,12 +1406,11 @@ Wenn in der Notiz etwas falsch oder unklar ist, sag es freundlich. Wenn du abfra
 
 ` + NOTE_RULE;
 // Wie Merki helfen soll (Einstellungen). Steht in stats, gilt also auf allen Geräten.
-const HELP_DEF = { len: 'normal', tone: 'locker', ex: true, mnemo: true, quiz: false, steps: false, notes: 'viele', wish: '' };
+const HELP_DEF = { len: 'normal', tone: 'locker', ex: true, mnemo: true, quiz: false, steps: false, wish: '' };
 const helpOf = () => ({ ...HELP_DEF, ...(state.stats.help || {}) });
 const HELP_SEGS = [
   ['len', 'Antworten', [['kurz', 'Kurz'], ['normal', 'Normal'], ['lang', 'Ausführlich']]],
   ['tone', 'Ton', [['locker', 'Locker'], ['sachlich', 'Sachlich']]],
-  ['notes', 'Notizen', [['wenige', 'Wenige'], ['normal', 'Normal'], ['viele', 'Viele']]],
 ];
 const HELP_TOGS = [['ex', 'Mit Beispielen'], ['mnemo', 'Mit Eselsbrücken'], ['quiz', 'Oft abfragen'], ['steps', 'Schritt für Schritt']];
 const helpWish = () => String(helpOf().wish || '').replace(/\s+/g, ' ').trim().slice(0, 600);
@@ -1371,8 +1423,6 @@ function helpText(spoken) {
   if (!h.mnemo) out.push('Eselsbrücken nur, wenn danach gefragt wird.');
   if (h.quiz) out.push('Frag oft ab: Stell nach einer Erklärung meistens eine kurze Kontrollfrage.');
   if (h.steps) out.push('Erkläre Schritt für Schritt in kleinen Häppchen und frag zwischendurch, ob alles klar ist.');
-  if (h.notes === 'wenige') out.push('Notizen: höchstens eine NOTIZ-Zeile pro Antwort, nur für das Allerwichtigste.');
-  if (h.notes === 'normal') out.push('Notizen: höchstens 3 NOTIZ-Zeilen pro Antwort.');
   const wish = helpWish();
   if (wish) out.push(`Das wünscht sich die Person von dir (in ihren eigenen Worten, beachte es, solange es zum Lernen passt): „${wish}“`);
   return out.length ? '\n\nSo möchte die Person mit dir lernen. Das gilt vor den Regeln oben:\n- ' + out.join('\n- ') : '';
@@ -1408,7 +1458,7 @@ async function send(text) {
       const kept = visible((e.text || partial || ''));
       if (kept) c.turns.push({ role: 'assistant', content: kept + ' …' });
       else { c.turns.pop(); if (!$('#chatin').value) { $('#chatin').value = text; autoGrow(); } }
-    } else c.turns.push({ role: 'assistant', content: (e && e.text ? visible(e.text) + '\n\n' : '') + aiError(e) });
+    } else c.turns.push({ role: 'assistant', content: (e && e.text ? visible(e.text) + '\n\n' : '') + aiError(e), err: true });
   }
   busy = false; ctl = null;
   if (c.turns.length) saveChat(c); else remove('chat', c.id, false);
@@ -1431,7 +1481,7 @@ function renderNotes() {
   const q = $('#search').value.trim().toLowerCase();
   const list = all.filter(n => (ui.filter === 'all' || (n.source || 'manual') === ui.filter) && (!q || (n.title + ' ' + noteBody(n) + ' ' + (n.raw || '')).toLowerCase().includes(q)));
   if (!all.length) {
-    $('#cards').innerHTML = `<div class="empty" style="grid-column:1/-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M6 3h10l3 3v15H6z"/><path d="M9 9h7M9 13h7M9 17h4"/></svg><b>Noch keine Notizen</b><span>Chatte mit Merki oder lade eine Datei hoch, dann landet das Wichtigste automatisch hier. Oder tippe auf „Neu“: Dann kannst du tippen oder mit dem Stift schreiben.</span></div>`;
+    $('#cards').innerHTML = `<div class="empty" style="grid-column:1/-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M6 3h10l3 3v15H6z"/><path d="M9 9h7M9 13h7M9 17h4"/></svg><b>Noch keine Notizen</b><span>Lade eine Datei hoch, dann landet das Wichtigste daraus hier. Im Chat speicherst du Merkis Antworten mit „Als Notiz“. Oder tippe auf „Neu“: Dann kannst du tippen oder mit dem Stift schreiben.</span></div>`;
     return;
   }
   if (!list.length) { $('#cards').innerHTML = `<p class="muted" style="grid-column:1/-1">Nichts gefunden.</p>`; return; }
@@ -1972,7 +2022,7 @@ function openPad(orig, opts = {}) {
     askIn.placeholder = aiReady() ? 'Frag etwas zu dieser Notiz …' : 'Die KI ist gerade nicht verfügbar';
   };
   const renderAsk = () => {
-    askLog.innerHTML = qa.length ? qa.map(chatTurnHtml).join('')
+    askLog.innerHTML = qa.length ? qa.map((t, i) => chatTurnHtml(t, i)).join('')
       : `<div class="msg ai"><p>Frag mich alles zu dieser Notiz. Ich erkläre es dir einfacher, gebe Beispiele oder frage dich ab.</p></div>`;
     q('#askSug').hidden = qa.length > 0;
     askLog.scrollTop = askLog.scrollHeight;
@@ -2022,7 +2072,7 @@ function openPad(orig, opts = {}) {
         const kept = visible(e.text || partial || '');
         if (kept) qa.push({ role: 'assistant', content: kept + ' …' });
         else { qa.pop(); if (!askIn.value) { askIn.value = text; askGrow(); } }
-      } else qa.push({ role: 'assistant', content: (e && e.text ? visible(e.text) + '\n\n' : '') + aiError(e) });
+      } else qa.push({ role: 'assistant', content: (e && e.text ? visible(e.text) + '\n\n' : '') + aiError(e), err: true });
     }
     asking = false; askCtl = null;
     qa = qa.slice(-30); while (qa.length > 2 && JSON.stringify(qa).length > 30000) qa = qa.slice(2);
@@ -2033,6 +2083,14 @@ function openPad(orig, opts = {}) {
   q('#padAsk').onclick = () => { const open = panel.hidden; setAsk(open, true); if (open && window.matchMedia('(hover:hover)').matches) askIn.focus(); };
   q('#askClose').onclick = () => setAsk(false, true);
   q('#askSug').addEventListener('click', e => { const b = e.target.closest('button'); if (b) askSend(b.dataset.s); });
+  askLog.addEventListener('click', e => {
+    const b = e.target.closest('[data-tnote]'); if (!b) return;
+    noteFromTurn(qa, +b.dataset.tnote, n.projectId, () => {
+      n.qa = qa;
+      if (!dead) save();
+      else { const cur = state.notes.find(x => x.id === n.id); if (cur) put('note', { ...cur, qa }, false); }
+    }, b);
+  });
   q('#askForm').addEventListener('submit', e => {
     e.preventDefault();
     if (asking) { if (askCtl) askCtl.abort(); return; }
@@ -2378,7 +2436,7 @@ function openCall(opts = {}) {
   const name = myName(), quiz = !!opts.quiz;
   Object.assign(call, {
     open: true, pid: p.id, quiz, turn: 0, gen: 0, pending: 0, spoken: 0, streamDone: true, answer: '', ctl: null, rec: null,
-    stopReq: false, misses: 0, inflight: 0, state: '', watch: 0, wake: null,
+    stopReq: false, misses: 0, inflight: 0, state: '', watch: 0, wake: null, micOff: false,
     muted: !canSpeak() || pref('callMute', '0') === '1',
     typing: MODE === 'artifact' || !SR_OF() || call.blocked, // im Claude-Artifact ist das Mikrofon gesperrt
     chat: { id: 'c-' + uid8(), projectId: p.id, title: '', turns: [], updatedAt: Date.now() },
@@ -2391,6 +2449,7 @@ function openCall(opts = {}) {
     <div class="call-log" id="callLog"><p class="cap me" id="capMe" hidden></p><p class="cap ai" id="capAi"></p><div class="saved" id="capSaved"></div></div>
     <form class="call-type" id="callType" hidden><input id="callIn" autocomplete="off" enterkeyhint="send" placeholder="Schreib Merki …" aria-label="Antwort schreiben"><button class="iconbtn" type="submit" aria-label="Senden">${ICON.send}</button></form>
     <div class="call-ctrl">
+      <button class="cbtn" type="button" id="callMic" aria-label="Mikrofon aus"><i></i><span></span></button>
       <button class="cbtn" type="button" id="callMute" aria-label="Merki stumm"><i></i><span></span></button>
       <button class="cbtn big" type="button" id="callMain"><i></i><span></span></button>
       <button class="cbtn end" type="button" id="callEnd" aria-label="Auflegen"><i>${ICON.hang}</i><span>Auflegen</span></button>
@@ -2401,6 +2460,7 @@ function openCall(opts = {}) {
   el.querySelector('#callEnd').onclick = hangUp;
   el.querySelector('#callMain').onclick = mainTap;
   el.querySelector('#callMute').onclick = toggleMute;
+  el.querySelector('#callMic').onclick = toggleMic;
   el.querySelector('#callSwitch').onclick = () => { if (call.typing) toVoice(); else toTyping(''); };
   el.querySelector('#callType').addEventListener('submit', e => {
     e.preventDefault();
@@ -2440,6 +2500,7 @@ function setState(st, msg) {
   sw.hidden = call.typing && !canTalk;
   clearInterval(call.watch);
   if (st === 'speaking') startWatch();
+  renderMic();
 }
 function showMe(t) { const x = call.el && call.el.querySelector('#capMe'); if (!x) return; x.hidden = !t; x.textContent = t ? '„' + t + '“' : ''; }
 function showAi(t) {
@@ -2447,12 +2508,38 @@ function showAi(t) {
   x.textContent = String(t).replace(/\*\*/g, '').replace(/^[ \t]*[-*][ \t]+/gm, '• ');
   const log = call.el.querySelector('#callLog'); log.scrollTop = log.scrollHeight;
 }
-function showSaved(list) { const x = call.el && call.el.querySelector('#capSaved'); if (x) x.innerHTML = list.map(t => `<span>${ICON.pin}Gemerkt: ${esc(t)}</span>`).join(''); }
+function showSaved(list, turn) {
+  const x = call.el && call.el.querySelector('#capSaved'); if (!x) return;
+  x.innerHTML = list.map(t => `<span>${ICON.pin}Gemerkt: ${esc(t)}</span>`).join('')
+    + (turn ? (turn.noted ? notedHtml(turn.noted) : `<button type="button" class="notebtn" id="callNote">${ICON.pin}Als Notiz</button>`) : '');
+  const b = x.querySelector('#callNote');
+  if (b) b.onclick = () => noteFromTurn(call.chat.turns, call.chat.turns.indexOf(turn), call.pid, saveCallChat, b);
+}
 function renderMute() {
   const b = call.el.querySelector('#callMute');
   b.setAttribute('aria-pressed', call.muted); b.disabled = !canSpeak();
   b.querySelector('i').innerHTML = call.muted ? ICON.mute : ICON.sound;
-  b.querySelector('span').textContent = call.muted ? 'Stumm' : 'Ton an';
+  b.querySelector('span').textContent = call.muted ? 'Ton aus' : 'Ton an';
+}
+// Mikro aus: Merki hört nicht mehr von selbst zu, bis man es wieder anmacht oder auf „Sprechen“ tippt
+const MIC_OFF = 'Mikro ist aus, Merki hört nicht zu. Tippe auf „Sprechen“, wenn du weiterreden willst.';
+function renderMic() {
+  const b = call.el && call.el.querySelector('#callMic'); if (!b) return;
+  b.hidden = call.typing;
+  b.setAttribute('aria-pressed', call.micOff);
+  b.querySelector('i').innerHTML = call.micOff ? ICON.micOff : ICON.micBig;
+  b.querySelector('span').textContent = call.micOff ? 'Mikro aus' : 'Mikro an';
+}
+function toggleMic() {
+  if (!call.open) return;
+  voice.unlock();
+  call.micOff = !call.micOff;
+  if (call.micOff) {
+    if (call.state === 'listening') { call.turn++; stopListening(); showMe(''); setState('paused', MIC_OFF); }
+    else if (call.state === 'paused') setState('paused', MIC_OFF);
+    else renderMic();
+  } else if (call.state === 'paused') listen(false);
+  else renderMic();
 }
 function say(text) {
   const gen = call.gen;
@@ -2487,6 +2574,10 @@ function stopListening() { if (call.rec) { const r = call.rec; call.rec = null; 
 function listen(auto) {
   if (!call.open) return;
   if (call.typing) { setState('typing'); return; }
+  if (call.micOff) {
+    if (auto) { setState('paused', MIC_OFF); return; }
+    call.micOff = false; // „Sprechen“ getippt: Mikro wieder an
+  }
   stopListening();
   call.stopReq = false;
   const my = ++call.turn;
@@ -2556,7 +2647,7 @@ function finishAnswer(full) {
   c.turns.push({ role: 'assistant', content: shown, saved });
   saveCallChat();
   call.answer = full;
-  showAi(shown); showSaved(saved);
+  showAi(shown); showSaved(saved, c.turns[c.turns.length - 1]);
   if (!call.muted) {
     const clean = speakable(shown);
     sayReady(clean);
@@ -3606,7 +3697,7 @@ function tab(name) {
 }
 
 // Wofür die KI heute Geld gebraucht hat (Einstellungen)
-const KIND_LABEL = { chat: 'Chat', ask: 'Frag Merki', voice: 'Gespräch', file: 'Dateien', order: 'Alles in einer', learn: 'Lernen', ink: 'Handschrift', vnote: 'Sprachnotizen' };
+const KIND_LABEL = { chat: 'Chat', ask: 'Frag Merki', voice: 'Gespräch', file: 'Dateien', order: 'Alles in einer', learn: 'Lernen', ink: 'Handschrift', vnote: 'Sprachnotizen', note: 'Notiz per Knopf' };
 // Einstellungen: Name und Stimme überall, Installieren, Verbrauch und Abmelden nur auf dem eigenen Server
 let installEvt = null;
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
@@ -3738,6 +3829,10 @@ $('#chatform').addEventListener('submit', e => {
 const autoGrow = () => { const t = $('#chatin'); t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 140) + 'px'; };
 $('#chatin').addEventListener('input', autoGrow);
 $('#chatin').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && window.matchMedia('(hover:hover)').matches) { e.preventDefault(); if (!busy) $('#chatform').requestSubmit(); } });
+$('#chatlog').addEventListener('click', e => {
+  const b = e.target.closest('[data-tnote]'), c = curChat(); if (!b || !c) return;
+  noteFromTurn(c.turns, +b.dataset.tnote, c.projectId, () => saveChat(c), b);
+});
 $('#suggest').addEventListener('click', e => { const s = e.target.closest('button'); if (!s) return; if (s.dataset.call) openCall(); else send(s.dataset.s); });
 $('#voiceBtn').onclick = () => openCall(); $('#voiceBtn2').onclick = () => voiceNote(false);
 let uploadFromChat = false;

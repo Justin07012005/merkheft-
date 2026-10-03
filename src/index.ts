@@ -187,7 +187,7 @@ interface AiRequest {
   purpose?: string;
 }
 
-const PURPOSES = new Set(['chat', 'ask', 'voice', 'file', 'order', 'learn', 'ink', 'vnote']);
+const PURPOSES = new Set(['chat', 'ask', 'voice', 'file', 'order', 'learn', 'ink', 'vnote', 'note']);
 
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
