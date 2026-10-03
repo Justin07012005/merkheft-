@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Merkheft</title>
 <meta name="description" content="Merkheft: dein Lernbegleiter mit KI">
-<meta name="theme-color" content="#1F2A6B">
+<meta name="theme-color" content="#FBF4E8">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -15,7 +15,7 @@
 <!--ARTIFACT-START-->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Outfit:wght@600;800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
 <style>
 /* Layout: Projekte links (Seitenleiste wie bei Claude, auf dem Handy als Schublade), rechts das Projekt mit Chat, Notizen, Dateien, Lernen, Fortschritt; Tabs unten für den Daumen */
 :root{
@@ -38,6 +38,8 @@
   --pen-ink:#EEF0FA; --pen-blue:#93B2FF; --pen-red:#FF8C95; --pen-hl:#6B6014; --pen-hl-op:lighten; --rule:#2C3149;
   --shadow:0 1px 0 rgba(0,0,0,.4),0 8px 20px -12px rgba(0,0,0,.8); --call-bg:#080B20; --call-bg2:#1B2263; color-scheme:dark}
 /* Farben zum Auswählen (Einstellungen). Gelten für <html data-palette> und für die Farbmuster im Einstellungsblatt */
+/* Pastell (Standard): Creme, jede Ansicht hat oben ihre eigene Pastellfarbe, dunkle Ränder, gelbe Leiste unten */
+[data-palette="pastell"]{--paper:#FBF4E8;--sheet:#FFFCF6;--side:#F4EBDC;--line:#E5D6BF;--edge:#2D2520;--ink:#2D2520;--ink-soft:#655849;--text:#231C17;--marker:#F4BC45;--marker-ink:#2D2520;--rule:#EBDFCB;--shadow:0 0 0 transparent;--sec-ink:#231C17;--sec-chat:#A9D9B5;--sec-notes:#F2AA9B;--sec-files:#AAC9EF;--sec-learn:#CBB8E9;--sec-progress:#F7D98E;--call-bg:#241B16;--call-bg2:#5B4535;--call-soft:#E9D8C6;--call-glow:#F4BC45;--call-glow-ink:#2D2520;--call-orb-hi:#FFF1C9;--call-orb-lo:#D9962A;--call-halo:rgba(244,188,69,.32);--call-ring:rgba(244,188,69,.5)}
 [data-palette="mitternacht"]{--paper:#F6F7FB;--sheet:#FFFFFF;--side:#EEF0F7;--line:#DCE1EE;--ink:#1F2A6B;--ink-soft:#5A6390;--text:#1B1E2E;--marker:#F7E463;--marker-ink:#3A3300;--rule:#D3DBF0;--shadow:0 1px 0 rgba(31,42,107,.06),0 6px 18px -10px rgba(31,42,107,.25);--call-bg:#141B47;--call-bg2:#2B3590;--call-soft:#C1C6EC;--call-glow:#F7E463;--call-glow-ink:#3A3300;--call-orb-hi:#FFF8C2;--call-orb-lo:#DDB43A;--call-halo:rgba(247,228,99,.32);--call-ring:rgba(247,228,99,.5)}
 [data-palette="lavendel"]{--paper:#F8F6FC;--sheet:#FFFFFF;--side:#F1EDF8;--line:#E3DCF0;--ink:#5B3A9E;--ink-soft:#6B5F8C;--text:#1F1A2E;--marker:#F6C4E4;--marker-ink:#4D1239;--rule:#DFD5F0;--shadow:0 1px 0 rgba(91,58,158,.06),0 6px 18px -10px rgba(91,58,158,.25);--call-bg:#1F1442;--call-bg2:#4B2F8F;--call-soft:#D3C6EE;--call-glow:#F6C4E4;--call-glow-ink:#4D1239;--call-orb-hi:#FFF0FA;--call-orb-lo:#D688BC;--call-halo:rgba(246,196,228,.32);--call-ring:rgba(246,196,228,.5)}
 [data-palette="rose"]{--paper:#FCF6F8;--sheet:#FFFFFF;--side:#F8EDF1;--line:#F0DDE4;--ink:#A3245A;--ink-soft:#7F5A69;--text:#2A1A21;--marker:#FFD3A8;--marker-ink:#4A2400;--rule:#F1D5DF;--shadow:0 1px 0 rgba(163,36,90,.06),0 6px 18px -10px rgba(163,36,90,.25);--call-bg:#3B0E23;--call-bg2:#8A2152;--call-soft:#F2C9D9;--call-glow:#FFD3A8;--call-glow-ink:#4A2400;--call-orb-hi:#FFF4E8;--call-orb-lo:#E8A066;--call-halo:rgba(255,211,168,.32);--call-ring:rgba(255,211,168,.5)}
@@ -45,6 +47,7 @@
 [data-palette="ozean"]{--paper:#F4F8FA;--sheet:#FFFFFF;--side:#EAF2F6;--line:#D5E4EB;--ink:#0F5F78;--ink-soft:#4E6B79;--text:#152229;--marker:#A8EDE6;--marker-ink:#003A36;--rule:#CDE2EB;--shadow:0 1px 0 rgba(15,95,120,.06),0 6px 18px -10px rgba(15,95,120,.25);--call-bg:#072333;--call-bg2:#125F7A;--call-soft:#BFDDE8;--call-glow:#A8EDE6;--call-glow-ink:#003A36;--call-orb-hi:#E8FFFC;--call-orb-lo:#5CC6BB;--call-halo:rgba(168,237,230,.32);--call-ring:rgba(168,237,230,.5)}
 [data-palette="sonne"]{--paper:#FBF7F1;--sheet:#FFFFFF;--side:#F6EEE3;--line:#EBDDCB;--ink:#A8401A;--ink-soft:#7F6351;--text:#2A1C14;--marker:#FFE07A;--marker-ink:#3D2E00;--rule:#EEDCC5;--shadow:0 1px 0 rgba(168,64,26,.06),0 6px 18px -10px rgba(168,64,26,.25);--call-bg:#381507;--call-bg2:#8A3714;--call-soft:#F0D2C2;--call-glow:#FFE07A;--call-glow-ink:#3D2E00;--call-orb-hi:#FFF7D6;--call-orb-lo:#E0A930;--call-halo:rgba(255,224,122,.32);--call-ring:rgba(255,224,122,.5)}
 @media (prefers-color-scheme:dark){
+:root:not([data-theme="light"])[data-palette="pastell"],:root:not([data-theme="light"]) [data-palette="pastell"]{--paper:#1D1915;--sheet:#28221C;--side:#221D18;--line:#3D342B;--edge:#D9CBB6;--ink:#F4EADB;--ink-soft:#BBAD9A;--text:#F4ECE0;--marker:#E8B848;--marker-ink:#1D1915;--rule:#3A3129;--sec-ink:#1D1915;--sec-chat:#86BF98;--sec-notes:#E39A8A;--sec-files:#8DB3E2;--sec-learn:#AE9AD8;--sec-progress:#E6C46F;--call-bg:#120D0A;--call-bg2:#3E2F24}
 :root:not([data-theme="light"])[data-palette="mitternacht"],:root:not([data-theme="light"]) [data-palette="mitternacht"]{--paper:#11131C;--sheet:#1A1D2A;--side:#151824;--line:#2B3044;--ink:#A9B4FF;--ink-soft:#8C93B8;--text:#E8EAF4;--marker:#D8C445;--marker-ink:#1C1800;--rule:#2C3149;--call-bg:#080B20;--call-bg2:#1B2263}
 :root:not([data-theme="light"])[data-palette="lavendel"],:root:not([data-theme="light"]) [data-palette="lavendel"]{--paper:#14111C;--sheet:#1D1929;--side:#181423;--line:#322B45;--ink:#C9B5FF;--ink-soft:#9D93B9;--text:#ECE8F5;--marker:#D294BF;--marker-ink:#22061A;--rule:#352D4B;--call-bg:#0D0820;--call-bg2:#2D1B5E}
 :root:not([data-theme="light"])[data-palette="rose"],:root:not([data-theme="light"]) [data-palette="rose"]{--paper:#1B1216;--sheet:#261A20;--side:#20151A;--line:#432C36;--ink:#FF9CC2;--ink-soft:#BC94A4;--text:#F6EAEF;--marker:#D9A06E;--marker-ink:#2A1400;--rule:#472E39;--call-bg:#1B0610;--call-bg2:#5A1535}
@@ -52,6 +55,7 @@
 :root:not([data-theme="light"])[data-palette="ozean"],:root:not([data-theme="light"]) [data-palette="ozean"]{--paper:#0D1519;--sheet:#142027;--side:#10191E;--line:#243A44;--ink:#7CD3EE;--ink-soft:#87A6B3;--text:#E4F0F4;--marker:#4FB8AE;--marker-ink:#002220;--rule:#273E49;--call-bg:#031118;--call-bg2:#0C3D50}
 :root:not([data-theme="light"])[data-palette="sonne"],:root:not([data-theme="light"]) [data-palette="sonne"]{--paper:#18120E;--sheet:#231A14;--side:#1D1611;--line:#3D2F24;--ink:#FFAA80;--ink-soft:#B99B89;--text:#F6EDE6;--marker:#D9B640;--marker-ink:#231A00;--rule:#413227;--call-bg:#190803;--call-bg2:#5B230B}
 }
+:root[data-theme="dark"][data-palette="pastell"],:root[data-theme="dark"] [data-palette="pastell"]{--paper:#1D1915;--sheet:#28221C;--side:#221D18;--line:#3D342B;--edge:#D9CBB6;--ink:#F4EADB;--ink-soft:#BBAD9A;--text:#F4ECE0;--marker:#E8B848;--marker-ink:#1D1915;--rule:#3A3129;--sec-ink:#1D1915;--sec-chat:#86BF98;--sec-notes:#E39A8A;--sec-files:#8DB3E2;--sec-learn:#AE9AD8;--sec-progress:#E6C46F;--call-bg:#120D0A;--call-bg2:#3E2F24}
 :root[data-theme="dark"][data-palette="mitternacht"],:root[data-theme="dark"] [data-palette="mitternacht"]{--paper:#11131C;--sheet:#1A1D2A;--side:#151824;--line:#2B3044;--ink:#A9B4FF;--ink-soft:#8C93B8;--text:#E8EAF4;--marker:#D8C445;--marker-ink:#1C1800;--rule:#2C3149;--call-bg:#080B20;--call-bg2:#1B2263}
 :root[data-theme="dark"][data-palette="lavendel"],:root[data-theme="dark"] [data-palette="lavendel"]{--paper:#14111C;--sheet:#1D1929;--side:#181423;--line:#322B45;--ink:#C9B5FF;--ink-soft:#9D93B9;--text:#ECE8F5;--marker:#D294BF;--marker-ink:#22061A;--rule:#352D4B;--call-bg:#0D0820;--call-bg2:#2D1B5E}
 :root[data-theme="dark"][data-palette="rose"],:root[data-theme="dark"] [data-palette="rose"]{--paper:#1B1216;--sheet:#261A20;--side:#20151A;--line:#432C36;--ink:#FF9CC2;--ink-soft:#BC94A4;--text:#F6EAEF;--marker:#D9A06E;--marker-ink:#2A1400;--rule:#472E39;--call-bg:#1B0610;--call-bg2:#5A1535}
@@ -75,8 +79,8 @@ svg{flex:none}
 /* Seitenleiste */
 .side{background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:10px;padding:14px 12px calc(12px + env(safe-area-inset-bottom,0px));min-height:0;overflow-y:auto}
 @media (max-width:759px){
-  .side{position:fixed;inset:0 auto 0 0;width:min(300px,86vw);z-index:15;transform:translateX(-102%);transition:transform .25s ease;padding-top:calc(14px + env(safe-area-inset-top,0px));box-shadow:0 0 40px rgba(0,0,0,.25)}
-  .side.open{transform:none}
+  .side{position:fixed;inset:0 auto 0 0;width:min(300px,86vw);z-index:15;transform:translateX(-102%);transition:transform .25s ease,box-shadow .25s ease;padding-top:calc(14px + env(safe-area-inset-top,0px))}
+  .side.open{transform:none;box-shadow:0 0 40px rgba(0,0,0,.25)}
 }
 @media (min-width:760px){.only-phone{display:none!important}}
 .scrim{position:fixed;inset:0;background:rgba(10,12,30,.4);z-index:14}
@@ -118,6 +122,7 @@ section.view{display:flex;flex-direction:column;gap:14px;flex:1}
 nav.tabs{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--line);background:var(--sheet);padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px))}
 nav.tabs button{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:none;padding:6px 0;border-radius:12px;color:var(--ink-soft);font-size:12px;min-width:0}
 nav.tabs button svg{width:24px;height:24px}
+.dateinp{border:1px solid var(--line);background:var(--sheet);color:var(--text);border-radius:12px;padding:9px 12px;font:inherit}
 nav.tabs button[aria-selected="true"]{color:var(--ink);font-weight:700}
 nav.tabs button[aria-selected="true"] svg{background:var(--marker);color:var(--marker-ink);border-radius:8px;padding:2px;box-sizing:content-box;margin:-2px}
 .badge{position:absolute;top:2px;left:calc(50% + 8px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--red);color:#fff;font:700 11px/18px var(--f-body);text-align:center}
@@ -333,6 +338,11 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 /* Fortschritt */
 .tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 @media (min-width:600px){.tiles{grid-template-columns:repeat(4,1fr)}}
+.hero{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.hero div{background:var(--sheet);border:1px solid var(--line);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:4px;min-width:0;box-shadow:var(--shadow)}
+.hero svg{width:20px;height:20px;color:var(--ink)}
+.hero b{font:800 clamp(26px,8vw,38px)/1 var(--f-display);color:var(--ink);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.hero span{font-size:13px;font-weight:700;color:var(--ink-soft);line-height:1.25}
 .tile{background:var(--sheet);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:2px;box-shadow:var(--shadow)}
 .tile b{font:800 26px/1.1 var(--f-display);color:var(--ink);font-variant-numeric:tabular-nums}
 .tile span{font-size:13px;color:var(--ink-soft)}
@@ -502,12 +512,125 @@ input[type=range]{accent-color:var(--ink);width:100%}
 .swatch[aria-pressed="true"] i::before,.swatch[aria-pressed="true"] i::after{content:"";position:absolute;right:-4px;bottom:-4px;width:18px;height:18px;border-radius:50%}
 .swatch[aria-pressed="true"] i::after{background:var(--ink);box-shadow:0 0 0 2px var(--sheet)}
 .swatch[aria-pressed="true"] i::before{z-index:1;background:var(--sheet);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/12px no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/12px no-repeat}
+.swatch[data-palette="pastell"] i{background:conic-gradient(var(--sec-chat) 0 25%,var(--sec-notes) 0 50%,var(--sec-learn) 0 75%,var(--sec-files) 0);box-shadow:0 0 0 1.5px var(--edge)}
 .swatch span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media (max-width:360px){.swatch,.seg.look button{font-size:13px}.swatches{gap:6px}}
+/* ---------- Pastell: Aufbau ---------- */
+:root[data-palette="pastell"]{--f-display:"Outfit",ui-rounded,"Segoe UI",system-ui,sans-serif}
+:root[data-palette="pastell"] .mainwrap{--sec:var(--sec-chat)}
+:root[data-palette="pastell"] .mainwrap[data-tab="notes"]{--sec:var(--sec-notes)}
+:root[data-palette="pastell"] .mainwrap[data-tab="files"]{--sec:var(--sec-files)}
+:root[data-palette="pastell"] .mainwrap[data-tab="learn"]{--sec:var(--sec-learn)}
+:root[data-palette="pastell"] .mainwrap[data-tab="progress"]{--sec:var(--sec-progress)}
+:root[data-palette="pastell"] .mainwrap[data-tab="home"]{--sec:var(--sec-progress)}
+/* Oben die Farbe der Ansicht, darunter der Inhalt wie ein Blatt mit runden Ecken */
+:root[data-palette="pastell"] header.top{background:var(--sec);color:var(--sec-ink);border-bottom:0;padding-bottom:30px}
+:root[data-palette="pastell"] .ptitle h1,:root[data-palette="pastell"] .ptitle p{color:var(--sec-ink)}
+:root[data-palette="pastell"] .ptitle h1{font-size:24px}
+:root[data-palette="pastell"] header.top .iconbtn.plain{width:40px;height:40px;background:var(--marker);color:var(--marker-ink);border:1.5px solid var(--edge)}
+:root[data-palette="pastell"] header.top .chip{border:1.5px solid var(--edge)}
+:root[data-palette="pastell"] main{position:relative;z-index:1;margin-top:-20px;background:var(--paper);border-top:1.5px solid var(--edge);border-radius:24px 24px 0 0;padding-top:16px}
+/* Leiste unten: gelb, rund, mit Namen unter den Symbolen; die gewählte Ansicht im dunklen Kreis */
+:root[data-palette="pastell"] nav.tabs{width:calc(100% - 20px);max-width:620px;align-self:center;margin:6px auto calc(8px + env(safe-area-inset-bottom,0px));padding:6px 4px;background:var(--marker);border:1.5px solid var(--edge);border-radius:28px}
+:root[data-palette="pastell"] nav.tabs button{color:var(--marker-ink);font-weight:700;font-size:11.5px;letter-spacing:-.1px;padding:3px 0;gap:3px}
+:root[data-palette="pastell"] nav.tabs button svg{width:22px;height:22px;padding:5px;box-sizing:content-box;border-radius:50%;margin:-3px 0 -2px}
+:root[data-palette="pastell"] nav.tabs button[aria-selected="true"]{color:var(--marker-ink)}
+:root[data-palette="pastell"] nav.tabs button[aria-selected="true"] svg{background:var(--sec-ink);color:var(--marker);padding:5px;margin:-3px 0 -2px;border-radius:50%}
+:root[data-palette="pastell"] .badge{border:1.5px solid var(--edge);top:0}
+/* Seitenleiste */
+:root[data-palette="pastell"] .side{border-right:1.5px solid var(--edge)}
+:root[data-palette="pastell"] .plist button{border:1.5px solid transparent;border-radius:14px}
+:root[data-palette="pastell"] .plist button[aria-current="true"]{background:var(--marker);border-color:var(--edge);box-shadow:none}
+:root[data-palette="pastell"] .plist button[aria-current="true"] :is(b,span){color:var(--marker-ink)}
+:root[data-palette="pastell"] .side-foot{border-top:1.5px solid var(--edge)}
+/* Alles, was ein Kasten ist: dunkler Rand, runde Ecken, kein Schatten */
+:root[data-palette="pastell"] :is(.msg.ai,.card,.file,.game,.q,.tile,.panel,.allnote,.fsum,.citem,.helpbox,.menu button,.notice,.textview,.pday,.answers button,.swatch,.flash .fs,.mcard .b,.mcard .f,.today,.ficon,.hero div,.job){border:1.5px solid var(--edge);box-shadow:none}
+:root[data-palette="pastell"] :is(.card,.file,.game,.q,.panel,.allnote,.fsum,.tile,.pday,.citem,.helpbox,.flash .fs,.hero div){border-radius:20px}
+:root[data-palette="pastell"] :is(.menu button,.notice,.textview,.answers button,.swatch){border-radius:16px}
+:root[data-palette="pastell"] .notice.err{border-color:var(--red)}
+:root[data-palette="pastell"] .notice.tip{border-left:6px solid var(--marker)}
+:root[data-palette="pastell"] .answers button.right{border-color:var(--good)}
+:root[data-palette="pastell"] .answers button.wrong{border-color:var(--red)}
+:root[data-palette="pastell"] .mcard.done .b{border-color:var(--good)}
+:root[data-palette="pastell"] .card{background-image:none;padding:14px 16px;line-height:1.5}
+:root[data-palette="pastell"] .card h3{line-height:1.35;margin-bottom:4px}
+:root[data-palette="pastell"] .flash .fs{background-image:none;padding:20px}
+:root[data-palette="pastell"] .mcard .f{background:var(--sec-learn);color:var(--sec-ink);background-image:repeating-linear-gradient(45deg,transparent 0 10px,rgba(255,255,255,.22) 10px 20px)}
+:root[data-palette="pastell"] .mcard :is(.f,.b){border-radius:16px}
+:root[data-palette="pastell"] .job{border-radius:999px}
+:root[data-palette="pastell"] .today{border-radius:18px}
+/* Chat */
+:root[data-palette="pastell"] .msg{border-radius:20px}
+:root[data-palette="pastell"] .msg.ai{border-bottom-left-radius:6px}
+:root[data-palette="pastell"] .msg.me{background:var(--sec-chat);color:var(--sec-ink);border:1.5px solid var(--edge);border-bottom-right-radius:6px}
+:root[data-palette="pastell"] .suggest button{border:1.5px dashed var(--edge);color:var(--text)}
+/* Knöpfe und Felder */
+:root[data-palette="pastell"] .btn{border-radius:999px;background:var(--edge);color:var(--paper);border:1.5px solid var(--edge)}
+:root[data-palette="pastell"] .btn.alt{background:var(--sheet);color:var(--text)}
+:root[data-palette="pastell"] .btn.danger,:root[data-palette="pastell"] .btn.rec{background:var(--red);color:#fff}
+:root[data-palette="pastell"] .btn.good{background:var(--good);color:#fff}
+:root[data-palette="pastell"] .btn.bad{background:var(--sheet);color:var(--red);border-color:var(--red)}
+:root[data-palette="pastell"] .iconbtn{background:var(--edge);color:var(--paper)}
+:root[data-palette="pastell"] .iconbtn.ghost{background:var(--sheet);color:var(--text);border:1.5px solid var(--edge)}
+:root[data-palette="pastell"] .iconbtn.plain{background:none;color:var(--text);border:0}
+:root[data-palette="pastell"] :is(.field input,.field textarea,.field select,.toolbar input,.chatbar select,.composer textarea,.helpbox textarea,.dateinp){border:1.5px solid var(--edge);background:var(--sheet)}
+:root[data-palette="pastell"] :is(.field input,.field select,.field textarea,.toolbar input,.chatbar select,.helpbox textarea,.dateinp){border-radius:14px}
+:root[data-palette="pastell"] .composer textarea{border-radius:22px}
+:root[data-palette="pastell"] .chip{border:1.5px solid var(--edge);color:var(--text)}
+:root[data-palette="pastell"] .examchip{color:var(--marker-ink)}
+:root[data-palette="pastell"] :is(.filters button,.htog button,.ad-toc button){border:1.5px solid var(--edge);color:var(--text);background:var(--sheet)}
+:root[data-palette="pastell"] :is(.filters button,.htog button)[aria-pressed="true"]{background:var(--edge);color:var(--paper)}
+:root[data-palette="pastell"] .seg{background:var(--sheet);border:1.5px solid var(--edge);border-radius:999px}
+:root[data-palette="pastell"] .seg button{border-radius:999px;color:var(--ink-soft)}
+:root[data-palette="pastell"] .seg button[aria-pressed="true"]{background:var(--edge);color:var(--paper);box-shadow:none}
+:root[data-palette="pastell"] .seg.look{border-radius:20px}
+:root[data-palette="pastell"] .seg.look button{border-radius:16px}
+:root[data-palette="pastell"] .askbtn{border:1.5px solid var(--edge);background:var(--sheet);color:var(--text)}
+:root[data-palette="pastell"] .askbtn[aria-pressed="true"]{background:var(--edge);color:var(--paper);border-color:var(--edge)}
+:root[data-palette="pastell"] .notebtn{border:1.5px solid var(--edge);color:var(--text)}
+:root[data-palette="pastell"] .notebtn.done{background:var(--marker);color:var(--marker-ink);border-color:var(--edge)}
+:root[data-palette="pastell"] .call .notebtn{color:var(--c-text);border-color:var(--c-line);background:var(--c-btn)}
+:root[data-palette="pastell"] .call .notebtn.done{background:var(--c-glow);color:var(--c-glow-ink);border-color:transparent}
+:root[data-palette="pastell"] .call-type .iconbtn{background:var(--c-glow);color:var(--c-glow-ink)}
+/* Lernen: jede Übung in ihrer eigenen Pastellfarbe */
+:root[data-palette="pastell"] .game{border-radius:22px}
+:root[data-palette="pastell"] .game:nth-child(5n+1){background:var(--sec-learn)}
+:root[data-palette="pastell"] .game:nth-child(5n+2){background:var(--sec-notes)}
+:root[data-palette="pastell"] .game:nth-child(5n+3){background:var(--sec-files)}
+:root[data-palette="pastell"] .game:nth-child(5n+4){background:var(--sec-chat)}
+:root[data-palette="pastell"] .game:nth-child(5n){background:var(--sec-progress)}
+:root[data-palette="pastell"] .game :is(h3,svg,.muted){color:var(--sec-ink)}
+:root[data-palette="pastell"] .game .due{background:var(--sheet);color:var(--text);border:1.5px solid var(--edge);border-radius:999px;padding:1px 10px}
+/* Fortschritt: große Zahlen auf Farbe, runde Balken */
+:root[data-palette="pastell"] .hero div:nth-child(1){background:var(--sec-notes)}
+:root[data-palette="pastell"] .hero div:nth-child(2){background:var(--sec-progress)}
+:root[data-palette="pastell"] .hero div:nth-child(3){background:var(--sec-learn)}
+:root[data-palette="pastell"] .hero :is(b,span,svg){color:var(--sec-ink)}
+:root[data-palette="pastell"] .tile b{font-size:28px}
+:root[data-palette="pastell"] .progress{height:12px;background:var(--sheet);border:1.5px solid var(--edge);border-radius:999px}
+:root[data-palette="pastell"] .progress i{background:var(--sec-learn);border-radius:999px}
+:root[data-palette="pastell"] .topic .progress i{background:var(--good)}
+:root[data-palette="pastell"] .topic.weak .progress i{background:var(--red)}
+:root[data-palette="pastell"] .stack{height:14px;border:1.5px solid var(--edge);border-radius:999px;background:var(--sheet)}
+:root[data-palette="pastell"] .bars{height:110px;gap:5px}
+:root[data-palette="pastell"] .bars i{border:1.5px solid var(--edge);border-radius:999px;background:var(--sec-progress);opacity:1;min-height:12px}
+:root[data-palette="pastell"] .bars i.zero{background:transparent;border-color:var(--line)}
+:root[data-palette="pastell"] .bars i.now{background:var(--marker)}
+:root[data-palette="pastell"] .pday.now{box-shadow:inset 6px 0 0 var(--marker)}
+/* Dateien */
+:root[data-palette="pastell"] .drop{border:2px dashed var(--edge);border-radius:22px}
+:root[data-palette="pastell"] .drop svg{color:var(--text)}
+:root[data-palette="pastell"] .ficon{background:var(--sec-files);color:var(--sec-ink);border-radius:12px}
+/* Blätter (Dialoge), Notiz-Blatt, Frag Merki */
+:root[data-palette="pastell"] .sheet{border:1.5px solid var(--edge);border-bottom:0;border-radius:26px 26px 0 0}
+@media (min-width:700px){:root[data-palette="pastell"] .sheet{border-bottom:1.5px solid var(--edge);border-radius:26px}}
+:root[data-palette="pastell"] :is(.pad-bar,.pad-tools,.ask-head){border-bottom:1.5px solid var(--edge)}
+:root[data-palette="pastell"] .pad-ask{border-color:var(--edge);border-width:1.5px}
+@media (min-width:641px){:root[data-palette="pastell"] .paper{border:1.5px solid var(--edge);border-radius:20px;box-shadow:none}}
 @media (prefers-reduced-motion:reduce){.call *,.call *::before,.call *::after{animation:none!important;transition:none!important}}
 @media (prefers-reduced-motion:reduce){.mcard .in,.flash .in,.progress i,.side{transition:none}.spin{animation:none}}
 </style>
-<script>try{var l=JSON.parse(localStorage.getItem('merkheft.look')||'null'),r=document.documentElement;if(l){if(l.theme==='light'||l.theme==='dark')r.setAttribute('data-theme',l.theme);if(/^[a-z]{2,20}$/.test(l.palette||'')&&l.palette!=='mitternacht')r.setAttribute('data-palette',l.palette)}}catch(e){}</script>
+<script>var r=document.documentElement;r.setAttribute('data-palette','pastell');try{var l=JSON.parse(localStorage.getItem('merkheft.look')||'null');if(l){if(l.theme==='light'||l.theme==='dark')r.setAttribute('data-theme',l.theme);if(l.palette==='mitternacht')r.removeAttribute('data-palette');else if(/^[a-z]{2,20}$/.test(l.palette||''))r.setAttribute('data-palette',l.palette)}}catch(e){}</script>
 </head>
 <body>
 <div class="shell">
@@ -647,6 +770,7 @@ input[type=range]{accent-color:var(--ink);width:100%}
       <section class="view" id="v-progress" hidden>
         <div id="examBox"></div>
         <h2>Dein Stand</h2>
+        <div class="hero" id="hero"></div>
         <div class="tiles" id="tiles"></div>
         <div class="panel" id="cardPanel"></div>
         <div class="panel" id="activity"></div>
@@ -711,6 +835,8 @@ const ICON = {
   stop: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="2"/></svg>',
   clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg>',
   star: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>',
+  flame: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2s5 5 5 10a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5 0 2 1 3 2 3 0-3-1-5.5 1-8.5z"/></svg>',
+  cards: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="6" width="14" height="14" rx="2"/><path d="M7 3h12a2 2 0 0 1 2 2v12"/></svg>',
   cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
   micBig: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
   micOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 9.5V6a3 3 0 0 0-5.7-1.3M9 9v2a3 3 0 0 0 4.9 2.3M5 11a7 7 0 0 0 11.2 5.6M19 11a7 7 0 0 1-.6 2.8M12 18v3M3 3l18 18"/></svg>',
@@ -737,8 +863,9 @@ const ICON = {
 const MODE = window.claude && typeof window.claude.use === 'function' ? 'artifact' : 'server';
 
 // ---------- Zustand ----------
-const state = { projects: [], notes: [], chats: [], files: [], parts: [], cards: [], plans: [], progress: [], inks: [], notedocs: [], stats: { xp: 0, streak: 0, lastDay: '', name: '', theme: '', palette: '', help: {} }, legacyChat: null };
-const normStats = d => ({ xp: d.xp || 0, streak: d.streak || 0, lastDay: d.lastDay || '', name: d.name || '', theme: d.theme || '', palette: d.palette || '', help: d.help && typeof d.help === 'object' ? d.help : {} });
+const state = { projects: [], notes: [], chats: [], files: [], parts: [], cards: [], plans: [], progress: [], inks: [], notedocs: [], stats: { xp: 0, streak: 0, lastDay: '', name: '', theme: '', palette: '', lookV: 2, help: {} }, legacyChat: null };
+// lookV 2: Pastell wurde der neue Standard. Wer vorher eine Farbe gewählt hatte, sieht einmal Pastell und kann zurückwechseln.
+const normStats = d => ({ xp: d.xp || 0, streak: d.streak || 0, lastDay: d.lastDay || '', name: d.name || '', theme: d.theme || '', palette: d.lookV >= 2 ? d.palette || '' : '', lookV: 2, help: d.help && typeof d.help === 'object' ? d.help : {} });
 const ui = { pid: null, cid: null, tab: 'chat', filter: 'all', noteView: 'cards' };
 const LISTS = { project: 'projects', note: 'notes', chat: 'chats', file: 'files', part: 'parts', card: 'cards', plan: 'plans', progress: 'progress', ink: 'inks', notedoc: 'notedocs' };
 let db = null, coll = null, sample = null, connecting = true, busy = false, migrated = false;
@@ -1665,13 +1792,13 @@ const inkSize = strokes => { let b = 3; for (const s of strokes) b += 6 + s.pts.
 const isDark = () => { const t = document.documentElement.dataset.theme; return t ? t === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches; };
 // Aussehen (hell/dunkel, Farbe): steht in stats, gilt also auf allen Geräten. Das Gerät merkt es sich zusätzlich,
 // damit beim Start nichts aufblitzt (kleines Skript im <head>).
-const PALETTES = [['mitternacht', 'Mitternacht'], ['lavendel', 'Lavendel'], ['rose', 'Rosé'], ['salbei', 'Salbei'], ['ozean', 'Ozean'], ['sonne', 'Sonne']];
+const PALETTES = [['pastell', 'Pastell'], ['mitternacht', 'Mitternacht'], ['lavendel', 'Lavendel'], ['rose', 'Rosé'], ['salbei', 'Salbei'], ['ozean', 'Ozean'], ['sonne', 'Sonne']];
 const THEMES = [
   ['auto', 'Automatisch', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg>'],
   ['light', 'Hell', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></svg>'],
   ['dark', 'Dunkel', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>'],
 ];
-const lookOf = st => ({ theme: ['light', 'dark'].includes(st && st.theme) ? st.theme : 'auto', palette: PALETTES.some(x => x[0] === (st && st.palette)) ? st.palette : 'mitternacht' });
+const lookOf = st => ({ theme: ['light', 'dark'].includes(st && st.theme) ? st.theme : 'auto', palette: PALETTES.some(x => x[0] === (st && st.palette)) ? st.palette : 'pastell' });
 let lookNow = '', darkNow = null;
 function applyLook() {
   const l = lookOf(state.stats), key = l.theme + ' ' + l.palette;
@@ -1683,10 +1810,17 @@ function applyLook() {
   try { localStorage.setItem('merkheft.look', JSON.stringify(l)); } catch {}
   lookChanged();
 }
+// Farbe der Statusleiste: im Pastell-Look die Farbe der Kopfzeile (wechselt mit der Ansicht), sonst der Hintergrund
+function barColor() {
+  const m = document.querySelector('meta[name="theme-color"]'); if (!m) return;
+  const h = document.querySelector('header.top'), bg = h ? getComputedStyle(h).backgroundColor : '';
+  const c = bg && !/^(transparent|rgba\(0, 0, 0, 0\))$/.test(bg) ? bg : getComputedStyle(document.documentElement).getPropertyValue('--paper').trim();
+  const r = c.match(/^rgb\((\d+), (\d+), (\d+)\)$/);
+  if (c) m.setAttribute('content', r ? '#' + r.slice(1).map(x => (+x).toString(16).padStart(2, '0')).join('').toUpperCase() : c);
+}
 // Statusleiste in der Farbe des Hintergrunds; Handschrift-Vorschauen neu zeichnen, wenn hell/dunkel wechselt
 function lookChanged() {
-  const m = document.querySelector('meta[name="theme-color"]'), c = getComputedStyle(document.documentElement).getPropertyValue('--paper').trim();
-  if (m && c) m.setAttribute('content', c);
+  barColor();
   const d = isDark();
   if (darkNow !== null && d !== darkNow) { if (proj()) renderNotes(); window.dispatchEvent(new Event('merkheft-dark')); }
   darkNow = d;
@@ -3512,7 +3646,7 @@ function renderExamBox() {
   if (n === null || n < 0) {
     box.innerHTML = `<div class="panel"><h3 class="sub">${n !== null ? `Die Prüfung war am ${esc(fmtDay(p.examDate, { day: 'numeric', month: 'long' }))}` : 'Wann ist deine Prüfung?'}</h3>
       <p class="muted">Trag den Termin ein, dann zählt Merki die Tage und macht dir einen Lernplan bis dahin.</p>
-      <div class="row"><input type="date" id="exDate" min="${today()}" class="field" style="border:1px solid var(--line);background:var(--sheet);border-radius:12px;padding:9px 12px"><button class="btn" type="button" id="exSave">Speichern</button></div></div>`;
+      <div class="row"><input type="date" id="exDate" min="${today()}" class="dateinp"><button class="btn" type="button" id="exSave">Speichern</button></div></div>`;
     box.querySelector('#exSave').onclick = () => { const v = box.querySelector('#exDate').value; if (!isDate(v) || daysBetween(today(), v) < 0) return box.querySelector('#exDate').focus(); put('project', { ...p, examDate: v }); };
     return;
   }
@@ -3605,7 +3739,10 @@ function renderProgress() {
   $('#tiles').innerHTML = [
     [pNotes().length, 'Notizen'], [`${s.sitzt}/${cards.length}`, 'Karten sitzen'], [quizPct, `Quiz richtig${pr.quiz.a ? ` (${pr.quiz.a} Fragen)` : ''}`], [expl, 'Erklären, Sterne im Schnitt'],
   ].map(([v, l]) => `<div class="tile"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join('');
-  const due = dueCards().length;
+  const due = dueCards().length, st = state.stats, streak = [today(), yesterday()].includes(st.lastDay) ? st.streak || 0 : 0;
+  $('#hero').innerHTML = [
+    [ICON.flame, streak, streak === 1 ? 'Tag in Folge' : 'Tage in Folge'], [ICON.star, st.xp || 0, 'XP gesamt'], [ICON.cards, due, due === 1 ? 'Karte heute dran' : 'Karten heute dran'],
+  ].map(([i, v, l]) => `<div>${i}<b>${esc(v)}</b><span>${esc(l)}</span></div>`).join('');
   $('#cardPanel').innerHTML = `<h3 class="sub">Karteikarten</h3>${cards.length ? stackBar(s) + `<p class="muted">${due ? `${due} ${due === 1 ? 'Karte ist' : 'Karten sind'} heute dran.` : 'Für heute alles wiederholt.'}</p>` : '<p class="muted">Noch keine Karten. Unter „Lernen“ macht Merki dir welche.</p>'}`;
   const t = today(), days = Array.from({ length: 14 }, (_, i) => addDays(t, i - 13)), vals = days.map(d => pr.days[d] || 0), max = Math.max(10, ...vals);
   const active = vals.filter(Boolean).length;
@@ -3673,6 +3810,8 @@ function renderView() {
   if (!chip.hidden) { chip.innerHTML = `${ICON.clock}${n === 0 ? 'Heute' : n === 1 ? 'Morgen' : n + ' Tage'}`; chip.title = examLabel(n) + ' bis zur Prüfung'; chip.setAttribute('aria-label', examLabel(n)); }
   ['chat', 'notes', 'files', 'learn', 'progress'].forEach(v => { $('#v-' + v).hidden = !p || ui.tab !== v; });
   document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === ui.tab));
+  const mw = document.querySelector('.mainwrap'), dt = p ? ui.tab : 'home';
+  if (mw.dataset.tab !== dt) { mw.dataset.tab = dt; barColor(); }
 }
 function renderAll(withChat = true) {
   ensureSelection();
