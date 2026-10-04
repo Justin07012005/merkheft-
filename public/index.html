@@ -3285,16 +3285,135 @@ async function pdfPageTexts(pdf, onPage) {
   return out;
 }
 async function pdfText(pdf, onPage) { return (await pdfPageTexts(pdf, onPage)).filter(Boolean).join('\n\n'); }
+// Eine Seite als Bild zeichnen (width = gewünschte Breite in Pixeln, höchstens maxScale-fach)
+async function pdfCanvas(pdf, i, width, maxScale) {
+  const page = await pdf.getPage(i), vp1 = page.getViewport({ scale: 1 }), vp = page.getViewport({ scale: Math.min(maxScale, width / vp1.width) });
+  const cv = document.createElement('canvas'); cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
+  await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+  return cv;
+}
 // Seiten als Bilder (Liste von Seitenzahlen)
 async function pdfImages(pdf, list) {
   const blobs = [];
   for (const i of list) {
-    const page = await pdf.getPage(i), vp1 = page.getViewport({ scale: 1 }), vp = page.getViewport({ scale: Math.min(2, 1400 / vp1.width) });
-    const cv = document.createElement('canvas'); cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
-    await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+    const cv = await pdfCanvas(pdf, i, 1400, 2);
     blobs.push(await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.85)));
+    cv.width = cv.height = 0;
   }
   return blobs;
+}
+
+// ---------- Texterkennung (OCR) auf dem Gerät ----------
+// Eingescannte Seiten liest zuerst Tesseract direkt auf dem iPad, das kostet nichts. Nur sicher erkannter, normaler Text
+// wird so übernommen. Seiten mit Abbildungen, Tabellen, Formeln, mehreren Spalten oder unsicherer Erkennung
+// (Handschrift, schlechter Scan) liest Merki wie bisher als Bild, damit die Zusammenfassung gleich gut bleibt.
+const OCR_LIB = { js: 'tesseract.js@7.0.0', core: 'tesseract.js-core@7.0.0', lang: '@tesseract.js-data/deu@1.0.0/4.0.0_best_int' };
+const OCR_CDN = ['https://cdn.jsdelivr.net/npm/', 'https://unpkg.com/'];
+const OCR_W = 1600;   // so breit wird eine Seite für die Texterkennung gezeichnet (etwa 200 dpi)
+const OCR_NOTE = ' Seiten mit „Texterkennung“ hat eine automatische Texterkennung gelesen: Einzelne Zeichen oder Wörter können falsch erkannt sein. Deute solche Stellen sinnvoll aus dem Zusammenhang und übernimm keine offensichtlichen Erkennungsfehler.';
+const MAX_SCAN = 200; // so viele Seiten eines Scans liest die Texterkennung höchstens (Bildseiten für Merki: MAX_PIC)
+let ocrBox = null;
+function ocrWorker() {
+  if (!ocrBox) ocrBox = (async () => {
+    const open = async cdn => {
+      if (!window.Tesseract) await loadScript(cdn + OCR_LIB.js + '/dist/tesseract.min.js');
+      return window.Tesseract.createWorker('deu', 1, { workerPath: cdn + OCR_LIB.js + '/dist/worker.min.js', corePath: cdn + OCR_LIB.core, langPath: cdn + OCR_LIB.lang, errorHandler: () => {} });
+    };
+    for (const cdn of OCR_CDN) {
+      const start = open(cdn);
+      // Lädt das Werkzeug nicht (kein Internet, CDN gesperrt), nicht ewig warten
+      const w = await Promise.race([start, new Promise(r => setTimeout(r, 90000, null))]).catch(() => null);
+      if (w) return w;
+      start.then(x => x && x.terminate(), () => {});
+    }
+    return null;
+  })().then(w => { if (!w) ocrBox = null; return w; });
+  return ocrBox;
+}
+function ocrStop() {
+  const box = ocrBox; ocrBox = null;
+  if (box) box.then(w => w && w.terminate()).catch(() => {});
+}
+// Seiten per Texterkennung lesen. Ergebnis: Seitenzahl -> Text, nur für Seiten, die sicher erkannt wurden.
+// Ohne Texterkennung (Artifact, kein Internet) ist das Ergebnis leer und Merki liest alles als Bild.
+async function ocrPages(pdf, list, step, label) {
+  const out = new Map();
+  if (MODE !== 'server' || !list.length) return out;
+  step('Texterkennung wird geladen');
+  const w = await ocrWorker();
+  if (!w) return out;
+  try {
+    for (let k = 0; k < list.length; k++) {
+      step(`${label}: ${k + 1} von ${list.length}${list.length > 12 ? ' · App bitte offen lassen' : ''}`);
+      let cv = null;
+      try {
+        cv = await pdfCanvas(pdf, list[k], OCR_W, 4);
+        const { data } = await w.recognize(cv, {}, { text: true, blocks: true });
+        const t = ocrJudge(cv, data);
+        if (t) out.set(list[k], t);
+      } catch (e) { console.warn('OCR', list[k], e); }
+      if (cv) cv.width = cv.height = 0;
+    }
+  } finally { ocrStop(); }
+  return out;
+}
+// Prüft eine erkannte Seite. Gibt den Text zurück oder null, wenn Merki die Seite lieber als Bild lesen soll.
+function ocrJudge(cv, d) {
+  const lines = [], paras = [];
+  for (const b of d.blocks || []) for (const p of b.paragraphs || []) {
+    const pl = [];
+    for (const l of p.lines || []) {
+      const ws = (l.words || []).filter(w => /[\p{L}\p{N}]/u.test(w.text) || (w.confidence >= 75 && w.text.length <= 3));
+      const real = ws.filter(w => /[\p{L}\p{N}]/u.test(w.text));
+      if (real.length) { lines.push({ bbox: l.bbox, words: real }); pl.push(ws.map(w => w.text).join(' ')); }
+    }
+    if (pl.length) paras.push(pl.join('\n'));
+  }
+  const words = lines.flatMap(l => l.words), chars = words.reduce((s, w) => s + w.text.length, 0);
+  if (chars < 150) return null; // fast leer: Titelblatt, Abbildung
+  const conf = words.reduce((s, w) => s + w.confidence * w.text.length, 0) / chars;
+  const weak = words.filter(w => w.confidence < 70).reduce((s, w) => s + w.text.length, 0) / chars;
+  if (conf < 85 || weak > 0.15) return null; // Handschrift, Formeln, schlechter Scan
+  // Große Lücken in einer Zeile (Tabelle ohne Linien) und dieselbe Lücke in vielen Zeilen (zwei Spalten zusammengelesen)
+  let wide = 0; const cols = new Uint16Array(100), cw = cv.width / 100;
+  for (const l of lines) {
+    const h = Math.max(8, l.bbox.y1 - l.bbox.y0), seen = new Set();
+    let big = false;
+    for (let i = 1; i < l.words.length; i++) {
+      const g0 = l.words[i - 1].bbox.x1, g1 = l.words[i].bbox.x0;
+      if (g1 - g0 > 2.5 * h) big = true;
+      if (g1 - g0 > 1.2 * h) for (let k = Math.ceil(g0 / cw); k < Math.floor(g1 / cw) && k < 100; k++) seen.add(k);
+    }
+    if (big) wide++;
+    for (const k of seen) cols[k]++;
+  }
+  if (wide > 2 || Math.max(...cols.slice(25, 75)) >= Math.max(3, lines.length * 0.4)) return null;
+  // Verkleinertes Graubild: Tinte außerhalb der erkannten Wörter (Abbildungen, Randnotizen) und lange Linien (Tabellen)
+  const W = 800, s = W / cv.width, H = Math.round(cv.height * s);
+  const c2 = document.createElement('canvas'); c2.width = W; c2.height = H;
+  const g = c2.getContext('2d'); g.drawImage(cv, 0, 0, W, H);
+  const px = g.getImageData(0, 0, W, H).data, lum = new Uint8Array(W * H), hist = new Uint32Array(256);
+  c2.width = c2.height = 0;
+  for (let i = 0; i < W * H; i++) { const v = (px[i * 4] * 3 + px[i * 4 + 1] * 6 + px[i * 4 + 2]) / 10 | 0; lum[i] = v; hist[v]++; }
+  let acc = 0, paper = 255; for (let v = 255; v >= 0; v--) { acc += hist[v]; if (acc >= W * H * 0.5) { paper = v; break; } }
+  const dark = paper * 0.55, thin = paper * 0.8, mask = new Uint8Array(W * H);
+  for (const l of lines) {
+    const pad = Math.max(2, (l.bbox.y1 - l.bbox.y0) * s * 0.35);
+    for (const w of l.words) {
+      const x0 = Math.max(0, Math.floor(w.bbox.x0 * s - pad)), x1 = Math.min(W, Math.ceil(w.bbox.x1 * s + pad));
+      const y0 = Math.max(0, Math.floor(w.bbox.y0 * s - pad)), y1 = Math.min(H, Math.ceil(w.bbox.y1 * s + pad));
+      for (let y = y0; y < y1; y++) mask.fill(1, y * W + x0, y * W + x1);
+    }
+  }
+  const mx = Math.round(W * 0.03), my = Math.round(H * 0.03);
+  let ink = 0, out = 0;
+  for (let y = my; y < H - my; y++) for (let x = mx; x < W - mx; x++) { const i = y * W + x; if (lum[i] < dark) { ink++; if (!mask[i]) out++; } }
+  if (out > ink * 0.06) return null;
+  // Linien zählen, die über ein Fünftel der Seite gehen; eine einzelne Trennlinie oder der Buchfalz zählen nicht
+  const lineCount = (n, len, at) => { let c = 0, prev = false; for (let a = 0; a < n; a++) { let run = 0, best = 0; for (let b = 0; b < len; b++) { if (lum[at(a, b)] < thin) { if (++run > best) best = run; } else run = 0; } const hit = best >= len * 0.2; if (hit && !prev) c++; prev = hit; } return c; };
+  if (lineCount(H, W, (y, x) => y * W + x) >= 3 || lineCount(W, H, (x, y) => y * W + x) >= 2) return null;
+  // Am Zeilenende getrennte Wörter wieder zusammensetzen
+  return paras.join('\n\n').replace(/(\p{Ll})-\n(\p{Ll})/gu, '$1$2').trim();
 }
 function splitText(t, size) {
   const out = [];
@@ -3367,7 +3486,7 @@ async function fileSummary(name, p, text, step = () => {}) {
   const chunks = splitText(text.slice(0, MAX_TEXT), PART), parts = [];
   for (let k = 0; k < chunks.length; k++) {
     if (chunks.length > 1) step(`Teil ${k + 1} von ${chunks.length}`);
-    const x = await aiJson(`Schreib eine ausführliche Lern-Zusammenfassung auf Deutsch für ${chunks.length > 1 ? `Teil ${k + 1} von ${chunks.length} von ` : ''}„${name}“ (Projekt „${p.name}“${p.desc ? ', ' + p.desc : ''}). Lies ${chunks.length > 1 ? 'den Teil' : 'das Dokument'} vollständig.${chunks[k].includes('als Bild gelesen]') ? ' Stellen mit „[Seite …, als Bild gelesen]“ sind abgeschriebene Seiten und Abbildungen, sie gehören genauso dazu.' : ''} ${SUM_RULES}${wishLine()}
+    const x = await aiJson(`Schreib eine ausführliche Lern-Zusammenfassung auf Deutsch für ${chunks.length > 1 ? `Teil ${k + 1} von ${chunks.length} von ` : ''}„${name}“ (Projekt „${p.name}“${p.desc ? ', ' + p.desc : ''}). Lies ${chunks.length > 1 ? 'den Teil' : 'das Dokument'} vollständig.${chunks[k].includes('als Bild gelesen]') ? ' Stellen mit „[Seite …, als Bild gelesen]“ sind abgeschriebene Seiten und Abbildungen, sie gehören genauso dazu.' : ''}${chunks[k].includes(', Texterkennung]') ? OCR_NOTE : ''} ${SUM_RULES}${wishLine()}
 Antworte nur mit JSON: ${SUM_JSON}
 
 ${chunks.length > 1 ? 'Teil' : 'Dokument'}:
@@ -3429,31 +3548,35 @@ async function readOne(file, p, step) {
   else if (ext === 'pdf') {
     const pdf = await pdfDoc(file);
     const pt = await pdfPageTexts(pdf, (i, n) => step(`Seite ${i} von ${n}`));
-    pg = { all: pdf.numPages, read: pt.filter(t => t !== null).length, pics: 0, scan: false };
+    pg = { all: pdf.numPages, read: pt.filter(t => t !== null).length, pics: 0, ocr: 0, scan: false };
     if (pt.join('').replace(/\s/g, '').length < 80) {
-      // Eingescannt: alle Seiten als Bild lesen (bis MAX_PIC)
+      // Eingescannt: erst Texterkennung auf dem Gerät, die übrigen Seiten liest Merki als Bild (bis MAX_PIC)
       const caps = await imageCaps();
       if (!caps) throw { msg: 'Diese PDF ist eingescannt. Scans kann Merki nur mit KI lesen.' };
       const per = Math.max(1, Math.min(caps.maxCount || 1, 4));
-      const list = Array.from({ length: Math.min(pg.all, MODE === 'server' ? MAX_PIC : 24) }, (_, i) => i + 1);
+      const list = Array.from({ length: Math.min(pg.all, MODE === 'server' ? MAX_SCAN : 24) }, (_, i) => i + 1);
       pg.scan = true;
-      if (list.length <= per) { images = await pdfImages(pdf, list); pg.read = pg.pics = list.length; }
+      const ocr = await ocrPages(pdf, list, step, 'Text erkennen');
+      const rest = list.filter(n => !ocr.has(n)).slice(0, MODE === 'server' ? MAX_PIC : 24);
+      pg.ocr = ocr.size;
+      if (!ocr.size && rest.length <= per) { images = await pdfImages(pdf, rest); pg.read = pg.pics = rest.length; }
       else {
-        const r = await readPicPages(pdf, list, file.name, step, 'Seiten lesen', per);
-        if (!r.pics.size) throw r.err || { msg: 'Merki konnte darauf keinen Text erkennen.' };
-        err = r.err; pg.read = pg.pics = r.pics.size;
-        text = [...r.pics].sort((a, b) => a[0] - b[0]).map(([n, t]) => `[Seite ${n}]\n${t}`).join('\n\n');
+        const r = rest.length ? await readPicPages(pdf, rest, file.name, step, 'Seiten lesen', per) : { pics: new Map(), err: null };
+        if (!r.pics.size && !ocr.size) throw r.err || { msg: 'Merki konnte darauf keinen Text erkennen.' };
+        err = r.err; pg.pics = r.pics.size; pg.read = ocr.size + r.pics.size;
+        text = [...ocr, ...r.pics].sort((a, b) => a[0] - b[0]).map(([n, t]) => `[Seite ${n}${ocr.has(n) ? ', Texterkennung' : ''}]\n${t}`).join('\n\n');
       }
     } else {
-      // Seiten ohne Text, aber mit Bild (Abbildungen, eingescannte Seiten mitten im Skript): als Bild lesen
+      // Seiten ohne Text, aber mit Bild (Abbildungen, eingescannte Seiten mitten im Skript): erst Texterkennung, sonst als Bild lesen
       if (MODE === 'server' && aiReady()) {
-        const found = await picOnlyPages(pdf, pt).catch(() => []), list = found.slice(0, MAX_PIC);
-        if (list.length) {
-          const r = await readPicPages(pdf, list, file.name, step, 'Bildseiten lesen');
-          err = r.err; pg.pics = r.pics.size;
-          pg.read -= found.length - r.pics.size;
-          for (const [n, t] of r.pics) pt[n - 1] = (pt[n - 1] ? pt[n - 1] + '\n' : '') + `[Seite ${n}, als Bild gelesen]\n${t}`;
-        }
+        const found = await picOnlyPages(pdf, pt).catch(() => []);
+        const ocr = await ocrPages(pdf, found.slice(0, MAX_SCAN), step, 'Bildseiten erkennen');
+        const list = found.filter(n => !ocr.has(n)).slice(0, MAX_PIC);
+        const r = list.length ? await readPicPages(pdf, list, file.name, step, 'Bildseiten lesen') : { pics: new Map(), err: null };
+        err = r.err; pg.pics = r.pics.size; pg.ocr = ocr.size;
+        pg.read -= found.length - r.pics.size - ocr.size;
+        for (const [n, t] of ocr) pt[n - 1] = (pt[n - 1] ? pt[n - 1] + '\n' : '') + `[Seite ${n}, Texterkennung]\n${t}`;
+        for (const [n, t] of r.pics) pt[n - 1] = (pt[n - 1] ? pt[n - 1] + '\n' : '') + `[Seite ${n}, als Bild gelesen]\n${t}`;
       }
       text = pt.filter(Boolean).join('\n\n');
     }
@@ -3493,7 +3616,7 @@ Schon vorhandene Notizen (nicht doppelt): ${known()}`, { images, schema: SCHEMA.
         step(many ? `Teil ${k + 1} von ${chunks.length} zusammenfassen` : 'Zusammenfassung und Notizen');
         let x;
         try {
-          x = await aiJson(`Du bekommst ${many ? `Teil ${k + 1} von ${chunks.length} des Lern-Dokuments` : 'das Lern-Dokument'} „${file.name}“ für das Projekt „${p.name}“${p.desc ? ' (' + p.desc + ')' : ''}. Lies ${many ? 'diesen Teil' : 'es'} vollständig.${pg && pg.pics ? ' Stellen mit „[Seite …, als Bild gelesen]“ sind abgeschriebene Seiten und Abbildungen, sie gehören genauso dazu.' : ''}
+          x = await aiJson(`Du bekommst ${many ? `Teil ${k + 1} von ${chunks.length} des Lern-Dokuments` : 'das Lern-Dokument'} „${file.name}“ für das Projekt „${p.name}“${p.desc ? ' (' + p.desc + ')' : ''}. Lies ${many ? 'diesen Teil' : 'es'} vollständig.${pg && pg.pics ? ' Stellen mit „[Seite …, als Bild gelesen]“ sind abgeschriebene Seiten und Abbildungen, sie gehören genauso dazu.' : ''}${pg && pg.ocr ? OCR_NOTE : ''}
 - zusammenfassung: eine ausführliche Lern-Zusammenfassung auf Deutsch${many ? ' für diesen Teil' : ''}. ${SUM_RULES}
 - ${NOTES_JSON(many ? '6 bis 15' : '6 bis 20')}${wishLine()}
 Antworte nur mit JSON: {"zusammenfassung": ${SUM_JSON}, "notizen": [{"titel": "kurzer Titel", "inhalt": "2 bis 8 Sätze"}]}
@@ -3518,7 +3641,7 @@ ${chunks[k]}`, { schema: SCHEMA.docsum, maxTokens: 32000, purpose: 'file' });
   const full = text.slice(0, MAX_TEXT);
   // Echte Seitenzahl (PDF), wie viele Seiten Merki gelesen hat und wie viele davon als Bild
   const f = { id: 'f-' + uid8(), projectId: p.id, name: file.name.slice(0, 120), kind, size: file.size, textLen: full.length, truncated: text.length > MAX_TEXT, summary: sum ? sum.ueberblick : '', ...(sum ? { sum } : {}),
-    ...(pg ? { pages: pg.all, readPages: pg.read, ...(pg.pics ? { picPages: pg.pics } : {}), ...(pg.scan ? { scan: true } : {}) } : {}), ...(err ? { partial: aiError(err) } : {}), createdAt: Date.now() };
+    ...(pg ? { pages: pg.all, readPages: pg.read, ...(pg.pics ? { picPages: pg.pics } : {}), ...(pg.ocr ? { ocrPages: pg.ocr } : {}), ...(pg.scan ? { scan: true } : {}) } : {}), ...(err ? { partial: aiError(err) } : {}), createdAt: Date.now() };
   if (full.length > PART) {
     const parts = splitText(full, PART);
     f.parts = parts.length;
@@ -3535,12 +3658,13 @@ ${chunks[k]}`, { schema: SCHEMA.docsum, maxTokens: 32000, purpose: 'file' });
   }
   return { f, saved };
 }
-// Seitenzahl für die Dateikarte: „70 Seiten (12 als Bild gelesen)“
+// Seitenzahl für die Dateikarte: „70 Seiten (12 als Bild gelesen)“, bei Scans „70 Seiten (Scan, 58 per Texterkennung)“
 function pagesText(f) {
   if (!f.pages) return '';
   if (f.readPages < f.pages) return `${f.readPages} von ${f.pages} Seiten gelesen`;
   const n = `${f.pages} ${f.pages === 1 ? 'Seite' : 'Seiten'}`;
-  return f.scan ? `${n} (Scan)` : f.picPages ? `${n} (${f.picPages} als Bild gelesen)` : n;
+  const ocr = f.ocrPages ? `${f.ocrPages} per Texterkennung` : '';
+  return f.scan ? `${n} (Scan${ocr ? ', ' + ocr : ''})` : f.picPages || ocr ? `${n} (${[f.picPages ? f.picPages + ' als Bild gelesen' : '', ocr].filter(Boolean).join(', ')})` : n;
 }
 let jobs = 0;
 function job(text) { $('#job').hidden = !text; $('#jobText').textContent = text || ''; }
