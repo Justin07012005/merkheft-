@@ -2780,25 +2780,47 @@ function pickVoice() { const list = bestVoices(), want = pref('voice', ''); retu
 if (TTS_OK) { try { speechSynthesis.getVoices(); } catch {} } // Chrome lädt die Stimmen erst auf Nachfrage
 // Jeder Satz ist ein eigener Auftrag: So redet Merki schon, während der Rest der Antwort noch kommt.
 // Mit Google- oder ElevenLabs-Schlüssel auf dem Server spricht Merki mit echter Stimme, sonst mit der Stimme des Geräts.
+// Die Sätze für die Gerätestimme stehen in einer eigenen Warteschlange, das Gerät bekommt immer nur einen.
+// Grund: Auf dem iPad löscht „Stopp“ (speechSynthesis.cancel) die Warteschlange des Geräts nicht zuverlässig,
+// dann las Merki nach dem Unterbrechen den Rest der alten Antwort weiter. So läuft höchstens der eine Satz aus.
 const voice = {
   live: [], // festhalten, sonst meldet Chrome das Ende manchmal nicht
+  q: [], cur: null, gen: 0,
   say(text, done) { if (cloud.busy() || cloudReady()) cloud.say(text, done); else this.device(text, done); },
   // Muss beim Antippen laufen: erst dann darf das iPhone oder iPad Ton abspielen
   unlock() { if (cloudReady()) cloud.unlock(); },
   device(text, done) {
-    const u = TTS_OK && String(text).trim() ? new SpeechSynthesisUtterance(text) : null;
+    if (!TTS_OK || !String(text).trim()) { setTimeout(() => { if (done) done(); }, 0); return; }
+    this.q.push({ text, done, gen: this.gen });
+    if (!this.cur) this.next();
+  },
+  // Spricht das Gerät noch oder wartet ein Satz?
+  busy() { return !!this.cur || this.q.length > 0; },
+  next() {
+    const it = this.q.shift();
+    this.cur = it || null;
+    if (!it) return;
+    const u = new SpeechSynthesisUtterance(it.text);
     let fired = false;
-    const end = () => { if (fired) return; fired = true; this.live = this.live.filter(x => x !== u); if (done) done(); };
-    if (!u) { setTimeout(end, 0); return; }
+    const end = () => {
+      if (fired) return; fired = true;
+      this.live = this.live.filter(x => x !== u);
+      if (this.cur === it) this.cur = null;
+      if (it.done) it.done();
+      if (it.gen === this.gen && !this.cur) this.next();
+    };
     u.lang = 'de-DE';
     const v = pickVoice(); if (v) u.voice = v;
     u.rate = Math.min(1.5, Math.max(0.6, +pref('rate', '1') || 1));
     u.onend = end; u.onerror = end;
+    // Fängt ein Satz an, obwohl inzwischen unterbrochen wurde: sofort wieder stoppen
+    u.onstart = () => { if (it.gen !== this.gen) { try { speechSynthesis.cancel(); } catch {} } };
     this.live.push(u);
     try { speechSynthesis.speak(u); } catch { end(); }
   },
   stop() {
     readReset(); cloud.stop(); this.live = [];
+    this.gen++; this.q = []; this.cur = null;
     if (!TTS_OK) return;
     try { speechSynthesis.cancel(); } catch {}
     // Manche iPads reden nach dem ersten Stopp noch weiter: kurz danach nochmal
@@ -3131,7 +3153,7 @@ function startWatch() {
     const cloudBusy = cloud.live();
     if (call.pending !== last || cloudBusy) { last = call.pending; still = 0; } else still++;
     if (call.streamDone && call.pending && still >= 50 && Date.now() > call.until + 5000) { hush(); maybeDone(); return; }
-    if (!call.streamDone || !call.pending || cloudBusy || !TTS_OK || speechSynthesis.speaking || speechSynthesis.pending) { strikes = 0; return; }
+    if (!call.streamDone || !call.pending || cloudBusy || !TTS_OK || voice.q.length || speechSynthesis.speaking || speechSynthesis.pending) { strikes = 0; return; }
     if (++strikes >= 4 && Date.now() > call.until) { call.pending = 0; maybeDone(); }
   }, 500);
 }
