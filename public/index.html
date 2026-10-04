@@ -721,6 +721,26 @@ input[type=range]{accent-color:var(--ink);width:100%}
 :root[data-design="pastell"] :is(.pad-bar,.pad-tools,.ask-head){border-bottom:1.5px solid var(--edge)}
 :root[data-design="pastell"] .pad-ask{border-color:var(--edge);border-width:1.5px}
 @media (min-width:641px){:root[data-design="pastell"] .paper{border:1.5px solid var(--edge);border-radius:20px;box-shadow:none}}
+/* ---------- Ruhiger (4.10.): weniger Markierungen, leichtere Rahmen um Inhalte ---------- */
+.msg strong,.ntext strong,.allnote strong,.fsum strong,.textview strong{font-weight:700;color:inherit}
+.card .tag{display:flex;width:max-content;max-width:100%;background:none;color:var(--ink-soft);padding:0;font-weight:600}
+.saved span{background:none;color:var(--ink-soft);padding:0 2px;font-weight:600}
+.notebtn.done,:root[data-design="pastell"] .notebtn.done{background:none;color:var(--ink-soft);border-color:var(--line)}
+.ad-sec h3,.fsum h3{border-bottom:1px solid var(--line)}
+:root[data-design="pastell"] .mdtable th{background:var(--side);color:var(--ink)}
+.spoken{border-left-color:var(--line)}
+/* Tabellen: Wörter nicht mitten drin umbrechen („Phas-e“), lieber breiter werden und seitlich wischen */
+.mdtable :is(th,td){overflow-wrap:break-word;hyphens:auto;-webkit-hyphens:auto}
+/* Inhalte (Nachrichten, Notizen, Dateien) mit dünnem, hellerem Rand; Knöpfe behalten den kräftigen */
+:root[data-design="pastell"] :is(.msg.ai,.card,.file,.allnote,.fsum,.textview,.citem){border:1px solid var(--line)}
+@supports (color:color-mix(in srgb,red 50%,blue)){:root[data-design="pastell"] :is(.msg.ai,.card,.file,.allnote,.fsum,.textview,.citem){border-color:color-mix(in srgb,var(--edge) 28%,var(--line))}}
+/* Lange Notizen in der Übersicht nur anreißen: der Knopf darunter klappt sie auf */
+.card .ntext.long:not(.open){max-height:15em;overflow:hidden;position:relative}
+.card .ntext.long.fits::after,.card .ntext.long.fits+.more{display:none}
+.card .ntext.long:not(.open)::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3em;background:linear-gradient(to bottom,transparent,var(--sheet));pointer-events:none}
+.card .more{display:block;margin:2px 0 0;padding:8px 0;background:none;border:0;font:inherit;font-size:14px;font-weight:700;color:var(--ink-soft);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+/* Altes iPad: nur zeichnen, was zu sehen ist */
+.card,.file{content-visibility:auto;contain-intrinsic-size:auto 220px}
 @media (prefers-reduced-motion:reduce){.call *,.call *::before,.call *::after{animation:none!important;transition:none!important}}
 @media (prefers-reduced-motion:reduce){.mcard .in,.flash .in,.progress i,.side{transition:none}.spin{animation:none}}
 </style>
@@ -1240,7 +1260,7 @@ async function flush() {
     await api('/api/data', { method: 'POST', body: JSON.stringify({ ops: batch.map(([id, , doc]) => doc ? { id, doc } : { id, del: true }) }) });
     for (const [id, v] of batch) if (SYNC.outbox[id] && SYNC.outbox[id].v === v) delete SYNC.outbox[id];
     SYNC.backoff = 0; SYNC.single = false; saveLocal();
-    setSync('Gespeichert · auf Handy und Tablet gleich');
+    setSync('Gespeichert');
   } catch (e) {
     if ((e.code === 'too_large' || e.code === 'bad_request') && batch.length === 1) {
       delete SYNC.outbox[batch[0][0]]; saveLocal();
@@ -1273,6 +1293,7 @@ async function pull() {
   if (busy) { setTimeout(pull, 3000); return; } // nicht mitten in eine Antwort hinein aktualisieren
   SYNC.pulling = true;
   let changed = false;
+  const rev0 = SYNC.rev;
   try {
     for (let i = 0; i < 100; i++) {
       const d = await (await api('/api/data?since=' + SYNC.rev)).json();
@@ -1280,8 +1301,9 @@ async function pull() {
       SYNC.rev = d.rev;
       if (!d.more) break;
     }
-    saveLocal();
-    if (!Object.keys(SYNC.outbox).length) setSync('Gespeichert · auf Handy und Tablet gleich');
+    // Nur speichern, wenn wirklich etwas Neues kam: Alles auf das Gerät zu schreiben ruckelt auf dem alten iPad (alle 20 Sekunden)
+    if (changed || SYNC.rev !== rev0) saveLocal();
+    if (!Object.keys(SYNC.outbox).length) setSync('Gespeichert');
     if (changed) { fixOrphans(); renderAll(!busy); }
   } catch (e) {
     if (e.code === 'offline') setSync('Offline · deine Änderungen werden später gespeichert');
@@ -1328,6 +1350,11 @@ function progressOf(pid) {
 const noteBody = n => [n.text, n.inkText ? (n.text ? 'Handschrift: ' : '') + n.inkText : ''].filter(Boolean).join('\n');
 // Notiztext mit Fett, Listen, Tabellen und Diagrammen
 const noteMd = t => `<div class="ntext">${md(t)}</div>`;
+// In der Übersicht: lange Notizen nur anreißen, der Knopf darunter klappt sie an Ort und Stelle auf
+const openCards = new Set();
+const isLongNote = t => t.length > 520 || t.split('\n').length > 9 || /\n\s*\|.*\|/.test(t) || t.includes('```');
+const moreLabel = on => on ? 'Weniger zeigen' : 'Ganze Notiz zeigen';
+const cardMd = (t, id) => { const on = openCards.has(id); return isLongNote(t) ? `<div class="ntext long${on ? ' open' : ''}">${md(t)}</div><button type="button" class="more" data-more="${esc(id)}" aria-expanded="${on}">${moreLabel(on)}</button>` : noteMd(t); };
 const myName = () => String(state.stats.name || '').trim();
 function fileParts(f) { return state.parts.filter(x => x.fileId === f.id).sort((a, b) => a.i - b.i); }
 function fileText(f) { return f.parts ? fileParts(f).map(x => x.text).join('') : (f.text || ''); }
@@ -1546,10 +1573,31 @@ function withPassages(turns, ctx) {
 // ---------- Chat ----------
 let ctl = null;
 // Markdown von Merki: **fett**, Listen, Zwischenüberschriften, Tabellen und Diagramme (```mermaid)
+// Beim Mitlesen einer Antwort höchstens etwa acht Mal pro Sekunde neu zeichnen, nicht bei jedem Wort (altes iPad)
+function throttled(fn, ms = 120) {
+  let t = 0, last = 0, arg;
+  const run = () => { t = 0; last = Date.now(); fn(arg); };
+  const f = a => { arg = a; if (!t) t = setTimeout(run, Math.max(0, ms - (Date.now() - last))); };
+  f.cancel = () => { clearTimeout(t); t = 0; };
+  return f;
+}
+// Schon umgewandelte Texte merkt sich die App (das alte iPad muss sie beim Neuzeichnen nicht nochmal umwandeln)
+const mdMemo = new Map();
 function md(s) {
+  const key = String(s ?? '');
+  let html = mdMemo.get(key);
+  if (html === undefined) {
+    html = mdRaw(key);
+    if (mdMemo.size > 600) mdMemo.delete(mdMemo.keys().next().value);
+    mdMemo.set(key, html);
+  }
+  // Fertig gezeichnete Diagramme gleich einsetzen, statt sie neu zu zeichnen
+  return html.includes('class="mmd"') ? html.replace(/<div class="mmd" data-src="([^"]*)"><\/div>/g, (m, src) => { const memo = mmdMemo.get(mmdKey() + unesc(src)); return memo ? `<div class="mmd" data-src="${src}" data-state="ok">${mmdCopy(memo)}</div>` : m; }) : html;
+}
+function mdRaw(s) {
   const blocks = [];
   const text = String(s ?? '').replace(/```(\w*)[^\n]*\n([\s\S]*?)(?:```|$)/g, (m, lang, body) => { blocks.push({ lang: lang.toLowerCase(), body: body.replace(/\s+$/, '') }); return `\n\u0000${blocks.length - 1}\u0000\n`; });
-  const lines = esc(text).replace(/\*\*(.+?)\*\*/g, '<mark>$1</mark>').split('\n');
+  const lines = esc(text).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').split('\n');
   let html = '', list = '', para = [];
   const flush = () => { if (para.length) { html += '<p>' + para.join('<br>') + '</p>'; para = []; } };
   const endList = () => { if (list) { html += `</${list}>`; list = ''; } };
@@ -1673,7 +1721,7 @@ async function noteFromTurn(turns, i, pid, persist, btn) {
   let title = '', text = '';
   if (aiReady()) {
     try {
-      const x = await aiJson(`Mach aus dieser Antwort von Merki eine Lernnotiz auf Deutsch. Übernimm alle Lerninhalte vollständig (Erklärungen, Regeln, Formeln, Zahlen, Beispiele, Eselsbrücken) und gliedere sie übersichtlich. Lass nur Begrüßung, Lob, Smalltalk und Rückfragen an die Person weg. Erfinde nichts dazu. Formatierung: **fett** für Schlüsselbegriffe, Listen mit "- ". Tabellen (Markdown) und Diagramme (\`\`\`mermaid … \`\`\`) aus der Antwort übernimmst du vollständig.
+      const x = await aiJson(`Mach aus dieser Antwort von Merki eine Lernnotiz auf Deutsch. Übernimm alle Lerninhalte vollständig (Erklärungen, Regeln, Formeln, Zahlen, Beispiele, Eselsbrücken) und gliedere sie übersichtlich. Lass nur Begrüßung, Lob, Smalltalk und Rückfragen an die Person weg. Erfinde nichts dazu. Formatierung: **fett** sparsam, nur für die wichtigsten Fachbegriffe (höchstens ein bis zwei pro Absatz), Listen mit "- ". Tabellen (Markdown) und Diagramme (\`\`\`mermaid … \`\`\`) aus der Antwort übernimmst du vollständig.
 "titel" ist ein kurzer, passender Titel mit höchstens 6 Wörtern.
 Antworte nur mit JSON: {"titel": "...", "inhalt": "..."}
 ${qText ? `\nFrage der Person dazu: ${qText.slice(0, 1500)}\n` : ''}
@@ -1701,7 +1749,7 @@ function renderChat() {
   const log = $('#chatlog');
   if (!c || !c.turns.length) {
     const nf = pFiles().length, nn = pNotes().length;
-    log.innerHTML = `<div class="msg ai"><p>Hi, ich bin <mark>Merki</mark>. Frag mich alles zu „${esc(p.name)}“. Was du behalten willst, speicherst du mit <b>Als Notiz</b> unter meiner Antwort.</p><p>${nf || nn ? `Ich kenne hier schon ${nf} ${nf === 1 ? 'Datei' : 'Dateien'} und ${nn} ${nn === 1 ? 'Notiz' : 'Notizen'}.` : 'Mit der Büroklammer hängst du eine Datei oder ein Foto an, zum Beispiel ein Skript oder deine Mitschrift. Schreib dazu, was ich damit machen soll.'}</p></div>`;
+    log.innerHTML = `<div class="msg ai"><p>Hi, ich bin <b>Merki</b>. Frag mich alles zu „${esc(p.name)}“. Was du behalten willst, speicherst du mit <b>Als Notiz</b> unter meiner Antwort.</p><p>${nf || nn ? `Ich kenne hier schon ${nf} ${nf === 1 ? 'Datei' : 'Dateien'} und ${nn} ${nn === 1 ? 'Notiz' : 'Notizen'}.` : 'Mit der Büroklammer hängst du eine Datei oder ein Foto an, zum Beispiel ein Skript oder deine Mitschrift. Schreib dazu, was ich damit machen soll.'}</p></div>`;
   } else log.innerHTML = c.turns.map((t, i) => chatTurnHtml(t, i)).join('');
   if (readOut.key !== null && !document.querySelector('.readbtn.on')) readStop(); // anderer Chat: Vorlesen hört auf
   $('#suggest').hidden = chatAtt.length > 0 || !!(c && c.turns.length);
@@ -1720,7 +1768,7 @@ const NOTE_RULE = `Notizen: Unter jeder deiner Antworten hat die Person einen Kn
 Nur wenn sie dich in ihrer letzten Nachricht ausdrücklich bittet, etwas zu notieren oder zu merken, hänge GANZ AM ENDE deiner Antwort pro Punkt eine eigene Zeile in genau diesem Format an:
 NOTIZ: <kurzer Titel> :: <Inhalt in 1 bis 4 klaren Sätzen>
 Höchstens 6 solche Zeilen, keine doppelten zu vorhandenen Notizen. Erwähne diese Zeilen nicht im Text, sag nur kurz, dass du es notiert hast.`;
-const RULES = `Du bist "Merki", ein freundlicher, geduldiger Lernbegleiter in der Lern-App "Merkheft". Antworte immer auf Deutsch, verständlich und fachlich genau, mit Beispielen und Eselsbrücken. So ausführlich, wie die Frage es braucht. Formatierung: **fett** für Schlüsselbegriffe, Listen mit "- ", bei langen Antworten Zwischenüberschriften mit "### ". Wenn es etwas zu vergleichen oder einzuordnen gibt, nutze eine Markdown-Tabelle. Wenn ein Ablauf, Kreislauf oder Zusammenhang mit einem Bild besser zu verstehen ist, zeichne ein Mermaid-Diagramm in einem Block \`\`\`mermaid (flowchart TD, flowchart LR, mindmap oder timeline, jede Beschriftung in Anführungszeichen, zum Beispiel A["Prophase"] --> B["Metaphase"]). Tabellen und Diagramme nur, wenn sie wirklich helfen.
+const RULES = `Du bist "Merki", ein freundlicher, geduldiger Lernbegleiter in der Lern-App "Merkheft". Antworte immer auf Deutsch, verständlich und fachlich genau, mit Beispielen und Eselsbrücken. So ausführlich, wie die Frage es braucht. Formatierung: **fett** sparsam, nur für die wichtigsten Fachbegriffe (höchstens ein bis zwei pro Absatz), Listen mit "- ", bei langen Antworten Zwischenüberschriften mit "### ". Wenn es etwas zu vergleichen oder einzuordnen gibt, nutze eine Markdown-Tabelle. Wenn ein Ablauf, Kreislauf oder Zusammenhang mit einem Bild besser zu verstehen ist, zeichne ein Mermaid-Diagramm in einem Block \`\`\`mermaid (flowchart TD, flowchart LR, mindmap oder timeline, jede Beschriftung in Anführungszeichen, zum Beispiel A["Prophase"] --> B["Metaphase"]). Tabellen und Diagramme nur, wenn sie wirklich helfen.
 Nutze die Dateien und Notizen des Projekts. Wenn du etwas daraus hast, sag aus welcher Datei. Wenn du abfragst: immer nur eine Frage, warte auf die Antwort, lobe ehrlich und korrigiere freundlich.
 
 ` + NOTE_RULE;
@@ -1737,7 +1785,7 @@ So redest du:
 
 ` + NOTE_RULE;
 // Fragebot neben einer Notiz
-const ASK_RULES = `Du bist "Merki", ein freundlicher, geduldiger Lernbegleiter in der Lern-App "Merkheft". Gerade schaut sich die Person eine einzelne Notiz an und stellt dir Fragen dazu. Beziehe dich vor allem auf diese Notiz und nutze die Dateien und anderen Notizen des Projekts, wenn sie helfen. Antworte immer auf Deutsch, verständlich und fachlich genau, mit Beispielen und Eselsbrücken. Formatierung: **fett** für Schlüsselbegriffe, Listen mit "- ", bei langen Antworten Zwischenüberschriften mit "### ". Wenn es etwas zu vergleichen oder einzuordnen gibt, nutze eine Markdown-Tabelle. Wenn ein Ablauf, Kreislauf oder Zusammenhang mit einem Bild besser zu verstehen ist, zeichne ein Mermaid-Diagramm in einem Block \`\`\`mermaid (flowchart TD, flowchart LR, mindmap oder timeline, jede Beschriftung in Anführungszeichen, zum Beispiel A["Prophase"] --> B["Metaphase"]). Tabellen und Diagramme nur, wenn sie wirklich helfen.
+const ASK_RULES = `Du bist "Merki", ein freundlicher, geduldiger Lernbegleiter in der Lern-App "Merkheft". Gerade schaut sich die Person eine einzelne Notiz an und stellt dir Fragen dazu. Beziehe dich vor allem auf diese Notiz und nutze die Dateien und anderen Notizen des Projekts, wenn sie helfen. Antworte immer auf Deutsch, verständlich und fachlich genau, mit Beispielen und Eselsbrücken. Formatierung: **fett** sparsam, nur für die wichtigsten Fachbegriffe (höchstens ein bis zwei pro Absatz), Listen mit "- ", bei langen Antworten Zwischenüberschriften mit "### ". Wenn es etwas zu vergleichen oder einzuordnen gibt, nutze eine Markdown-Tabelle. Wenn ein Ablauf, Kreislauf oder Zusammenhang mit einem Bild besser zu verstehen ist, zeichne ein Mermaid-Diagramm in einem Block \`\`\`mermaid (flowchart TD, flowchart LR, mindmap oder timeline, jede Beschriftung in Anführungszeichen, zum Beispiel A["Prophase"] --> B["Metaphase"]). Tabellen und Diagramme nur, wenn sie wirklich helfen.
 Wenn in der Notiz etwas falsch oder unklar ist, sag es freundlich. Wenn du abfragst: immer nur eine Frage, warte auf die Antwort, lobe ehrlich und korrigiere freundlich.
 
 ` + NOTE_RULE;
@@ -1906,6 +1954,7 @@ async function send(text, files = []) {
   $('#chatlog').appendChild(bubble); scrollDown();
   ctl = new AbortController();
   let partial = '', ok = false;
+  const paint = throttled(t => { if (!bubble.isConnected) return; bubble.classList.toggle('thinking', !t); bubble.innerHTML = t ? mdRaw(visible(t)) : thinking; scrollDown(); });
   try {
     const extra = files.length ? await attContent(files, asked) : null;
     if (ctl.signal.aborted) throw { code: 'cancelled' };
@@ -1918,7 +1967,8 @@ async function send(text, files = []) {
       turns = [...turns.slice(0, -1), { role: 'user', content: `${extra.text}${extra.hints.map(h => '\nHinweis: ' + h).join('')}\n\n---\n\n${last.content}` }];
     }
     // Textstellen und Anhänge gelten nur für diese eine Anfrage: die neueste Nachricht dann nicht zwischenspeichern
-    const full = await aiChat({ system, turns, images: extra && extra.images, signal: ctl.signal, purpose: 'chat', ttl: '1h', tail: !ctx.passages && !extra, onText: t => { partial = t; bubble.classList.toggle('thinking', !t); bubble.innerHTML = t ? md(visible(t)) : thinking; scrollDown(); } });
+    // Halbe Antworten nicht im Speicher für fertige Texte ablegen (mdRaw statt md)
+    const full = await aiChat({ system, turns, images: extra && extra.images, signal: ctl.signal, purpose: 'chat', ttl: '1h', tail: !ctx.passages && !extra, onText: t => { partial = t; paint(t); } });
     const saved = saveNoteLines(full, p.id);
     c.turns.push({ role: 'assistant', content: visible(full) || '…', saved });
     ok = true;
@@ -1929,7 +1979,7 @@ async function send(text, files = []) {
       else { c.turns.pop(); if (!$('#chatin').value) { $('#chatin').value = text; autoGrow(); } }
     } else c.turns.push({ role: 'assistant', content: (e && e.text ? visible(e.text) + '\n\n' : '') + (e && e.msg ? e.msg : e && e.code === 'lib' ? 'Das Lese-Werkzeug für diese Datei lädt gerade nicht. Versuch es später nochmal.' : aiError(e)), err: true });
   }
-  busy = false; ctl = null;
+  paint.cancel(); busy = false; ctl = null;
   if (c.turns.length) saveChat(c); else remove('chat', c.id, false);
   renderAll(); renderAiAvailability();
   // Hat es nicht geklappt, liegen die Dateien wieder bereit. Sonst legt Merki sie unter „Dateien“ ab.
@@ -1962,11 +2012,22 @@ function renderNotes() {
     const spoken = n.source === 'voice' && n.raw && n.raw.trim() !== (n.text || '').trim() ? `<div class="spoken"><b>${ICON.mic}Gesprochen</b><p>${esc(n.raw)}</p></div>` : '';
     const read = !ink ? '' : reading.has(n.id) ? `<p class="inkread"><span class="spin"></span>Merki liest deine Handschrift …</p>`
       : n.inkText && n.inkRead === ink.v ? `<p class="inkread">Merki liest: ${esc(n.inkText.length > 160 ? n.inkText.slice(0, 160) + ' …' : n.inkText)}</p>` : '';
-    return `<article class="card clickable" data-open="${esc(n.id)}"><h3>${esc(n.title)}</h3>${n.text ? noteMd(n.text) : ''}${thumb ? `<img class="inkthumb" src="${thumb}" alt="Handschrift">` : ''}${read}${spoken}
+    return `<article class="card clickable" data-open="${esc(n.id)}"><h3>${esc(n.title)}</h3>${n.text ? cardMd(n.text, n.id) : ''}${thumb ? `<img class="inkthumb" src="${thumb}" alt="Handschrift">` : ''}${read}${spoken}
       <div class="meta"><span>${src} ${new Date(n.createdAt || Date.now()).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}</span>
       <span class="acts">${aiReady() ? `<button type="button" data-ask="${esc(n.id)}" aria-label="Merki zu dieser Notiz fragen">${ICON.ask}</button>` : ''}<button type="button" data-edit="${esc(n.id)}" aria-label="Bearbeiten">${ICON.edit}</button><button type="button" data-del="${esc(n.id)}" aria-label="Löschen">${ICON.trash}</button></span></div></article>`;
   }).join('');
+  requestAnimationFrame(fitCards);
 }
+// Passt eine „lange“ Notiz doch ganz in die Karte (breiter Bildschirm), braucht sie keinen Knopf.
+// Erst alles messen, dann ändern: so rechnet das iPad das Layout nur einmal aus.
+function fitCards() {
+  if (!$('#cards').offsetParent) return; // Notizen gerade nicht zu sehen
+  const els = [...document.querySelectorAll('#cards .ntext.long:not(.open)')];
+  const fits = els.map(e => e.scrollHeight <= e.clientHeight + 2);
+  els.forEach((e, i) => e.classList.toggle('fits', fits[i]));
+}
+let fitT = 0;
+window.addEventListener('resize', () => { clearTimeout(fitT); fitT = setTimeout(fitCards, 250); }); // iPad gedreht
 
 // ---------- Alle Notizen in einer ----------
 // Merki ordnet alle Notizen eines Projekts nach Themen zu einem Text. Der Text wird gespeichert (notedoc).
@@ -2000,7 +2061,7 @@ async function makeNoteDoc(pid) {
     const x = await aiJson(full ? `Fasse alle Lernnotizen unten zu EINEM gut geordneten Lerntext auf Deutsch zusammen, wie ein sauberer Spickzettel für das Projekt „${p.name}“${p.desc ? ' (' + p.desc + ')' : ''}.
 - Gliedere nach Themen in einer sinnvollen Reihenfolge, Grundlagen zuerst. Jeder Abschnitt hat einen kurzen Titel.
 - Übernimm ALLE Inhalte der Notizen. Was doppelt ist, nur einmal. Erfinde nichts dazu.
-- text: klare, kurze Sätze. **fett** für Schlüsselbegriffe, Aufzählungen mit "- ". Keine Überschriften, keine Tabellen.
+- text: klare, kurze Sätze. **fett** sparsam, nur für die wichtigsten Fachbegriffe (höchstens ein bis zwei pro Absatz), Aufzählungen mit "- ". Keine Überschriften, keine Tabellen.
 - notizen: die Nummern aller Notizen, deren Inhalt in diesem Abschnitt steckt. Jede Notiz kommt in mindestens einem Abschnitt vor.
 Antworte nur mit JSON: {"abschnitte": [{"titel": "...", "text": "...", "notizen": [1, 2]}]}
 
@@ -2552,11 +2613,14 @@ function openPad(orig, opts = {}) {
     const turns = withPassages(windowTurns(qa, 16, 40000), ctx);
     askCtl = new AbortController();
     let partial = '';
+    const paint = throttled(t => { if (dead || !bubble.isConnected) return; bubble.classList.toggle('thinking', !t); bubble.innerHTML = t ? mdRaw(visible(t)) : 'Merki denkt nach …'; askLog.scrollTop = askLog.scrollHeight; });
     try {
-      const full = await aiChat({ system, turns, signal: askCtl.signal, purpose: 'ask', ttl: '1h', tail: !ctx.passages, onText: t => { partial = t; bubble.classList.toggle('thinking', !t); bubble.innerHTML = t ? md(visible(t)) : 'Merki denkt nach …'; askLog.scrollTop = askLog.scrollHeight; } });
+      const full = await aiChat({ system, turns, signal: askCtl.signal, purpose: 'ask', ttl: '1h', tail: !ctx.passages, onText: t => { partial = t; paint(t); } });
+      paint.cancel();
       if (dead) return;
       qa.push({ role: 'assistant', content: visible(full) || '…', saved: saveNoteLines(full, n.projectId, title) });
     } catch (e) {
+      paint.cancel();
       if (dead) return;
       if (e && e.code === 'cancelled') {
         const kept = visible(e.text || partial || '');
@@ -3309,6 +3373,12 @@ function mmdTheme() {
   const cs = getComputedStyle(document.documentElement), v = k => cs.getPropertyValue('--' + k).trim();
   return { theme: 'base', darkMode: isDark(), themeVariables: { fontFamily: 'Atkinson Hyperlegible, system-ui, sans-serif', fontSize: '15px', primaryColor: v('marker'), primaryTextColor: v('marker-ink'), primaryBorderColor: v('ink'), lineColor: v('ink-soft'), secondaryColor: v('side'), tertiaryColor: v('sheet'), background: v('sheet'), textColor: v('text'), mainBkg: v('marker'), nodeTextColor: v('marker-ink') } };
 }
+// Gezeichnete Diagramme (SVG) je Aussehen und Quelltext
+const mmdMemo = new Map();
+const mmdKey = () => (isDark() ? 'd' : 'l') + document.documentElement.dataset.palette + document.documentElement.dataset.design + '|';
+const unesc = t => { const d = document.createElement('textarea'); d.innerHTML = t; return d.value; };
+// Eine Kopie bekommt eigene IDs, sonst zeigen Pfeilspitzen auf ein verstecktes Diagramm und verschwinden
+const mmdCopy = m => m.svg.replace(new RegExp(m.id + '(?![0-9])', 'g'), 'mmd' + (++mmdN));
 async function drawDiagrams() {
   if (mmdBusy) { clearTimeout(mmdTimer); mmdTimer = setTimeout(drawDiagrams, 300); return; }
   const els = [...document.querySelectorAll('.mmd:not([data-state])')]; if (!els.length) return;
@@ -3321,10 +3391,20 @@ async function drawDiagrams() {
     for (const e of els) {
       if (!e.isConnected) continue;
       const id = 'mmd' + (++mmdN);
-      try { const { svg } = await window.mermaid.render(id, e.dataset.src || ''); e.innerHTML = svg; e.dataset.state = 'ok'; }
+      try {
+        const src = e.dataset.src || '', mk = key + '|' + src, old = mmdMemo.get(mk);
+        if (old) e.innerHTML = mmdCopy(old);
+        else {
+          const { svg } = await window.mermaid.render(id, src);
+          if (mmdMemo.size > 80) mmdMemo.delete(mmdMemo.keys().next().value);
+          mmdMemo.set(mk, { id, svg }); e.innerHTML = svg;
+        }
+        e.dataset.state = 'ok';
+      }
       catch { e.dataset.state = 'err'; e.innerHTML = '<span class="muted">Dieses Diagramm konnte Merki nicht zeichnen.</span>'; }
       const junk = document.getElementById('d' + id); if (junk) junk.remove();
     }
+    fitCards();
   } finally { mmdBusy = false; }
 }
 new MutationObserver(() => { clearTimeout(mmdTimer); mmdTimer = setTimeout(drawDiagrams, 500); }).observe(document.body, { childList: true, subtree: true });
@@ -3507,7 +3587,7 @@ const SUM_RULES = `Sie muss zum Lernen für die Klausur reichen: vollständig, f
 - abschnitte: alle Themen in sinnvoller Reihenfolge (meist der des Dokuments), so viele wie nötig, bis 20. Jeder Abschnitt hat:
   - titel: kurz.
   - text: eine Erklärung in ganzen Sätzen (1 bis 3 Absätze), die Zusammenhänge, Ursachen, Mechanismen und Abläufe erklärt, wie ein gutes Lehrbuch.
-  - punkte: 3 bis 12 Punkte mit allen Einzelheiten: Definitionen, Formeln mit der Bedeutung der Zeichen, Regeln, Zahlen, Ausnahmen, Beispiele. **fett** für Schlüsselbegriffe.
+  - punkte: 3 bis 12 Punkte mit allen Einzelheiten: Definitionen, Formeln mit der Bedeutung der Zeichen, Regeln, Zahlen, Ausnahmen, Beispiele. **fett** sparsam, nur für die wichtigsten Fachbegriffe (höchstens ein bis zwei pro Absatz).
   - tabelle: wenn es etwas zu vergleichen oder einzuordnen gibt (Unterschiede, Eigenschaften, Einteilungen, Phasen), eine Markdown-Tabelle (erste Zeile | Spalte | Spalte |, zweite Zeile |---|---|), sonst "".
   - diagramm: wenn ein Ablauf, Kreislauf, eine Einteilung oder eine Zeitleiste mit Bild besser zu verstehen ist, ein Mermaid-Diagramm, sonst "". Es beginnt mit "flowchart TD", "flowchart LR", "mindmap" oder "timeline". Jede Beschriftung steht in Anführungszeichen, zum Beispiel A["Prophase"] --> B["Metaphase"]. Kurze Beschriftungen. Nur wo es wirklich hilft, nicht in jedem Abschnitt.
 - begriffe: alle wichtigen Fachbegriffe (bis 30), jeweils mit einer genauen Erklärung in 1 bis 2 Sätzen.
@@ -4803,7 +4883,8 @@ function renderLearnHome() {
 function renderView() {
   const p = proj();
   $('#pName').textContent = p ? p.name : 'Merkheft';
-  $('#pDesc').textContent = p ? (p.desc || 'Chats, Notizen, Dateien und Lernen zu diesem Projekt') : 'dein Lernbegleiter';
+  $('#pDesc').textContent = p ? p.desc || '' : 'dein Lernbegleiter';
+  $('#pDesc').hidden = !!p && !p.desc;
   $('#pMenu').hidden = !p; $('#tabs').hidden = !p;
   $('#v-welcome').hidden = !!p;
   const n = examDays(p), chip = $('#examChip');
@@ -4814,14 +4895,24 @@ function renderView() {
   const mw = document.querySelector('.mainwrap'), dt = p ? ui.tab : 'home';
   if (mw.dataset.tab !== dt) { mw.dataset.tab = dt; barColor(); if (!padClose) readStop(); }
 }
+// Für das alte iPad: Nur die sichtbare Ansicht wird neu gezeichnet, die anderen erst, wenn man hinwechselt
+const stale = new Set();
+function renderTab(t) {
+  if (!stale.has(t) || !proj()) return;
+  stale.delete(t);
+  if (t === 'chat') { if (busy) { stale.add(t); return; } renderChat(); } // nicht mitten in eine Antwort hinein
+  else if (t === 'notes') renderNotes();
+  else if (t === 'files') renderFiles();
+  else if (t === 'learn') { renderPlaySources(); if ($('#playArea').hidden) renderLearnHome(); }
+  else if (t === 'progress') renderProgress();
+}
 function renderAll(withChat = true) {
   ensureSelection();
   renderSide(); renderView(); renderStats();
   if (!proj()) return;
-  if (withChat) renderChat();
-  renderNotes(); renderFiles(); renderPlaySources();
-  if ($('#playArea').hidden) renderLearnHome(); else renderBadges();
-  if (ui.tab === 'progress') renderProgress();
+  ['notes', 'files', 'learn', 'progress'].concat(withChat ? ['chat'] : []).forEach(t => stale.add(t));
+  renderBadges();
+  renderTab(ui.tab);
 }
 let toastT;
 function toast(t, ms = 2800) {
@@ -4830,9 +4921,11 @@ function toast(t, ms = 2800) {
   el.textContent = t; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { el.hidden = true; }, ms);
 }
 function tab(name) {
-  ui.tab = name; saveUi(); renderView(); backHome();
-  if (name === 'progress') renderProgress();
-  if (name === 'notes') ndAuto();
+  ui.tab = name; saveUi(); renderView();
+  if (name === 'progress') stale.add(name); // Fortschritt immer frisch
+  renderTab(name);
+  backHome();
+  if (name === 'notes') { ndAuto(); fitCards(); }
   if (name === 'chat') scrollDown(); else $('#main').scrollTop = 0;
 }
 
@@ -5098,7 +5191,9 @@ $('#flist').addEventListener('click', e => {
   if (d) { const f = state.files.find(x => x.id === d.dataset.fdel); if (f) confirmSheet('Datei löschen?', `„${f.name}“ ist danach weg. Die Notizen daraus bleiben.`, 'Löschen', () => deleteFile(f)); }
 });
 $('#newNote').onclick = () => openPad(null);
-$('#search').addEventListener('input', renderNotes);
+// Beim Tippen erst kurz warten, sonst zeichnet das alte iPad bei jedem Buchstaben alle Notizen neu
+let searchT = 0;
+$('#search').addEventListener('input', () => { clearTimeout(searchT); searchT = setTimeout(renderNotes, 180); });
 $('#filters').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { ui.filter = b.dataset.f; saveUi(); renderNotes(); } });
 $('#noteView').addEventListener('click', e => {
   const b = e.target.closest('button[data-v]'); if (!b || (ui.noteView === 'all') === (b.dataset.v === 'all')) return;
@@ -5113,6 +5208,15 @@ $('#allNote').addEventListener('click', e => {
   const z = e.target.closest('#ndPdf'); if (z) { const pid = ui.pid; lernzettel(z, () => notesPdf(pid)); }
 });
 $('#cards').addEventListener('click', e => {
+  const more = e.target.closest('[data-more]');
+  if (more) {
+    const id = more.dataset.more, on = !openCards.has(id);
+    if (on) openCards.add(id); else openCards.delete(id);
+    more.previousElementSibling.classList.toggle('open', on);
+    more.textContent = moreLabel(on); more.setAttribute('aria-expanded', on);
+    if (!on) more.closest('.card').scrollIntoView({ block: 'nearest' });
+    return;
+  }
   const del = e.target.closest('[data-del]');
   if (del) {
     const n = state.notes.find(x => x.id === del.dataset.del);
