@@ -16,6 +16,10 @@ binding = "ASSETS"
 name = "STORE"
 class_name = "Store"
 
+# Suche nach Bedeutung in langen Dateien (Workers AI, im kostenlosen Tarif enthalten, nichts einzurichten)
+[ai]
+binding = "AI"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Store"]
@@ -25,6 +29,10 @@ new_sqlite_classes = ["Store"]
 MODEL = "claude-sonnet-5-5"
 # Höchstens so viele US-Dollar KI-Kosten pro Tag (danach Pause bis morgen)
 TAGES_BUDGET_USD = "3"
+# Höchstens so viele US-Dollar KI-Kosten pro Monat (5,50 $ sind etwa 5 Euro). Damit es nicht nach
+# einer Woche aufgebraucht ist, darf ein Tag bis zum Dreifachen seines fairen Anteils nutzen,
+# ungenutzte Tage bleiben für später übrig. Leer lassen oder löschen = kein Monatslimit.
+MONATS_BUDGET_USD = "5.5"
 # Echte Stimme (nur mit Google- oder ElevenLabs-Schlüssel): höchstens so viele Zeichen pro Tag,
 # danach spricht Merki bis morgen mit der Gerätestimme. Etwa 1000 Zeichen sind 1 Minute.
 TTS_TAGES_ZEICHEN = "5000"

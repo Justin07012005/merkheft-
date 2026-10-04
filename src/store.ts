@@ -19,6 +19,7 @@ import { DurableObject } from 'cloudflare:workers';
 import Anthropic from '@anthropic-ai/sdk';
 import { makeVapidKeys, pushEndpointOk, sendPush, unb64url, type VapidKeys } from './push';
 import { berlinDay, costUsd, emptyUsage, takeUsage } from './cost';
+import { embed, pack, similarity, unit, SEM_KEEP_DAYS, type SemEnv } from './sem';
 
 export interface DocRow {
   id: string;
@@ -37,7 +38,7 @@ const PAGE_CHARS = 1_000_000;
 /** So viele falsche Codes pro IP und Stunde, danach ist für diese IP Pause. */
 export const MAX_FAILS_PER_HOUR = 30;
 
-export interface StoreEnv {
+export interface StoreEnv extends SemEnv {
   /** Nur für lokale Tests: diese Adresse darf als Push-Dienst dienen */
   PUSH_TEST_ORIGIN?: string;
   /** Für Sammelaufträge: nachfragen und Ergebnisse abholen */
@@ -168,6 +169,7 @@ export class Store extends DurableObject<StoreEnv> {
         lease INTEGER NOT NULL DEFAULT 0,
         results TEXT
       );
+      CREATE TABLE IF NOT EXISTS sem (h TEXT PRIMARY KEY, v BLOB NOT NULL, scale REAL NOT NULL, at INTEGER NOT NULL);
     `);
   }
 
@@ -224,6 +226,14 @@ export class Store extends DurableObject<StoreEnv> {
     return row ? { usd: row.usd, calls: row.calls } : { usd: 0, calls: 0 };
   }
 
+  /** Wie viel in diesem Monat vor heute schon für die KI ausgegeben wurde. */
+  spentMonthBefore(day: string): number {
+    const row = this.sql
+      .exec<{ usd: number }>(`SELECT COALESCE(SUM(usd), 0) AS usd FROM spend WHERE substr(day, 1, 7) = substr(?, 1, 7) AND day < ?`, day, day)
+      .toArray()[0];
+    return row ? row.usd : 0;
+  }
+
   addSpend(day: string, usd: number, kind = 'other'): void {
     this.sql.exec(
       `INSERT INTO spend (day, usd, calls) VALUES (?, ?, 1)
@@ -250,6 +260,62 @@ export class Store extends DurableObject<StoreEnv> {
       .exec<{ kind: string; usd: number; calls: number }>(`SELECT kind, usd, calls FROM spend_kind WHERE day = ? ORDER BY usd DESC`, day)
       .toArray()
       .map((r) => ({ kind: r.kind, usd: Math.round(r.usd * 1000) / 1000, calls: r.calls }));
+  }
+
+  // ---------- Suche nach Bedeutung ----------
+
+  /** Welche Textstellen noch keinen Vektor haben. Die anderen werden gebraucht: Datum auffrischen (höchstens einmal am Tag). */
+  semMissing(hashes: string[]): string[] {
+    if (!hashes.length) return [];
+    const list = JSON.stringify(hashes);
+    const have = new Set(this.sql.exec<{ h: string }>(`SELECT h FROM sem WHERE h IN (SELECT value FROM json_each(?))`, list).toArray().map((r) => r.h));
+    const now = Date.now();
+    this.sql.exec(`UPDATE sem SET at = ? WHERE at < ? AND h IN (SELECT value FROM json_each(?))`, now, now - 86_400_000, list);
+    return hashes.filter((h) => !have.has(h));
+  }
+
+  /** Vektoren für neue Textstellen holen und speichern. 'off', wenn es gerade nicht geht. */
+  async semAdd(items: { h: string; text: string }[]): Promise<number | 'off'> {
+    let vecs: number[][] | null;
+    try {
+      vecs = await embed(this.env, items.map((i) => i.text));
+    } catch (e) {
+      console.error('embed error', e instanceof Error ? e.message : e);
+      return 'off';
+    }
+    if (!vecs || vecs.length !== items.length) return 'off';
+    const now = Date.now();
+    items.forEach((it, k) => {
+      const { q, scale } = pack(vecs![k]);
+      this.sql.exec(
+        `INSERT INTO sem (h, v, scale, at) VALUES (?, ?, ?, ?) ON CONFLICT(h) DO UPDATE SET v = excluded.v, scale = excluded.scale, at = excluded.at`,
+        it.h,
+        q,
+        scale,
+        now,
+      );
+    });
+    this.sql.exec(`DELETE FROM sem WHERE at < ?`, now - SEM_KEEP_DAYS * 86_400_000);
+    return items.length;
+  }
+
+  /** Die k Textstellen, deren Bedeutung am besten zur Frage passt (nur unter den genannten). */
+  async semSearch(q: string, hashes: string[], k: number): Promise<{ h: string; s: number }[] | 'off'> {
+    if (!hashes.length) return [];
+    let vecs: number[][] | null;
+    try {
+      vecs = await embed(this.env, [q]);
+    } catch (e) {
+      console.error('embed error', e instanceof Error ? e.message : e);
+      return 'off';
+    }
+    if (!vecs || !vecs[0]) return 'off';
+    const query = unit(vecs[0]);
+    const rows = this.sql.exec<{ h: string; v: ArrayBuffer; scale: number }>(`SELECT h, v, scale FROM sem WHERE h IN (SELECT value FROM json_each(?))`, JSON.stringify(hashes));
+    const hits: { h: string; s: number }[] = [];
+    for (const r of rows) hits.push({ h: r.h, s: similarity(query, r.v, r.scale) });
+    hits.sort((a, b) => b.s - a.s);
+    return hits.slice(0, k).map((x) => ({ h: x.h, s: Math.round(x.s * 1000) / 1000 }));
   }
 
   /** Wie viele Zeichen heute schon mit der echten Stimme gesprochen wurden. */

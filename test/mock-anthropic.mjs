@@ -218,6 +218,31 @@ function simCtl(req, res, p, path) {
   return send({ log: SIM.log });
 }
 
+// Ersatz für Workers AI (Suche nach Bedeutung): Wortstämme und ein paar Wörter mit gleicher Bedeutung
+// landen auf denselben Zahlen. Keine echte Bedeutung, aber genug, um den Weg durch die App zu prüfen.
+const SAME = { biokatalysator: 'enzym', biokatalysatoren: 'enzym', katalysator: 'enzym', eiweiß: 'prote', eiweiße: 'prote', eiweiss: 'prote', kraftwerk: 'mitoc', kraftwerke: 'mitoc', zellatmung: 'mitoc', erbgut: 'dna', erbinformation: 'dna' };
+const EMBED_STOP = new Set('aber alle auch auf aus bei das dass dem den der des die ein eine einem einen einer ist mit nicht noch oder sich sie sind und von was wie wird zum zur'.split(' '));
+function embedOne(t) {
+  const v = new Array(1024).fill(0);
+  for (const w of String(t).toLowerCase().match(/[\p{L}\p{N}]{3,}/gu) || []) {
+    if (EMBED_STOP.has(w)) continue;
+    const stem = SAME[w] || w.slice(0, 5);
+    let h = 2166136261; for (let i = 0; i < stem.length; i++) { h ^= stem.charCodeAt(i); h = Math.imul(h, 16777619); }
+    h >>>= 0; v[h % 1024] += (h & 1024) ? 1 : -1;
+  }
+  return v;
+}
+let embedCalls = 0;
+function embedRoute(req, res, p, path) {
+  res.writeHead(path === '/embed' && embedCalls < 0 ? 500 : 200, { 'content-type': 'application/json' });
+  if (path === '/embed/calls') return res.end(JSON.stringify({ calls: embedCalls }));
+  if (path === '/embed/fail') { embedCalls = -1; return res.end('{}'); }
+  if (embedCalls < 0) return res.end(JSON.stringify({ error: 'test: Workers AI aus' }));
+  embedCalls++;
+  const list = Array.isArray(p.text) ? p.text : [p.text];
+  res.end(JSON.stringify({ shape: [list.length, 1024], data: list.map(embedOne), pooling: 'cls' }));
+}
+
 const server = http.createServer((req, res) => {
   const chunks = [];
   req.on('data', (c) => chunks.push(c));
@@ -230,6 +255,7 @@ const server = http.createServer((req, res) => {
     if (req.url.startsWith('/v2/voices') || req.url.startsWith('/v1/text-to-speech/')) return eleven(req, res, p);
     if (req.url.startsWith('/v1/voices') || req.url.startsWith('/v1/text:synthesize')) return google(req, res, p);
     const path = req.url.split('?')[0];
+    if (path.startsWith('/embed')) return embedRoute(req, res, p, path);
     if (path.startsWith('/v1/messages/batches') || path.startsWith('/batch-ctl')) return batches(req, res, p, path);
     if (path.startsWith('/sim')) return simCtl(req, res, p, path);
     if (req.method !== 'POST' || !req.url.startsWith('/v1/messages')) { res.writeHead(404); return res.end(); }

@@ -5,6 +5,7 @@
  * - /api/data  speichert Notizen, Chats usw. im Durable Object (Handy und Tablet gleich)
  * - /api/ai    fragt Claude mit dem API-Schlüssel aus dem Cloudflare-Secret
  *              und reicht die Antwort als Stream an die App durch
+ * - /api/sem/missing|add|search  Suche nach Bedeutung in langen Dateien (Workers AI, kostenlos)
  * - /api/batch Zusammenfassungen großer Dateien als Sammelauftrag (halber Preis, kommt später)
  * - /api/tts   macht aus einem Satz echte Sprache (Google oder ElevenLabs), wenn dafür
  *              ein Schlüssel hinterlegt ist. Sonst spricht Merki mit der Gerätestimme.
@@ -14,7 +15,8 @@
  */
 import Anthropic from '@anthropic-ai/sdk';
 import type { Store, DocOp } from './store';
-import { berlinDay, costUsd, emptyUsage, takeUsage, type RawUsage, type UsageSum } from './cost';
+import { MAX_SEM_TEXT, SEM_ADD_MAX, SEM_HASH_RE, SEM_SEARCH_MAX, semOn } from './sem';
+import { berlinDay, budgetPlan, costUsd, emptyUsage, takeUsage, type BudgetPlan, type RawUsage, type UsageSum } from './cost';
 
 export { Store } from './store';
 
@@ -29,6 +31,8 @@ export interface Env {
   MODEL?: string;
   /** Höchstens so viele US-Dollar KI-Kosten pro Tag */
   TAGES_BUDGET_USD?: string;
+  /** Höchstens so viele US-Dollar KI-Kosten pro Monat, fair auf die Tage verteilt (leer = kein Monatslimit) */
+  MONATS_BUDGET_USD?: string;
   /** Nur für lokale Tests: andere Adresse statt api.anthropic.com */
   ANTHROPIC_BASE_URL?: string;
   /** Secret (freiwillig): Google-API-Schlüssel für Merkis echte Stimme (kostenlose Menge pro Monat) */
@@ -51,6 +55,10 @@ export interface Env {
   GOOGLE_TTS_BASE_URL?: string;
   /** Nur für lokale Tests: diese Adresse darf als Push-Dienst dienen (nie in wrangler.toml) */
   PUSH_TEST_ORIGIN?: string;
+  /** Workers AI für die Suche nach Bedeutung (in wrangler.toml unter [ai], kostenlos) */
+  AI?: Ai;
+  /** Nur für lokale Tests: diese Adresse liefert die Vektoren statt Workers AI (nie in wrangler.toml) */
+  EMBED_TEST_URL?: string;
 }
 
 const DEFAULT_MODEL = 'claude-sonnet-5-5';
@@ -91,6 +99,29 @@ function store(env: Env) {
 function budgetUsd(env: Env): number {
   const n = Number(env.TAGES_BUDGET_USD);
   return Number.isFinite(n) && n > 0 ? n : DEFAULT_BUDGET_USD;
+}
+
+function monthBudgetUsd(env: Env): number {
+  const n = Number(env.MONATS_BUDGET_USD);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+interface Budget extends BudgetPlan {
+  today: { usd: number; calls: number };
+  monthLimit: number;
+}
+
+/** Tageslimit und, falls gesetzt, fairer Tagesanteil am Monatsbudget. */
+async function budget(s: DurableObjectStub<Store>, env: Env, day = berlinDay()): Promise<Budget> {
+  const [today, before] = await Promise.all([s.spentOn(day), s.spentMonthBefore(day)]);
+  const monthLimit = monthBudgetUsd(env);
+  return { ...budgetPlan(day, today.usd, before, budgetUsd(env), monthLimit), today, monthLimit };
+}
+
+function budgetFail(b: Budget): Response | null {
+  if (b.full === 'monat') return fail(429, 'budget', 'Merki macht Pause, das Monatsbudget für die KI ist aufgebraucht. Am 1. geht es weiter.');
+  if (b.full === 'tag') return fail(429, 'budget', 'Merki macht für heute Pause, das Budget für heute ist aufgebraucht. Morgen geht es weiter.');
+  return null;
 }
 
 async function sameCode(given: string, expected: string): Promise<boolean> {
@@ -398,10 +429,8 @@ async function postAi(request: Request, env: Env, ctx: ExecutionContext): Promis
 
   const day = berlinDay();
   const s = store(env);
-  const spent = await s.spentOn(day);
-  if (spent.usd >= budgetUsd(env)) {
-    return fail(429, 'budget', 'Das Tageslimit für die KI ist erreicht. Morgen geht es weiter.');
-  }
+  const over = budgetFail(await budget(s, env, day));
+  if (over) return over;
 
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, baseURL: env.ANTHROPIC_BASE_URL || undefined, maxRetries: 2 });
   const aborter = new AbortController();
@@ -509,9 +538,8 @@ async function postBatch(request: Request, env: Env): Promise<Response> {
     requests.push({ custom_id: r.id, params: built.params as Anthropic.Beta.Messages.BatchCreateParams.Request['params'] });
   }
   const s = store(env);
-  if ((await s.spentOn(berlinDay())).usd >= budgetUsd(env)) {
-    return fail(429, 'budget', 'Das Tageslimit für die KI ist erreicht. Morgen geht es weiter.');
-  }
+  const over = budgetFail(await budget(s, env));
+  if (over) return over;
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, baseURL: env.ANTHROPIC_BASE_URL || undefined, maxRetries: 2 });
   let id: string;
   try {
@@ -539,16 +567,54 @@ async function postBatchAction(action: string, request: Request, env: Env): Prom
   return json({ ok: true });
 }
 
+// ---------- Suche nach Bedeutung ----------
+
+const SEM_OFF = 'Die Suche nach Bedeutung geht gerade nicht.';
+
+async function postSem(action: string, request: Request, env: Env): Promise<Response> {
+  if (!semOn(env)) return fail(503, 'sem_off', SEM_OFF);
+  const input = await readJson<{ hashes?: unknown; items?: unknown; q?: unknown; k?: unknown }>(request);
+  const hashes = (x: unknown) => (Array.isArray(x) ? x.filter((h): h is string => typeof h === 'string' && SEM_HASH_RE.test(h)).slice(0, SEM_SEARCH_MAX) : []);
+  const s = store(env);
+  if (action === 'missing') return json({ missing: await s.semMissing(hashes(input?.hashes)) });
+  if (action === 'add') {
+    const raw = Array.isArray(input?.items) ? input!.items : [];
+    const items = raw
+      .filter((it): it is { h: string; text: string } => !!it && typeof it.h === 'string' && SEM_HASH_RE.test(it.h) && typeof it.text === 'string' && !!it.text.trim())
+      .map((it) => ({ h: it.h, text: it.text.slice(0, MAX_SEM_TEXT) }));
+    if (!items.length || raw.length > SEM_ADD_MAX) return fail(400, 'bad_request', 'Ungültige Anfrage.');
+    const n = await s.semAdd(items);
+    return n === 'off' ? fail(503, 'sem_off', SEM_OFF) : json({ added: n });
+  }
+  const q = typeof input?.q === 'string' ? input.q.trim().slice(0, 2000) : '';
+  if (!q) return fail(400, 'bad_request', 'Ungültige Anfrage.');
+  const k = Math.min(40, Math.max(1, Math.round(Number(input?.k) || 20)));
+  const hits = await s.semSearch(q, hashes(input?.hashes), k);
+  return hits === 'off' ? fail(503, 'sem_off', SEM_OFF) : json({ hits });
+}
+
 async function getStatus(env: Env): Promise<Response> {
   const day = berlinDay();
   const s = store(env);
-  const spent = await s.spentOn(day);
+  const b = await budget(s, env, day);
+  const spent = b.today;
   const byKind = await s.spentByKind(day);
   const p = ttsProvider(env);
   const tts = p
     ? { provider: p, chars: (await s.ttsOn(day)).chars, limit: ttsLimit(env), month: await s.ttsMonth(day), monthLimit: ttsMonthLimit(env) }
     : null;
-  return json({ model: env.MODEL || DEFAULT_MODEL, budgetUsd: budgetUsd(env), spentUsd: Math.round(spent.usd * 1000) / 1000, calls: spent.calls, byKind, tts });
+  const r3 = (v: number) => Math.round(v * 1000) / 1000;
+  return json({
+    model: env.MODEL || DEFAULT_MODEL,
+    budgetUsd: r3(b.limit),
+    dayCapUsd: budgetUsd(env),
+    spentUsd: r3(spent.usd),
+    calls: spent.calls,
+    monthUsd: r3(b.month),
+    monthBudgetUsd: b.monthLimit,
+    byKind,
+    tts,
+  });
 }
 
 // ---------- Echte Stimme (Google oder ElevenLabs) ----------
@@ -872,7 +938,7 @@ export default {
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
 
     if (url.pathname === '/api/health') {
-      return json({ ok: true, key: !!env.ANTHROPIC_API_KEY, code: !!env.APP_CODE && env.APP_CODE.length >= MIN_CODE_LENGTH, tts: !!ttsProvider(env) });
+      return json({ ok: true, key: !!env.ANTHROPIC_API_KEY, code: !!env.APP_CODE && env.APP_CODE.length >= MIN_CODE_LENGTH, tts: !!ttsProvider(env), sem: semOn(env) });
     }
 
     // Nur Anfragen von der eigenen Seite (kein Zugriff von fremden Webseiten)
@@ -891,6 +957,8 @@ export default {
       if (url.pathname === '/api/batch' && request.method === 'POST') return await postBatch(request, env);
       const batch = /^\/api\/batch\/(check|done|cancel)$/.exec(url.pathname);
       if (batch && request.method === 'POST') return await postBatchAction(batch[1], request, env);
+      const sem = /^\/api\/sem\/(missing|add|search)$/.exec(url.pathname);
+      if (sem && request.method === 'POST') return await postSem(sem[1], request, env);
       if (url.pathname === '/api/tts' && request.method === 'POST') return await postTts(request, env);
       if (url.pathname === '/api/tts/voices' && request.method === 'GET') return await getVoices(env);
       if (url.pathname === '/api/push/key' && request.method === 'GET') return json({ key: await store(env).pushKey() });

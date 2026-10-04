@@ -1316,8 +1316,8 @@ async function startServer() {
   $('#settingsBtn').hidden = false;
   try {
     const h = await (await fetch('/api/health', { cache: 'no-store' })).json();
-    serverAi = !!h.key; serverTts = !!h.tts;
-  } catch { serverAi = false; }
+    serverAi = !!h.key; serverTts = !!h.tts; sem.off = !h.sem;
+  } catch { serverAi = false; sem.off = true; }
   connecting = false; renderAiAvailability();
   setSync('Wird abgeglichen …');
   await pull();
@@ -1461,7 +1461,7 @@ async function imageCaps() {
 function aiError(e) {
   const c = e && e.code;
   if (c === 'not_granted' || c === 'sampling_disabled' || c === 'not_declared' || c === 'capability_disabled') { sample = null; renderAiAvailability(); return 'Die KI ist hier nicht freigegeben. Lade die Seite neu und tippe bei der Frage auf Erlauben.'; }
-  if (c === 'budget') return 'Merki macht für heute Pause, das Tageslimit ist erreicht. Morgen geht es weiter.';
+  if (c === 'budget') return /^Merki macht/.test(e.message || '') ? e.message : 'Merki macht für heute Pause, das Tageslimit ist erreicht. Morgen geht es weiter.';
   if (c === 'rate_limited') return 'Gerade zu viele Anfragen. Warte kurz und versuch es nochmal.';
   if (c === 'session_expired') return 'Bitte melde dich bei Claude neu an.';
   if (c === 'refused') return 'Dazu kann Merki nichts sagen. Formuliere es bitte anders.';
@@ -1500,11 +1500,21 @@ function passagesOf(f) {
   passageCache.set(key, list);
   return list;
 }
-function pickPassages(files, query, budget) {
-  const q = [...new Set(words(query))]; if (!q.length) return [];
+// hits: Treffer der Suche nach Bedeutung (Kennung der Stelle -> Ähnlichkeit), sonst nur Stichwörter wie bisher
+function pickPassages(files, query, budget, hits) {
+  const q = [...new Set(words(query))]; if (!q.length && !hits) return [];
   const all = files.flatMap(passagesOf); if (!all.length) return [];
   const df = {}; for (const w of q) df[w] = all.filter(p => p.w.has(w)).length;
-  const scored = all.map(p => ({ p, s: q.reduce((s, w) => s + (p.w.has(w) ? Math.log(1 + all.length / df[w]) : 0), 0) })).filter(x => x.s > 0).sort((a, b) => b.s - a.s);
+  let scored = all.map(p => ({ p, s: q.reduce((s, w) => s + (p.w.has(w) ? Math.log(1 + all.length / df[w]) : 0), 0) }));
+  if (hits) {
+    // Gemischt: Bedeutung zählt etwas mehr als gleiche Wörter, beides auf 0 bis 1 gebracht.
+    // Was weit hinter der besten Stelle liegt, kommt nicht mit, auch wenn noch Platz wäre.
+    const kmax = Math.max(0, ...scored.map(x => x.s)) || 1, sv = [...hits.values()], smax = Math.max(...sv), smin = Math.min(...sv);
+    scored = scored.map(x => { const h = hits.get(passHash(x.p)); const m = h === undefined ? 0 : smax > smin ? 0.2 + 0.8 * (h - smin) / (smax - smin) : 1; return { p: x.p, s: 0.6 * m + 0.4 * x.s / kmax }; });
+    const top = Math.max(...scored.map(x => x.s));
+    scored = scored.filter(x => x.s > 0 && x.s >= top * 0.35);
+  } else scored = scored.filter(x => x.s > 0);
+  scored.sort((a, b) => b.s - a.s);
   const picked = []; let left = budget;
   for (const { p } of scored) { if (left < p.text.length) break; picked.push(p); left -= p.text.length; }
   picked.sort((a, b) => a.f.name.localeCompare(b.f.name) || a.i - b.i);
@@ -1512,6 +1522,63 @@ function pickPassages(files, query, budget) {
 }
 const passageText = list => list.map(p => `\n[Aus „${p.f.name}“]\n${p.text}\n`).join('');
 const filePassages = (files, query, budget) => passageText(pickPassages(files, query, budget));
+
+// ---------- Suche nach Bedeutung ----------
+// Für lange Dateien bekommt jede Textstelle auf dem Server einen Zahlenvektor (Cloudflare, kostenlos). Dann findet Merki
+// auch Stellen, die dasselbe mit anderen Worten sagen, und es reichen weniger, aber genauere Stellen pro Frage.
+// Das Einlesen läuft im Hintergrund, schon eingelesene Stellen erkennt der Server an ihrer Kennung (Hash des Textes).
+// Klappt etwas nicht, sucht Merki wie bisher nur nach Stichwörtern.
+const SEM_MIN = 60000;   // ab so vielen Zeichen in den Dateien eines Projekts (darunter bekommt Merki alles)
+const SEM_BUDGET = { chat: 16000, voice: 9000 };
+const sem = { off: MODE !== 'server', pause: 0, known: new Set(), run: null, next: new Set() };
+function fnv(s, h) { for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36).padStart(7, '0'); }
+const passHash = x => x.h || (x.h = fnv(x.text, 2166136261) + fnv(x.text, 0x9e3779b9));
+const semBig = p => !!p && pFiles(p.id).reduce((n, f) => n + fileLen(f), 0) > SEM_MIN;
+const semUsable = () => !sem.off && Date.now() > sem.pause && aiReady();
+const semPost = (path, body, signal) => api('/api/sem/' + path, { method: 'POST', body: JSON.stringify(body), signal }).then(r => r.json());
+function semTrouble(e) {
+  if (e && e.code === 'cancelled') return;
+  // Server ohne Suche nach Bedeutung oder Tagesmenge von Cloudflare aufgebraucht: eine Weile nicht mehr fragen
+  sem.pause = Date.now() + (e && e.code === 'sem_off' ? 30 : 3) * 60e3;
+}
+function semIndex(p) {
+  if (!semUsable() || !semBig(p)) return;
+  if (sem.run) { sem.next.add(p.id); return; }
+  sem.run = (async () => {
+    const byHash = new Map();
+    for (const x of pFiles(p.id).flatMap(passagesOf)) { const h = passHash(x); if (!sem.known.has(h) && !byHash.has(h)) byHash.set(h, x); }
+    const hashes = [...byHash.keys()];
+    for (let i = 0; i < hashes.length; i += 2000) {
+      const part = hashes.slice(i, i + 2000), miss = new Set((await semPost('missing', { hashes: part })).missing || []);
+      part.forEach(h => { if (!miss.has(h)) sem.known.add(h); });
+      const todo = [...miss];
+      for (let j = 0; j < todo.length; j += 16) {
+        const items = todo.slice(j, j + 16).map(h => ({ h, text: byHash.get(h).text }));
+        await semPost('add', { items });
+        items.forEach(it => sem.known.add(it.h));
+      }
+    }
+  })().catch(semTrouble).finally(() => {
+    sem.run = null;
+    const id = sem.next.values().next().value;
+    if (id) { sem.next.delete(id); semIndex(state.projects.find(x => x.id === id)); }
+  });
+}
+let semT = 0;
+const semSoon = () => { clearTimeout(semT); semT = setTimeout(() => semIndex(proj()), 2500); };
+// Treffer zur Frage, oder null (dann nur Stichwörter). Wartet höchstens ms, damit Merki nicht langsamer antwortet.
+async function semHits(p, query, ms = 1500) {
+  if (!semUsable() || !semBig(p)) return null;
+  const hashes = [...new Set(pFiles(p.id).flatMap(passagesOf).map(passHash))].filter(h => sem.known.has(h));
+  semIndex(p);
+  const q = String(query).replace(/\s+/g, ' ').trim().slice(-1500);
+  if (hashes.length < 3 || !q) return null;
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), ms);
+  try {
+    const r = await semPost('search', { q, hashes, k: 24 }, ctl.signal);
+    return Array.isArray(r.hits) && r.hits.length ? new Map(r.hits.map(x => [x.h, x.s])) : null;
+  } catch (e) { semTrouble(e); return null; } finally { clearTimeout(t); }
+}
 // Kontext für den Chat. Claude speichert den Anfang einer Anfrage zwischen (die Dateien eine Stunde), solange er gleich bleibt,
 // und dann kostet er nur ein Zehntel. Darum: Dateien und Notizen bleiben während eines Gesprächs gleich
 // (key = Gespräch), und die zur Frage passenden Stellen aus langen Dateien kommen in die neue Nachricht (passages).
@@ -1522,13 +1589,15 @@ const ctxSnap = new Map();
 const POOL_HEAD = 'Stellen aus den Dateien, die in diesem Gespräch bisher gebraucht wurden (neue kommen unten dazu):\n';
 const POOL_MAX = 90000, POOL_BLOCKS = 8;
 const pkey = x => x.f.id + ':' + x.i;
-function projectContext(p, query, key, pool = false) {
+// hits: Treffer der Suche nach Bedeutung (semHits). Mit ihnen reichen weniger Stellen, weil sie genauer passen.
+function projectContext(p, query, key, pool = false, hits = null) {
   const files = pFiles(p.id), total = files.reduce((n, f) => n + fileLen(f), 0);
+  const budget = hits ? SEM_BUDGET[pool ? 'voice' : 'chat'] : 30000;
   let ftext = '', passages = '';
-  if (total <= 60000) for (const f of files) ftext += `\n=== Datei „${f.name}“ ===\n${fileText(f)}\n`;
+  if (total <= SEM_MIN) for (const f of files) ftext += `\n=== Datei „${f.name}“ ===\n${fileText(f)}\n`;
   else {
     ftext = files.map(f => `\n[Datei „${f.name}“${f.summary ? ': ' + f.summary : ''}]`).join('');
-    if (!pool) passages = 'Passende Stellen aus den Dateien zu dieser Nachricht:\n' + (filePassages(files, query, 30000) || '(keine passende Stelle gefunden, nutze die Zusammenfassungen)');
+    if (!pool) passages = 'Passende Stellen aus den Dateien zu dieser Nachricht:\n' + (passageText(pickPassages(files, query, budget, hits)) || '(keine passende Stelle gefunden, nutze die Zusammenfassungen)');
   }
   const head = `Projekt: ${p.name}${p.desc ? '\nWorum es geht: ' + p.desc : ''}`;
   const now = Date.now();
@@ -1542,8 +1611,8 @@ function projectContext(p, query, key, pool = false) {
   }
   snap.used = now;
   if (key) ctxSnap.set(key, snap);
-  if (pool && total > 60000) {
-    const picked = pickPassages(files, query, 30000);
+  if (pool && total > SEM_MIN) {
+    const picked = pickPassages(files, query, budget, hits);
     let pl = snap.pool, fresh = pl ? picked.filter(x => !pl.keys.has(pkey(x))) : picked;
     if (fresh.length) {
       // Zu voll: neu anfangen, mit den Stellen zu dieser Nachricht
@@ -1959,7 +2028,9 @@ async function send(text, files = []) {
     const extra = files.length ? await attContent(files, asked) : null;
     if (ctl.signal.aborted) throw { code: 'cancelled' };
     const recent = c.turns.filter(t => t.role === 'user').slice(-3).map(t => t.content).join(' ');
-    const ctx = projectContext(p, asked + ' ' + recent, 'c:' + c.id);
+    const hits = await semHits(p, asked + ' ' + recent);
+    if (ctl.signal.aborted) throw { code: 'cancelled' };
+    const ctx = projectContext(p, asked + ' ' + recent, 'c:' + c.id, false, hits);
     const system = [{ text: RULES + who() }, { text: ctx.files, cache: '1h' }, { text: ctx.notes }];
     let turns = withPassages(windowTurns(c.turns, 20, 60000), ctx);
     if (extra && (extra.text || extra.hints.length)) {
@@ -2608,7 +2679,9 @@ function openPad(orig, opts = {}) {
     const p = state.projects.find(x => x.id === n.projectId) || proj();
     const title = ti.value.trim() || n.title || '(ohne Titel)';
     const body = [ta.value.trim(), strokes.length && n.inkText ? 'Handschrift: ' + n.inkText : '', strokes.length && !n.inkText ? '(Dazu gibt es Handschrift, die noch nicht gelesen ist.)' : ''].filter(Boolean).join('\n');
-    const ctx = projectContext(p, text + ' ' + title + ' ' + body.slice(0, 400), 'n:' + n.id);
+    const hits = await semHits(p, text + ' ' + title);
+    if (dead) return;
+    const ctx = projectContext(p, text + ' ' + title + ' ' + body.slice(0, 400), 'n:' + n.id, false, hits);
     const system = [{ text: ASK_RULES + who() }, { text: ctx.files, cache: '1h' }, { text: `${ctx.notes}\n\nDie Notiz, um die es geht:\nTitel: ${title}\n${body || '(leer)'}` }];
     const turns = withPassages(windowTurns(qa, 16, 40000), ctx);
     askCtl = new AbortController();
@@ -3026,7 +3099,7 @@ function openCall(opts = {}) {
   const name = myName(), quiz = !!opts.quiz;
   Object.assign(call, {
     open: true, pid: p.id, quiz, turn: 0, gen: 0, pending: 0, spoken: 0, streamDone: true, answer: '', ctl: null, rec: null,
-    stopReq: false, misses: 0, inflight: 0, state: '', watch: 0, wake: null, micOff: false, said: '', until: 0,
+    stopReq: false, misses: 0, inflight: 0, state: '', watch: 0, wake: null, micOff: false, said: '', until: 0, barge: null, bargeTries: 0, sayParts: [], sayDone: 0,
     muted: !canSpeak() || pref('callMute', '0') === '1',
     typing: MODE === 'artifact' || !SR_OF() || call.blocked, // im Claude-Artifact ist das Mikrofon gesperrt
     chat: { id: 'c-' + uid8(), projectId: p.id, title: '', turns: [], updatedAt: Date.now() },
@@ -3084,7 +3157,7 @@ function setState(st, msg) {
   const el = call.el;
   call.state = st;
   el.className = 'call s-' + st;
-  el.querySelector('#callStatus').textContent = msg || CALL_TEXT[st] || '';
+  el.querySelector('#callStatus').textContent = msg || (st === 'speaking' && bargeOn() && !call.typing && !call.micOff ? 'Merki spricht … Rede einfach los oder tippe, um zu unterbrechen.' : CALL_TEXT[st]) || '';
   const main = el.querySelector('#callMain'), busyNow = st === 'thinking' || st === 'speaking';
   const [icon, label, aria] = st === 'listening' ? [ICON.check, 'Fertig', 'Fertig gesprochen'] : busyNow ? [ICON.stop, 'Unterbrechen', 'Merki unterbrechen'] : [ICON.micBig, 'Sprechen', 'Sprechen'];
   main.querySelector('i').innerHTML = icon; main.querySelector('span').textContent = label; main.setAttribute('aria-label', aria);
@@ -3094,7 +3167,8 @@ function setState(st, msg) {
   sw.textContent = call.typing ? 'Lieber sprechen' : 'Lieber tippen';
   sw.hidden = call.typing && !canTalk;
   clearInterval(call.watch);
-  if (st === 'speaking') startWatch();
+  if (st === 'speaking') { startWatch(); startBarge(); }
+  else if (st !== 'listening') stopBarge();
   renderMic();
 }
 function showMe(t) { const x = call.el && call.el.querySelector('#capMe'); if (!x) return; x.hidden = !t; x.textContent = t ? '„' + t + '“' : ''; }
@@ -3130,6 +3204,7 @@ function toggleMic() {
   voice.unlock();
   call.micOff = !call.micOff;
   if (call.micOff) {
+    stopBarge();
     if (call.state === 'listening') { call.turn++; stopListening(); showMe(''); setState('paused', MIC_OFF); }
     else if (call.state === 'paused') setState('paused', MIC_OFF);
     else renderMic();
@@ -3139,9 +3214,10 @@ function toggleMic() {
 function say(text) {
   const gen = call.gen;
   call.pending++;
+  call.sayParts.push(String(text));
   // Geschätztes Ende (etwa 14 Zeichen pro Sekunde): vorher hört Merki nicht von selbst zu, auch wenn das Gerät „fertig“ meldet
   call.until = Math.max(call.until, Date.now()) + 600 + String(text).length * 70 / Math.min(1.5, Math.max(0.6, +pref('rate', '1') || 1));
-  voice.say(text, () => { if (gen !== call.gen) return; call.pending = Math.max(0, call.pending - 1); maybeDone(); });
+  voice.say(text, () => { if (gen !== call.gen) return; call.pending = Math.max(0, call.pending - 1); call.sayDone++; maybeDone(); });
 }
 function hush() { call.gen++; call.pending = 0; call.until = 0; voice.stop(); }
 // Falls das Gerät das Ende eines Satzes nicht meldet: nach 2 Sekunden Stille trotzdem weitermachen,
@@ -3189,7 +3265,7 @@ function listen(auto, carry = '') {
     if (auto) { setState('paused', MIC_OFF); return; }
     call.micOff = false; // „Sprechen“ getippt: Mikro wieder an
   }
-  stopListening();
+  stopBarge(); stopListening();
   call.stopReq = false;
   const my = ++call.turn;
   setState('listening');
@@ -3223,6 +3299,47 @@ function listen(auto, carry = '') {
     },
   });
 }
+// ---------- Reinreden (Einstellung, zum Ausprobieren): Merki hört schon zu, während es spricht ----------
+// Hört das Mikrofon Wörter, die nicht aus Merkis eigener Antwort stammen, hört Merki sofort auf
+// und nimmt das Gesagte als ihre nächste Antwort. Merkis eigene Stimme im Mikro zählt nicht.
+const bargeOn = () => pref('bargeIn', '0') === '1' && !!SR_OF() && MODE !== 'artifact';
+const bargeLive = () => call.open && call.state === 'speaking' && !call.typing && !call.micOff && document.visibilityState !== 'hidden';
+function bargeWorthy(t) {
+  const norm = x => String(x).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(' ').filter(w => w.length > 1);
+  const h = norm(t); if (!h.length) return false;
+  const said = new Set(norm(call.said || '')), own = h.filter(w => !said.has(w));
+  if (/^(stopp?|halt|warte|moment)$/.test(h[0]) && own.length) return true; // „Stopp“, „Warte mal“
+  return h.length >= 2 && own.length / h.length > 0.5;
+}
+function stopBarge() { if (call.barge) { const b = call.barge; call.barge = null; b.abort(); } }
+function startBarge() {
+  if (call.barge || !bargeOn() || !bargeLive() || call.bargeTries > 12) return;
+  call.bargeTries++;
+  let took = false;
+  const take = () => { took = true; stopTurn(true); setState('listening'); };
+  const b = listenOnce({
+    onText: t => {
+      if (call.barge !== b) return;
+      if (!took) { if (!bargeWorthy(t)) return; take(); }
+      showMe(t);
+    },
+    onDone: t => {
+      if (call.barge !== b) return;
+      call.barge = null;
+      if (!took && bargeWorthy(t) && bargeLive()) take();
+      if (took) { if (unfinished(t)) listen(true, t); else userSaid(t); return; }
+      setTimeout(startBarge, 200); // nur Merkis Stimme gehört: weiter mithören
+    },
+    onFail: err => {
+      if (call.barge !== b) return;
+      call.barge = null;
+      if (took) { listen(true); return; }
+      if (['not-allowed', 'service-not-allowed', 'audio-capture', 'start', 'unsupported', 'language-not-supported'].includes(err)) return; // geht hier nicht
+      setTimeout(startBarge, 300);
+    },
+  });
+  call.barge = b;
+}
 function userSaid(text, kick) {
   if (!call.open) return;
   const c = call.chat;
@@ -3235,12 +3352,15 @@ async function askAi() {
   const p = state.projects.find(x => x.id === call.pid);
   if (!p) { hangUp(); return; }
   const my = ++call.turn, c = call.chat;
-  call.streamDone = false; call.answer = ''; call.spoken = 0;
+  call.streamDone = false; call.answer = ''; call.spoken = 0; call.bargeTries = 0; call.sayParts = []; call.sayDone = 0;
   setState('thinking'); showSaved([]);
   // Passende Stellen auch zu Merkis letzter Antwort: Sie antwortet oft auf eine Übung, die Merki gerade gestellt hat
   const lastAi = c.turns.slice(0, -1).reverse().find(t => t.role === 'assistant');
   const recent = (lastAi ? lastAi.content.slice(-600) + ' ' : '') + c.turns.filter(t => t.role === 'user').slice(-3).map(t => t.content).join(' ');
-  const ctx = projectContext(p, recent, 'v:' + c.id, true);
+  // Kurz warten (höchstens 0,9 Sekunden), beim Reden zählt jede Sekunde
+  const hits = await semHits(p, recent, 900);
+  if (my !== call.turn || !call.open) return;
+  const ctx = projectContext(p, recent, 'v:' + c.id, true, hits);
   // Dateien eine Stunde zwischenspeichern, den Vorrat an Textstellen und den Verlauf 5 Minuten (beim Reden geht es schnell hin und her)
   const system = [{ text: VOICE_RULES + who(true) + `\n\nDu hast das Gespräch mit diesem Satz eröffnet: „${call.greeting}“ Begrüße nicht noch einmal.` }, { text: ctx.files, cache: '1h' }, { text: ctx.notes },
     ...ctx.pool.map((text, i, a) => ({ text, ...(i === a.length - 1 ? { cache: true } : {}) }))];
@@ -3298,24 +3418,31 @@ function answerFailed(e) {
   if (!call.muted) say(msg);
 }
 // Unterbrechen: Merki hört auf zu reden, was sie schon gesagt hat, bleibt im Gespräch
-function stopTurn() {
+function stopTurn(keepBarge) {
   call.turn++;
   hush();
   if (call.ctl) { try { call.ctl.abort(); } catch {} call.ctl = null; }
   stopListening();
+  if (!keepBarge) stopBarge();
   const c = call.chat, last = c.turns[c.turns.length - 1];
+  // Was sie wirklich gehört hat: die fertig gesprochenen Sätze und der, bei dem sie unterbrochen hat.
+  // Nur das bleibt im Verlauf, sonst glaubt Merki, es hätte den Rest auch schon gesagt.
+  const heard = !call.muted && call.sayParts.length ? call.sayParts.slice(0, call.sayDone + 1).join(' ').trim() : '';
   if (!call.streamDone && last && last.role === 'user') {
-    const kept = visible(call.answer || '');
+    const kept = heard || visible(call.answer || '');
     if (kept) { c.turns.push({ role: 'assistant', content: kept + ' …' }); saveCallChat(); }
     else c.turns.pop(); // noch keine Antwort: sie kann es neu sagen
+  } else if (heard && call.sayDone < call.sayParts.length && last && last.role === 'assistant' && !/…$/.test(last.content)) {
+    last.content = heard + ' …'; saveCallChat();
   }
+  call.sayParts = []; call.sayDone = 0;
   call.streamDone = true; call.answer = '';
 }
 function mainTap() {
   if (!call.open) return;
   voice.unlock();
   const st = call.state;
-  if (st === 'listening') { call.stopReq = true; if (call.rec) call.rec.stop(); else setState('paused'); return; }
+  if (st === 'listening') { call.stopReq = true; if (call.rec) call.rec.stop(); else if (call.barge) call.barge.stop(); else setState('paused'); return; }
   if (st === 'thinking' || st === 'speaking') { stopTurn(); if (call.typing) setState('typing'); else listen(false); return; }
   if (call.typing) toVoice(); else listen(false);
 }
@@ -3327,7 +3454,7 @@ function toggleMute() {
   else if (call.state === 'paused' || call.state === 'typing') voice.say('Ton an.'); // Antippen schaltet die Sprachausgabe frei
 }
 function toTyping(msg) {
-  stopListening();
+  stopListening(); stopBarge();
   call.typing = true;
   if (call.state === 'thinking' || call.state === 'speaking') setState(call.state);
   else setState('typing', msg);
@@ -4935,6 +5062,7 @@ function renderAll(withChat = true) {
   ['notes', 'files', 'learn', 'progress'].concat(withChat ? ['chat'] : []).forEach(t => stale.add(t));
   renderBadges();
   renderTab(ui.tab);
+  semSoon();
 }
 let toastT;
 function toast(t, ms = 2800) {
@@ -5063,6 +5191,8 @@ function settingsSheet() {
     ${TTS_OK || serverTts ? `<div class="field"><label for="sVoice">Merkis Stimme</label><select id="sVoice"></select></div>
     <div class="field"><label for="sRate">Sprechtempo: <span id="sRateV">${Math.round(rate * 100)} %</span></label><input type="range" id="sRate" min="0.8" max="1.3" step="0.05" value="${rate}"></div>
     <button class="btn alt" type="button" id="sTest">${ICON.sound}Probe hören</button>
+    ${SR_OF() && MODE !== 'artifact' ? `<div class="field"><div class="htog"><button type="button" id="sBarge" aria-pressed="${pref('bargeIn', '0') === '1'}">${ICON.check}Reinreden unterbricht Merki (zum Ausprobieren)</button></div>
+    <p class="muted">Im Gespräch hört Merki dann schon zu, während es spricht, und hört auf, sobald du etwas sagst. Mit Kopfhörern klappt das am besten. Wird Merkis Stimme dabei leiser oder stockt sie, schalte es wieder aus.</p></div>` : ''}
     ${ios && !serverTts ? '<p class="notice tip">Schönere Stimme: Auf dem iPhone oder iPad unter Einstellungen › Bedienungshilfen › Gesprochene Inhalte › Stimmen › Deutsch eine Stimme mit „Erweitert“ oder „Premium“ laden. Danach hier auswählen.</p>' : ''}` : ''}
     ${server ? remindHtml() : ''}
     ${server && !inApp ? `<div class="notice"><b>Als App auf den Startbildschirm</b><br>${installEvt ? 'Tippe auf „Installieren“.' : ios ? 'Tippe in Safari unten auf das Teilen-Symbol und dann auf „Zum Home-Bildschirm“.' : 'Öffne das Browser-Menü (⋮) und tippe auf „App installieren“ oder „Zum Startbildschirm hinzufügen“.'}</div>` : ''}
@@ -5114,6 +5244,8 @@ function settingsSheet() {
       sv.onchange = () => { setPref('voice', sv.value); voice.stop(); };
       sr.oninput = () => { q('#sRateV').textContent = Math.round(+sr.value * 100) + ' %'; };
       sr.onchange = () => setPref('rate', sr.value);
+      const sb = q('#sBarge');
+      if (sb) sb.onclick = () => { const on = sb.getAttribute('aria-pressed') !== 'true'; sb.setAttribute('aria-pressed', on); setPref('bargeIn', on ? '1' : '0'); };
       q('#sTest').onclick = () => {
         saveName(el); setPref('rate', sr.value); voice.stop(); voice.unlock();
         voice.say(`Hallo${myName() ? ' ' + myName() : ''}, ich bin Merki. So klinge ich, wenn wir zusammen lernen.`);
@@ -5134,7 +5266,10 @@ function settingsSheet() {
     const showStatus = () => { const x = q('#sStatus'); if (x) x.textContent = [usage, ttsNote, voicesNote].filter(Boolean).join(' '); };
     if (server) api('/api/status').then(r => r.json()).then(s => {
       const eur = v => v.toFixed(2).replace('.', ',');
-      usage = `KI heute: ${eur(s.spentUsd)} $ von ${eur(s.budgetUsd)} $ Tageslimit (${s.calls} Anfragen).`;
+      // Mit Monatsbudget: was heute höchstens geht, ist der faire Anteil am Rest des Monats
+      usage = !s.monthBudgetUsd ? `KI heute: ${eur(s.spentUsd)} $ von ${eur(s.budgetUsd)} $ Tageslimit (${s.calls} Anfragen).`
+        : (s.monthUsd || 0) >= s.monthBudgetUsd ? `KI diesen Monat: ${eur(s.monthUsd)} $ von ${eur(s.monthBudgetUsd)} $, aufgebraucht. Am 1. geht es weiter.`
+        : `KI diesen Monat: ${eur(s.monthUsd || 0)} $ von ${eur(s.monthBudgetUsd)} $. Heute: ${eur(s.spentUsd)} $ von ${eur(s.budgetUsd)} $ (${s.calls} Anfragen). Ungenutzte Tage bleiben für später übrig.`;
       const kinds = (Array.isArray(s.byKind) ? s.byKind : []).filter(k => k.usd >= 0.005);
       if (kinds.length) usage += ` Davon: ${kinds.map(k => `${KIND_LABEL[k.kind] || 'Sonstiges'} ${eur(k.usd)} $`).join(', ')}.`;
       if (s.tts) usage += ` Echte Stimme heute: ${s.tts.chars.toLocaleString('de-DE')} von ${s.tts.limit.toLocaleString('de-DE')} Zeichen.`;

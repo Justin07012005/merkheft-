@@ -55,3 +55,29 @@ export function costUsd(model: string, u: UsageSum, factor = 1): number {
 export function berlinDay(): string {
   return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(new Date());
 }
+
+/** Ein Tag darf bis zum Dreifachen seines fairen Anteils am Monatsbudget nutzen. Ungenutzte Tage bleiben für später übrig. */
+export const SHARE_FACTOR = 3;
+
+export interface BudgetPlan {
+  /** So viel darf heute insgesamt ausgegeben werden */
+  limit: number;
+  /** Diesen Monat schon ausgegeben (mit heute) */
+  month: number;
+  /** Was gerade voll ist: '' (nichts), 'tag' oder 'monat' */
+  full: '' | 'tag' | 'monat';
+}
+
+/**
+ * Tageslimit und, falls ein Monatsbudget gesetzt ist, der faire Anteil für heute:
+ * was im Monat noch übrig ist, geteilt durch die restlichen Tage (mit heute), mal SHARE_FACTOR.
+ */
+export function budgetPlan(day: string, todayUsd: number, beforeUsd: number, daily: number, monthLimit: number): BudgetPlan {
+  const month = beforeUsd + todayUsd;
+  if (!(monthLimit > 0)) return { limit: daily, month, full: todayUsd >= daily ? 'tag' : '' };
+  const [y, m, d] = day.split('-').map(Number);
+  const daysLeft = new Date(Date.UTC(y, m, 0)).getUTCDate() - d + 1;
+  const left = Math.max(0, monthLimit - beforeUsd);
+  const limit = Math.min(daily, left, (left / daysLeft) * SHARE_FACTOR);
+  return { limit, month, full: month >= monthLimit ? 'monat' : todayUsd >= limit ? 'tag' : '' };
+}
