@@ -7,6 +7,8 @@
  *              und reicht die Antwort als Stream an die App durch
  * - /api/sem/missing|add|search  Suche nach Bedeutung in langen Dateien (Workers AI, kostenlos)
  * - /api/batch Zusammenfassungen großer Dateien als Sammelauftrag (halber Preis, kommt später)
+ * - /api/rec   nimmt Vorlesungs-Aufnahmen an (App oder Kurzbefehl aus Sprachmemos) und schreibt sie
+ *              mit Workers AI mit (kostenlose Tagesmenge). /api/rec/list|take|free|done|delete für die App.
  * - /api/tts   macht aus einem Satz echte Sprache (Google oder ElevenLabs), wenn dafür
  *              ein Schlüssel hinterlegt ist. Sonst spricht Merki mit der Gerätestimme.
  *
@@ -59,6 +61,8 @@ export interface Env {
   AI?: Ai;
   /** Nur für lokale Tests: diese Adresse liefert die Vektoren statt Workers AI (nie in wrangler.toml) */
   EMBED_TEST_URL?: string;
+  /** Nur für lokale Tests: diese Adresse schreibt Aufnahmen mit statt Workers AI (nie in wrangler.toml) */
+  WHISPER_TEST_URL?: string;
 }
 
 const DEFAULT_MODEL = 'claude-sonnet-5-5';
@@ -222,7 +226,7 @@ interface AiRequest {
   tail?: boolean;
 }
 
-const PURPOSES = new Set(['chat', 'ask', 'voice', 'file', 'order', 'learn', 'ink', 'vnote', 'note']);
+const PURPOSES = new Set(['chat', 'ask', 'voice', 'file', 'order', 'learn', 'ink', 'vnote', 'note', 'lecture']);
 
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
@@ -565,6 +569,73 @@ async function postBatchAction(action: string, request: Request, env: Env): Prom
   if (action === 'done') await s.batchDone(id);
   else await s.batchCancel(id);
   return json({ ok: true });
+}
+
+// ---------- Vorlesungen ----------
+
+const MAX_REC_BYTES = 100 * 1024 * 1024;
+const REC_ID_RE = /^r-[a-f0-9]{16}$/;
+
+function recOn(env: Env): boolean {
+  return !!env.AI || !!env.WHISPER_TEST_URL;
+}
+
+/** Aufnahme als Datenstrom an das Durable Object weiterreichen (der Worker selbst hat zu wenig Rechenzeit dafür). */
+async function postRec(request: Request, url: URL, env: Env): Promise<Response> {
+  if (!recOn(env)) return fail(503, 'rec_off', 'Das Mitschreiben von Aufnahmen geht gerade nicht.');
+  if (Number(request.headers.get('content-length') || 0) > MAX_REC_BYTES) {
+    return fail(413, 'rec_big', 'Die Aufnahme ist zu groß (höchstens 100 MB, das sind über 3 Stunden).');
+  }
+  if (!request.body) return fail(400, 'rec_empty', 'Es kam keine Aufnahme an.');
+  if (/^multipart\//i.test(request.headers.get('content-type') || '')) {
+    return fail(400, 'rec_form', 'Bitte im Kurzbefehl bei „Anfragetext“ die Option „Datei“ wählen (nicht „Formular“).');
+  }
+  const q = new URLSearchParams();
+  const pid = url.searchParams.get('pid');
+  if (pid) q.set('pid', pid.slice(0, 100));
+  // Name der Aufnahme: von der App, sonst aus dem Dateinamen, falls der Kurzbefehl ihn mitschickt
+  let name = url.searchParams.get('name') || '';
+  const disp = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(request.headers.get('content-disposition') || '');
+  if (!name && disp) {
+    try {
+      name = decodeURIComponent(disp[1]);
+    } catch {
+      name = disp[1];
+    }
+  }
+  if (name) q.set('name', name.slice(0, 200));
+  return await store(env).fetch(
+    new Request('https://store/rec?' + q.toString(), {
+      method: 'POST',
+      body: request.body,
+      headers: { 'content-type': request.headers.get('content-type') || 'application/octet-stream' },
+    }),
+  );
+}
+
+async function postRecAction(action: string, request: Request, env: Env): Promise<Response> {
+  const s = store(env);
+  if (action === 'list') return json({ items: await s.recList() });
+  const input = await readJson<{ id?: unknown }>(request);
+  const id = typeof input?.id === 'string' && REC_ID_RE.test(input.id) ? input.id : '';
+  if (!id) return fail(400, 'bad_request', 'Ungültige Anfrage.');
+  if (action === 'take') return json(await s.recTake(id));
+  if (action === 'free') await s.recFree(id);
+  else await s.recDrop(id);
+  return json({ ok: true });
+}
+
+/** Der Kurzbefehl zeigt die Antwort als Mitteilung: darum nur der Satz, kein JSON. */
+async function asPlainText(res: Response): Promise<Response> {
+  let msg = '';
+  try {
+    const data = (await res.json()) as { msg?: string; error?: { msg?: string } };
+    msg = data.error?.msg || data.msg || '';
+  } catch {
+    msg = '';
+  }
+  if (!msg) msg = res.ok ? 'Merki hat die Aufnahme.' : 'Das hat nicht geklappt. Bitte nochmal versuchen.';
+  return new Response(msg, { status: res.status, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' } });
 }
 
 // ---------- Suche nach Bedeutung ----------
@@ -931,43 +1002,54 @@ async function postPush(action: string, request: Request, url: URL, env: Env): P
 
 // ---------- Weiche ----------
 
+async function route(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  const url = new URL(request.url);
+  if (url.pathname === '/app.webmanifest') return await appManifest(url, env);
+  if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
+
+  if (url.pathname === '/api/health') {
+    return json({ ok: true, key: !!env.ANTHROPIC_API_KEY, code: !!env.APP_CODE && env.APP_CODE.length >= MIN_CODE_LENGTH, tts: !!ttsProvider(env), sem: semOn(env), rec: recOn(env) });
+  }
+
+  // Kurzbefehl aus Sprachmemos: Antwort als einfacher Satz, auch bei falschem Code
+  if (url.pathname === '/api/rec' && url.searchParams.has('kurzbefehl')) {
+    url.searchParams.delete('kurzbefehl');
+    return await asPlainText(await route(new Request(url.toString(), request), env, ctx));
+  }
+
+  // Nur Anfragen von der eigenen Seite (kein Zugriff von fremden Webseiten)
+  const origin = request.headers.get('origin');
+  if (origin && origin !== url.origin) return fail(403, 'origin', 'Nicht erlaubt.');
+
+  const denied = await checkAccess(request, env);
+  if (denied) return denied;
+
+  try {
+    if (url.pathname === '/api/login' && request.method === 'POST') return json({ ok: true });
+    if (url.pathname === '/api/status' && request.method === 'GET') return await getStatus(env);
+    if (url.pathname === '/api/data' && request.method === 'GET') return await getData(url, env);
+    if (url.pathname === '/api/data' && request.method === 'POST') return await postData(request, env);
+    if (url.pathname === '/api/ai' && request.method === 'POST') return await postAi(request, env, ctx);
+    if (url.pathname === '/api/batch' && request.method === 'POST') return await postBatch(request, env);
+    const batch = /^\/api\/batch\/(check|done|cancel)$/.exec(url.pathname);
+    if (batch && request.method === 'POST') return await postBatchAction(batch[1], request, env);
+    const sem = /^\/api\/sem\/(missing|add|search)$/.exec(url.pathname);
+    if (sem && request.method === 'POST') return await postSem(sem[1], request, env);
+    if (url.pathname === '/api/rec' && request.method === 'POST') return await postRec(request, url, env);
+    const rec = /^\/api\/rec\/(list|take|free|done|delete)$/.exec(url.pathname);
+    if (rec && request.method === 'POST') return await postRecAction(rec[1], request, env);
+    if (url.pathname === '/api/tts' && request.method === 'POST') return await postTts(request, env);
+    if (url.pathname === '/api/tts/voices' && request.method === 'GET') return await getVoices(env);
+    if (url.pathname === '/api/push/key' && request.method === 'GET') return json({ key: await store(env).pushKey() });
+    const push = /^\/api\/push\/(subscribe|unsubscribe|status|test)$/.exec(url.pathname);
+    if (push && request.method === 'POST') return await postPush(push[1], request, url, env);
+  } catch (e) {
+    console.error('server error', e instanceof Error ? e.message : e);
+    return fail(500, 'server', 'Unerwarteter Fehler auf dem Server.');
+  }
+  return fail(404, 'not_found', 'Unbekannte Adresse.');
+}
+
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const url = new URL(request.url);
-    if (url.pathname === '/app.webmanifest') return await appManifest(url, env);
-    if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
-
-    if (url.pathname === '/api/health') {
-      return json({ ok: true, key: !!env.ANTHROPIC_API_KEY, code: !!env.APP_CODE && env.APP_CODE.length >= MIN_CODE_LENGTH, tts: !!ttsProvider(env), sem: semOn(env) });
-    }
-
-    // Nur Anfragen von der eigenen Seite (kein Zugriff von fremden Webseiten)
-    const origin = request.headers.get('origin');
-    if (origin && origin !== url.origin) return fail(403, 'origin', 'Nicht erlaubt.');
-
-    const denied = await checkAccess(request, env);
-    if (denied) return denied;
-
-    try {
-      if (url.pathname === '/api/login' && request.method === 'POST') return json({ ok: true });
-      if (url.pathname === '/api/status' && request.method === 'GET') return await getStatus(env);
-      if (url.pathname === '/api/data' && request.method === 'GET') return await getData(url, env);
-      if (url.pathname === '/api/data' && request.method === 'POST') return await postData(request, env);
-      if (url.pathname === '/api/ai' && request.method === 'POST') return await postAi(request, env, ctx);
-      if (url.pathname === '/api/batch' && request.method === 'POST') return await postBatch(request, env);
-      const batch = /^\/api\/batch\/(check|done|cancel)$/.exec(url.pathname);
-      if (batch && request.method === 'POST') return await postBatchAction(batch[1], request, env);
-      const sem = /^\/api\/sem\/(missing|add|search)$/.exec(url.pathname);
-      if (sem && request.method === 'POST') return await postSem(sem[1], request, env);
-      if (url.pathname === '/api/tts' && request.method === 'POST') return await postTts(request, env);
-      if (url.pathname === '/api/tts/voices' && request.method === 'GET') return await getVoices(env);
-      if (url.pathname === '/api/push/key' && request.method === 'GET') return json({ key: await store(env).pushKey() });
-      const push = /^\/api\/push\/(subscribe|unsubscribe|status|test)$/.exec(url.pathname);
-      if (push && request.method === 'POST') return await postPush(push[1], request, url, env);
-    } catch (e) {
-      console.error('server error', e instanceof Error ? e.message : e);
-      return fail(500, 'server', 'Unerwarteter Fehler auf dem Server.');
-    }
-    return fail(404, 'not_found', 'Unbekannte Adresse.');
-  },
+  fetch: route,
 } satisfies ExportedHandler<Env>;

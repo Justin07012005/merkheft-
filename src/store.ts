@@ -20,6 +20,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { makeVapidKeys, pushEndpointOk, sendPush, unb64url, type VapidKeys } from './push';
 import { berlinDay, costUsd, emptyUsage, takeUsage } from './cost';
 import { embed, pack, similarity, unit, SEM_KEEP_DAYS, type SemEnv } from './sem';
+import { AudioError, QUOTA_RE, split, stamp, transcribe, withStamps, type Source, type WhisperEnv } from './audio';
 
 export interface DocRow {
   id: string;
@@ -38,7 +39,7 @@ const PAGE_CHARS = 1_000_000;
 /** So viele falsche Codes pro IP und Stunde, danach ist für diese IP Pause. */
 export const MAX_FAILS_PER_HOUR = 30;
 
-export interface StoreEnv extends SemEnv {
+export interface StoreEnv extends SemEnv, WhisperEnv {
   /** Nur für lokale Tests: diese Adresse darf als Push-Dienst dienen */
   PUSH_TEST_ORIGIN?: string;
   /** Für Sammelaufträge: nachfragen und Ergebnisse abholen */
@@ -94,6 +95,49 @@ const BATCH_KEEP_MS = 7 * 24 * 3600_000;
 function batchEvery(age: number): number {
   return age < 15 * 60_000 ? 60_000 : age < 2 * 3600_000 ? 3 * 60_000 : 10 * 60_000;
 }
+
+// ---------- Vorlesungen ----------
+
+/** Was die App über eine Aufnahme wissen will */
+export interface RecItem {
+  id: string;
+  name: string;
+  /** Projekt, aus dem sie hochgeladen wurde ('' beim Teilen aus Sprachmemos: Merki sucht das Fach aus) */
+  pid: string;
+  /** listen: wird mitgeschrieben; text: Mitschrift fertig, Merki schreibt die Notiz; failed: hat nicht geklappt */
+  state: 'listen' | 'text' | 'failed';
+  secs: number;
+  doneSecs: number;
+  created: number;
+  err: string;
+  /** Pause, weil die kostenlose Tagesmenge der Spracherkennung aufgebraucht ist */
+  paused: boolean;
+}
+
+type RecRow = {
+  id: string;
+  name: string;
+  pid: string;
+  size: number;
+  created: number;
+  state: string;
+  secs: number;
+  done_secs: number;
+  next: number;
+  tries: number;
+  lease: number;
+  err: string;
+  text: string;
+};
+
+/** Größte Aufnahme (Cloudflare nimmt höchstens 100 MB pro Anfrage, das sind über 3 Stunden Sprachmemos) */
+export const MAX_REC_BYTES = 100 * 1024 * 1024;
+/** Die Aufnahme liegt in Zeilen zu 1 MB im Speicher (eine Zeile darf höchstens 2 MB haben) */
+const REC_ROW = 1 << 20;
+/** So lange arbeitet ein Alarm am Stück, dann geht es mit dem nächsten weiter */
+const REC_SLICE_MS = 60_000;
+/** Mitschriften, die keine App abholt, und gescheiterte Aufnahmen so lange aufheben */
+const REC_KEEP_MS = 30 * 24 * 3600_000;
 
 export interface PushSubInput {
   endpoint: string;
@@ -170,6 +214,23 @@ export class Store extends DurableObject<StoreEnv> {
         results TEXT
       );
       CREATE TABLE IF NOT EXISTS sem (h TEXT PRIMARY KEY, v BLOB NOT NULL, scale REAL NOT NULL, at INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS recs (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        pid TEXT NOT NULL DEFAULT '',
+        size INTEGER NOT NULL,
+        created INTEGER NOT NULL,
+        state TEXT NOT NULL,
+        secs REAL NOT NULL DEFAULT 0,
+        done_secs REAL NOT NULL DEFAULT 0,
+        next INTEGER NOT NULL DEFAULT 0,
+        tries INTEGER NOT NULL DEFAULT 0,
+        lease INTEGER NOT NULL DEFAULT 0,
+        err TEXT NOT NULL DEFAULT '',
+        text TEXT NOT NULL DEFAULT ''
+      );
+      CREATE TABLE IF NOT EXISTS rec_bytes (id TEXT NOT NULL, i INTEGER NOT NULL, data BLOB NOT NULL, PRIMARY KEY (id, i));
+      CREATE TABLE IF NOT EXISTS rec_pieces (id TEXT NOT NULL, i INTEGER NOT NULL, start REAL NOT NULL, secs REAL NOT NULL, data BLOB, text TEXT, PRIMARY KEY (id, i));
     `);
   }
 
@@ -366,6 +427,229 @@ export class Store extends DurableObject<StoreEnv> {
       )
       .toArray()[0];
     return row ? row.n : 1;
+  }
+
+  // ---------- Vorlesungen ----------
+
+  /** Nimmt eine Aufnahme an (App oder Kurzbefehl aus Sprachmemos), teilt sie in Stücke und stellt den Alarm zum Mitschreiben. */
+  async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url);
+    if (url.pathname !== '/rec' || request.method !== 'POST') return Response.json({ error: { code: 'not_found', msg: 'Unbekannte Adresse.' } }, { status: 404 });
+    const fail = (status: number, code: string, msg: string) => Response.json({ error: { code, msg } }, { status });
+    if (/^multipart\//i.test(request.headers.get('content-type') || '')) {
+      return fail(400, 'rec_form', 'Bitte im Kurzbefehl bei „Anfragetext“ die Option „Datei“ wählen (nicht „Formular“).');
+    }
+    if (!request.body) return fail(400, 'rec_empty', 'Es kam keine Aufnahme an.');
+    const id = 'r-' + crypto.randomUUID().replace(/-/g, '').slice(0, 16);
+    const pidRaw = url.searchParams.get('pid') || '';
+    const pid = /^p-[A-Za-z0-9_-]{1,80}$/.test(pidRaw) ? pidRaw : '';
+    const when = new Intl.DateTimeFormat('de-DE', { timeZone: 'Europe/Berlin', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date());
+    const name = (url.searchParams.get('name') || '').replace(/\.[a-z0-9]{2,4}$/i, '').trim().slice(0, 120) || `Aufnahme vom ${when}`;
+    // In Zeilen zu 1 MB speichern, während die Aufnahme ankommt
+    const reader = request.body.getReader();
+    const buf = new Uint8Array(REC_ROW);
+    let fill = 0, rows = 0, size = 0;
+    const drop = () => this.sql.exec(`DELETE FROM rec_bytes WHERE id = ?`, id);
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.length;
+        if (size > MAX_REC_BYTES) {
+          reader.cancel().catch(() => {});
+          drop();
+          return fail(413, 'rec_big', 'Die Aufnahme ist zu groß (höchstens 100 MB, das sind über 3 Stunden).');
+        }
+        for (let o = 0; o < value.length; ) {
+          const n = Math.min(REC_ROW - fill, value.length - o);
+          buf.set(value.subarray(o, o + n), fill);
+          fill += n;
+          o += n;
+          if (fill === REC_ROW) {
+            this.sql.exec(`INSERT INTO rec_bytes (id, i, data) VALUES (?, ?, ?)`, id, rows++, buf.slice().buffer);
+            fill = 0;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('rec upload broken', e instanceof Error ? e.message : e);
+      drop();
+      return fail(400, 'rec_broken', 'Die Aufnahme kam nicht ganz an. Versuch es bitte nochmal.');
+    }
+    if (fill) this.sql.exec(`INSERT INTO rec_bytes (id, i, data) VALUES (?, ?, ?)`, id, rows++, buf.slice(0, fill).buffer);
+    if (!size) return fail(400, 'rec_empty', 'Es kam keine Aufnahme an.');
+
+    // In Stücke teilen, die die Spracherkennung einzeln lesen kann. Danach braucht es die ganze Datei nicht mehr.
+    let cache: { i: number; b: Uint8Array } | null = null;
+    const row = (i: number) => {
+      if (!cache || cache.i !== i) {
+        const r = this.sql.exec<{ data: ArrayBuffer }>(`SELECT data FROM rec_bytes WHERE id = ? AND i = ?`, id, i).toArray()[0];
+        cache = { i, b: new Uint8Array(r ? r.data : new ArrayBuffer(0)) };
+      }
+      return cache.b;
+    };
+    const src: Source = {
+      size,
+      read(off, len) {
+        len = Math.max(0, Math.min(len, size - off));
+        const out = new Uint8Array(len);
+        for (let o = 0; o < len; ) {
+          const b = row(Math.floor((off + o) / REC_ROW)), at = (off + o) % REC_ROW, n = Math.min(len - o, b.length - at);
+          if (n <= 0) break;
+          out.set(b.subarray(at, at + n), o);
+          o += n;
+        }
+        return out;
+      },
+    };
+    let n = 0, secs = 0;
+    try {
+      secs = split(src, (p) => this.sql.exec(`INSERT INTO rec_pieces (id, i, start, secs, data) VALUES (?, ?, ?, ?, ?)`, id, n++, p.start, p.secs, p.data.slice().buffer));
+    } catch (e) {
+      drop();
+      this.sql.exec(`DELETE FROM rec_pieces WHERE id = ?`, id);
+      if (e instanceof AudioError) return fail(400, 'rec_format', e.message);
+      console.error('rec split error', e instanceof Error ? e.message : e);
+      return fail(400, 'rec_format', 'Diese Aufnahme kann Merki nicht lesen.');
+    }
+    drop();
+    const now = Date.now();
+    this.sql.exec(`INSERT INTO recs (id, name, pid, size, created, state, secs, next) VALUES (?, ?, ?, ?, ?, 'listen', ?, ?)`, id, name, pid, size, now, secs, now);
+    await this.schedule();
+    const mins = Math.max(1, Math.round(secs / 60));
+    return Response.json({ id, name, secs, pieces: n, msg: `Merki hat die Aufnahme (${mins} Min.) und schreibt sie jetzt mit.` });
+  }
+
+  /** Aufnahmen, um die sich die App noch kümmern muss. */
+  recList(): RecItem[] {
+    const now = Date.now();
+    return this.sql
+      .exec<RecRow>(`SELECT id, name, pid, size, created, state, secs, done_secs, next, tries, lease, err, '' AS text FROM recs WHERE state != 'done' ORDER BY created`)
+      .toArray()
+      .map((r) => ({
+        id: r.id,
+        name: r.name,
+        pid: r.pid,
+        state: r.state as RecItem['state'],
+        secs: Math.round(r.secs),
+        doneSecs: Math.round(r.done_secs),
+        created: r.created,
+        err: r.err === 'quota' ? '' : r.err,
+        paused: r.state === 'listen' && r.err === 'quota' && r.next > now,
+      }));
+  }
+
+  /** Mitschrift abholen, um daraus die Notiz zu schreiben. Immer nur ein Gerät auf einmal (es hat dann 10 Minuten Zeit). */
+  recTake(id: string): { state: 'ready'; text: string; name: string; pid: string; secs: number; created: number } | { state: 'busy' | 'gone' | 'listen' } {
+    const r = this.sql.exec<RecRow>(`SELECT * FROM recs WHERE id = ?`, id).toArray()[0];
+    if (!r || r.state === 'done' || r.state === 'failed') return { state: 'gone' };
+    if (r.state !== 'text') return { state: 'listen' };
+    const now = Date.now();
+    if (r.lease > now) return { state: 'busy' };
+    this.sql.exec(`UPDATE recs SET lease = ? WHERE id = ?`, now + BATCH_LEASE_MS, id);
+    return { state: 'ready', text: r.text, name: r.name, pid: r.pid, secs: Math.round(r.secs), created: r.created };
+  }
+
+  /** Das Schreiben der Notiz hat nicht geklappt: gleich wieder freigeben, damit es nochmal versucht werden kann. */
+  recFree(id: string): void {
+    this.sql.exec(`UPDATE recs SET lease = 0 WHERE id = ?`, id);
+  }
+
+  /** Die Notiz ist gespeichert (oder sie will die Aufnahme nicht mehr): alles dazu löschen. */
+  async recDrop(id: string): Promise<void> {
+    this.sql.exec(`DELETE FROM recs WHERE id = ?`, id);
+    this.sql.exec(`DELETE FROM rec_pieces WHERE id = ?`, id);
+    this.sql.exec(`DELETE FROM rec_bytes WHERE id = ?`, id);
+    await this.schedule();
+  }
+
+  /** Fachbegriffe für die Spracherkennung: kurze Titel ihrer Notizen (aus dem Fach, sonst aus allen). */
+  private recTerms(pid: string): string {
+    const rows = this.sql
+      .exec<{ t: string | null }>(
+        `SELECT json_extract(body, '$.title') AS t FROM docs WHERE id LIKE 'n-%' AND deleted = 0 AND (? = '' OR json_extract(body, '$.projectId') = ?) ORDER BY rev DESC LIMIT 120`,
+        pid,
+        pid,
+      )
+      .toArray();
+    const seen = new Set<string>();
+    let out = '';
+    for (const r of rows) {
+      const t = String(r.t || '').replace(/\s+/g, ' ').trim();
+      if (!t || t.length > 40 || seen.has(t.toLowerCase())) continue;
+      seen.add(t.toLowerCase());
+      if (out.length + t.length > 300) break;
+      out += (out ? ', ' : '') + t;
+    }
+    return out;
+  }
+
+  /** Mitschreiben: Stück für Stück, bis die Zeit für diesen Alarm um ist. */
+  private async recWork(until: number): Promise<void> {
+    const now = Date.now();
+    for (const r of this.sql.exec<RecRow>(`SELECT * FROM recs WHERE state = 'listen' AND next <= ? ORDER BY created`, now).toArray()) {
+      const terms = this.recTerms(r.pid);
+      while (Date.now() < until) {
+        // Inzwischen verworfen (während die Spracherkennung lief): nicht weitermachen, keine Mitteilung
+        if (this.sql.exec<{ state: string }>(`SELECT state FROM recs WHERE id = ?`, r.id).toArray()[0]?.state !== 'listen') break;
+        const p = this.sql.exec<{ i: number; start: number; secs: number; data: ArrayBuffer | null }>(
+          `SELECT i, start, secs, data FROM rec_pieces WHERE id = ? AND text IS NULL ORDER BY i LIMIT 1`,
+          r.id,
+        ).toArray()[0];
+        if (!p) {
+          await this.recFinish(r);
+          break;
+        }
+        const prev = this.sql.exec<{ text: string | null }>(`SELECT text FROM rec_pieces WHERE id = ? AND i = ?`, r.id, p.i - 1).toArray()[0];
+        const tail = String(prev?.text || '').replace(/\[[\d:]+\]\s*/g, '').slice(-250);
+        const prompt = [terms ? `Vorlesung an der Uni. Fachbegriffe: ${terms}.` : 'Vorlesung an der Uni.', tail].filter(Boolean).join(' ');
+        try {
+          const heard = await transcribe(this.env, new Uint8Array(p.data || new ArrayBuffer(0)), prompt);
+          const text = withStamps(heard, p.start) || `[${stamp(p.start)}] (hier ist nichts zu verstehen)`;
+          this.sql.exec(`UPDATE rec_pieces SET text = ?, data = NULL WHERE id = ? AND i = ?`, text, r.id, p.i);
+          this.sql.exec(`UPDATE recs SET done_secs = MIN(secs, done_secs + ?), tries = 0, err = '' WHERE id = ?`, p.secs, r.id);
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          console.warn('whisper error', msg);
+          // Kostenlose Tagesmenge von Workers AI aufgebraucht: morgen (nach Mitternacht UTC) von selbst weiter
+          if (QUOTA_RE.test(msg)) {
+            const tomorrow = Math.ceil((Date.now() + 1) / 86_400_000) * 86_400_000 + 5 * 60_000;
+            this.sql.exec(`UPDATE recs SET next = ?, err = 'quota' WHERE id = ?`, tomorrow, r.id);
+            return;
+          }
+          const tries = this.sql.exec<{ tries: number }>(`UPDATE recs SET tries = tries + 1 WHERE id = ? RETURNING tries`, r.id).toArray()[0]?.tries ?? 1;
+          if (tries < 4) {
+            this.sql.exec(`UPDATE recs SET next = ? WHERE id = ?`, Date.now() + tries * 60_000, r.id);
+            break;
+          }
+          // Viermal nicht geklappt: Ist es das erste Stück, liest die Spracherkennung die Aufnahme gar nicht. Sonst das Stück überspringen.
+          if (p.i === 0) {
+            this.sql.exec(`UPDATE recs SET state = 'failed', err = ? WHERE id = ?`, 'Die Spracherkennung konnte die Aufnahme nicht lesen.', r.id);
+            this.sql.exec(`DELETE FROM rec_pieces WHERE id = ?`, r.id);
+            break;
+          }
+          this.sql.exec(`UPDATE rec_pieces SET text = ?, data = NULL WHERE id = ? AND i = ?`, `[${stamp(p.start)}] (Dieses Stück konnte die Spracherkennung nicht lesen.)`, r.id, p.i);
+          this.sql.exec(`UPDATE recs SET done_secs = MIN(secs, done_secs + ?), tries = 0 WHERE id = ?`, p.secs, r.id);
+        }
+      }
+    }
+  }
+
+  /** Alle Stücke mitgeschrieben: Mitschrift zusammensetzen und Bescheid geben. */
+  private async recFinish(r: RecRow): Promise<void> {
+    const text = this.sql
+      .exec<{ text: string | null }>(`SELECT text FROM rec_pieces WHERE id = ? ORDER BY i`, r.id)
+      .toArray()
+      .map((x) => x.text || '')
+      .filter(Boolean)
+      .join('\n');
+    this.sql.exec(`UPDATE recs SET state = 'text', text = ?, done_secs = secs, err = '' WHERE id = ?`, text, r.id);
+    this.sql.exec(`DELETE FROM rec_pieces WHERE id = ?`, r.id);
+    await this.notifyAll({
+      title: 'Mitschrift fertig',
+      body: `„${r.name}“ ist mitgeschrieben. Tippe hier, dann schreibt Merki die Notiz.`,
+      tag: 'merkheft-rec-' + r.id,
+    });
   }
 
   // ---------- Sammelaufträge ----------
@@ -583,6 +867,8 @@ export class Store extends DurableObject<StoreEnv> {
       if (now - row.checked >= batchEvery(now - row.created) - 5000) await this.batchPoll(row);
     }
     this.sql.exec(`DELETE FROM batches WHERE state != 'running' AND created < ?`, now - BATCH_KEEP_MS);
+    await this.recWork(now + REC_SLICE_MS);
+    for (const r of this.sql.exec<{ id: string }>(`SELECT id FROM recs WHERE state != 'listen' AND created < ?`, now - REC_KEEP_MS).toArray()) await this.recDrop(r.id);
     await this.schedule();
   }
 
@@ -678,8 +964,13 @@ export class Store extends DurableObject<StoreEnv> {
     for (const row of this.sql.exec<BatchRow>(`SELECT * FROM batches WHERE state = 'running'`).toArray()) {
       next = Math.min(next, Math.max(row.checked, row.created) + batchEvery(now - row.created));
     }
+    const rec = this.sql.exec<{ n: number | null }>(`SELECT MIN(next) AS n FROM recs WHERE state = 'listen'`).toArray()[0];
+    // Mitschreiben geht gleich weiter (eine Sekunde Pause zwischen den Alarmen)
+    if (rec && rec.n !== null) next = Math.min(next, Math.max(rec.n, now + 1000));
+    // Alte Mitschriften aufräumen
+    if (this.sql.exec<{ n: number }>(`SELECT COUNT(*) AS n FROM recs WHERE state != 'listen'`).toArray()[0]?.n) next = Math.min(next, now + 24 * 3600_000);
     if (next === Infinity) await this.ctx.storage.deleteAlarm();
-    else await this.ctx.storage.setAlarm(Math.max(next, now + 5000));
+    else await this.ctx.storage.setAlarm(Math.max(next, now + (rec && rec.n !== null && rec.n <= now + 1000 ? 1000 : 5000)));
   }
 }
 

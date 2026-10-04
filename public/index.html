@@ -177,6 +177,20 @@ nav.tabs button[aria-selected="true"] svg{background:var(--marker);color:var(--m
 .mmd .muted{font-size:13px}
 .msg-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .readbtn.on{background:var(--marker);color:var(--marker-ink);border-color:transparent}
+.acts .readbtn.on{border-radius:6px}
+.recs{display:grid;gap:10px;margin:0 0 12px}
+.rec{background:var(--sheet);border:1px solid var(--line);border-radius:14px;padding:10px 12px;display:grid;gap:8px;min-width:0}
+.rec .rtop{display:flex;align-items:center;gap:8px;min-width:0}
+.rec .rtop>svg{width:18px;height:18px;flex:none;color:var(--ink-soft)}
+.rec .rtop b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rec .rtop .iconbtn.plain{width:32px;height:32px}
+.rec p{margin:0;font-size:14px;color:var(--ink-soft);display:flex;gap:8px;align-items:center}
+.rec .btn{justify-self:start}
+.lec{margin:12px 0}
+.steps{margin:8px 0;padding-left:22px;display:grid;gap:8px;font-size:15px}
+.steps li{padding-left:2px}
+.steps code{background:var(--side);border-radius:5px;padding:1px 5px;font-size:13.5px;overflow-wrap:anywhere}
+.copyrow{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
 .notebtn{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:none;color:var(--ink-soft);border-radius:999px;padding:5px 11px;font-size:13px;line-height:1.2;max-width:100%;overflow-wrap:anywhere;text-align:left}
 .notebtn svg{width:14px;height:14px;flex:none}
 .notebtn:disabled{opacity:.7}
@@ -252,7 +266,8 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .spoken b{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--ink-soft);letter-spacing:.04em;text-transform:uppercase}
 .spoken b svg{width:13px;height:13px}
 .spoken p{font-style:italic;font-size:15px;line-height:1.45}
-.card .meta{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px;font-size:12px;color:var(--ink-soft);line-height:1.3}
+.card .meta{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:4px 8px;margin-top:6px;font-size:12px;color:var(--ink-soft);line-height:1.3}
+.card .meta .acts{margin-left:auto}
 .card .tag{display:inline-flex;align-items:center;gap:3px;background:var(--marker);color:var(--marker-ink);padding:1px 7px;border-radius:5px;font-weight:700}
 .card .tag svg{width:11px;height:11px}
 .acts{display:flex;gap:2px}
@@ -815,6 +830,7 @@ input[type=range]{accent-color:var(--ink);width:100%}
 
       <!-- NOTIZEN -->
       <section class="view" id="v-notes" hidden>
+        <div class="recs" id="recs" hidden></div>
         <div class="seg nv" role="group" aria-label="Ansicht der Notizen" id="noteView">
           <button type="button" data-v="cards" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>Einzeln</button>
           <button type="button" data-v="all" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 10h7M9 14h7M9 18h4"/></svg>Alles in einer</button>
@@ -823,6 +839,7 @@ input[type=range]{accent-color:var(--ink);width:100%}
           <input id="search" type="search" placeholder="Notizen durchsuchen" aria-label="Notizen durchsuchen">
           <button class="btn" type="button" id="newNote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Neu</button>
           <button class="btn alt" type="button" id="voiceBtn2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Sprachnotiz</button>
+          <button class="btn alt" type="button" id="lectureBtn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg>Vorlesung</button>
         </div>
         <div class="filters" id="filters"></div>
         <div class="cards" id="cards"></div>
@@ -922,6 +939,7 @@ input[type=range]{accent-color:var(--ink);width:100%}
 </div>
 
 <input type="file" id="fileIn" multiple hidden accept=".pdf,.docx,.txt,.md,.csv,.json,.html,.htm,image/*">
+<input type="file" id="recIn" hidden accept="audio/*,.m4a,.mp3,.aac">
 <div id="sheetRoot"></div>
 
 <script>
@@ -972,6 +990,7 @@ const ICON = {
   refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 3v5h5"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 21v-5h-5"/></svg>',
   share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 12v8h14v-8"/></svg>',
   pdf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>',
+  lecture: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg>',
   bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></svg>',
 };
 
@@ -1316,18 +1335,20 @@ async function startServer() {
   $('#settingsBtn').hidden = false;
   try {
     const h = await (await fetch('/api/health', { cache: 'no-store' })).json();
-    serverAi = !!h.key; serverTts = !!h.tts; sem.off = !h.sem;
+    serverAi = !!h.key; serverTts = !!h.tts; sem.off = !h.sem; serverRec = !!h.rec;
   } catch { serverAi = false; sem.off = true; }
+  $('#lectureBtn').hidden = !serverRec;
   connecting = false; renderAiAvailability();
   setSync('Wird abgeglichen …');
   await pull();
   fixOrphans();
   if (Object.keys(SYNC.outbox).length) flush();
   batchSweep(); // fertige Sammelaufträge abholen
+  recSweep(); // Vorlesungen: Mitschriften, aus denen Merki die Notiz schreibt
   if (serverStarted) return;
   serverStarted = true;
   setInterval(() => { if (document.visibilityState === 'visible') pull(); }, 20000);
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { pull().then(batchSweep); renderAll(!busy); } else { if (saveT) saveLocal(true); flush(); } });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { pull().then(batchSweep).then(recSweep); renderAll(!busy); } else { if (saveT) saveLocal(true); flush(); } });
   window.addEventListener('online', () => flush().then(pull));
 }
 
@@ -1387,6 +1408,7 @@ const SCHEMA = {
   scansum: obj({ abschrift: S, zusammenfassung: FSUM, notizen: NOTE_ITEMS }),
   pages: obj({ seiten: arr(obj({ seite: I, text: S })) }),
   sumtop: obj({ ueberblick: S, merke: arr(S), fragen: arr(S) }),
+  lecture: obj({ titel: S, projekt: S, notiz: S }),
 };
 async function imageBlock(blob) {
   const bmp = await createImageBitmap(blob).catch(() => null);
@@ -1728,7 +1750,7 @@ const readBtnHtml = (t, i) => readOut.key === t.content
 function readReset() {
   if (readOut.key === null) return;
   readOut.key = null; readOut.u = null; readOut.gen++;
-  document.querySelectorAll('.readbtn.on').forEach(b => { b.classList.remove('on'); b.setAttribute('aria-pressed', 'false'); b.innerHTML = `${ICON.sound}Vorlesen`; });
+  document.querySelectorAll('.readbtn.on').forEach(b => { b.classList.remove('on'); b.setAttribute('aria-pressed', 'false'); b.innerHTML = b.classList.contains('icon') ? ICON.sound : `${ICON.sound}Vorlesen`; });
 }
 function readStop() { if (readOut.key === null) return; readReset(); try { speechSynthesis.cancel(); } catch {} }
 function readParts(text) {
@@ -1749,7 +1771,7 @@ function readAloud(t, btn) {
   if (!canRead()) { toast('Dieses Gerät kann leider nicht vorlesen.'); return; }
   const parts = readParts(t.content); if (!parts.length) return;
   readOut.key = t.content; const gen = ++readOut.gen;
-  if (btn) { btn.classList.add('on'); btn.setAttribute('aria-pressed', 'true'); btn.innerHTML = `${ICON.stop}Stopp`; }
+  if (btn) { btn.classList.add('on'); btn.setAttribute('aria-pressed', 'true'); btn.innerHTML = btn.classList.contains('icon') ? ICON.stop : `${ICON.stop}Stopp`; }
   let k = 0;
   const next = () => {
     if (gen !== readOut.gen) return;
@@ -2058,8 +2080,9 @@ async function send(text, files = []) {
 }
 
 // ---------- Notizen ----------
-const FILTERS = [['all', 'Alle'], ['voice', 'Sprachnotizen'], ['chat', 'Aus dem Chat'], ['file', 'Aus Dateien'], ['manual', 'Eigene']];
+const FILTERS = [['all', 'Alle'], ['lecture', 'Vorlesungen'], ['voice', 'Sprachnotizen'], ['chat', 'Aus dem Chat'], ['file', 'Aus Dateien'], ['manual', 'Eigene']];
 function renderNotes() {
+  renderRecs();
   const all = pNotes(), allView = ui.noteView === 'all' && all.length > 0;
   $('#noteView').hidden = !all.length;
   $('#noteView').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === (ui.noteView === 'all' ? 'all' : 'cards')));
@@ -2079,16 +2102,20 @@ function renderNotes() {
   if (!list.length) { $('#cards').innerHTML = `<p class="muted" style="grid-column:1/-1">Nichts gefunden.</p>`; return; }
   $('#cards').innerHTML = list.map(n => {
     const ink = inkOf(n), thumb = ink ? inkThumb(ink) : '';
-    const src = n.source === 'voice' ? `<span class="tag">${ICON.mic}Sprachnotiz</span>` : n.source === 'file' ? `<span class="tag">${ICON.file}${esc((n.fileName || 'Datei').slice(0, 24))}</span>` : ink ? `<span class="tag">${ICON.pen}Handschrift</span>` : '';
+    const src = n.source === 'lecture' ? `<span class="tag">${ICON.lecture}Vorlesung${n.secs ? ' · ' + recMin(n.secs) : ''}</span>` : n.source === 'voice' ? `<span class="tag">${ICON.mic}Sprachnotiz</span>` : n.source === 'file' ? `<span class="tag">${ICON.file}${esc((n.fileName || 'Datei').slice(0, 24))}</span>` : ink ? `<span class="tag">${ICON.pen}Handschrift</span>` : '';
     const spoken = n.source === 'voice' && n.raw && n.raw.trim() !== (n.text || '').trim() ? `<div class="spoken"><b>${ICON.mic}Gesprochen</b><p>${esc(n.raw)}</p></div>` : '';
     const read = !ink ? '' : reading.has(n.id) ? `<p class="inkread"><span class="spin"></span>Merki liest deine Handschrift …</p>`
       : n.inkText && n.inkRead === ink.v ? `<p class="inkread">Merki liest: ${esc(n.inkText.length > 160 ? n.inkText.slice(0, 160) + ' …' : n.inkText)}</p>` : '';
     return `<article class="card clickable" data-open="${esc(n.id)}"><h3>${esc(n.title)}</h3>${n.text ? cardMd(n.text, n.id) : ''}${thumb ? `<img class="inkthumb" src="${thumb}" alt="Handschrift">` : ''}${read}${spoken}
       <div class="meta"><span>${src} ${new Date(n.createdAt || Date.now()).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}</span>
-      <span class="acts">${aiReady() ? `<button type="button" data-ask="${esc(n.id)}" aria-label="Merki zu dieser Notiz fragen">${ICON.ask}</button>` : ''}<button type="button" data-edit="${esc(n.id)}" aria-label="Bearbeiten">${ICON.edit}</button><button type="button" data-del="${esc(n.id)}" aria-label="Löschen">${ICON.trash}</button></span></div></article>`;
+      <span class="acts">${canRead() && n.text ? noteReadBtn(n) : ''}${aiReady() ? `<button type="button" data-ask="${esc(n.id)}" aria-label="Merki zu dieser Notiz fragen">${ICON.ask}</button>` : ''}<button type="button" data-edit="${esc(n.id)}" aria-label="Bearbeiten">${ICON.edit}</button><button type="button" data-del="${esc(n.id)}" aria-label="Löschen">${ICON.trash}</button></span></div></article>`;
   }).join('');
   requestAnimationFrame(fitCards);
 }
+// Kleiner Knopf auf jeder Notiz: Die Stimme des Geräts liest sie vor (kostet nichts)
+const noteReadBtn = n => readOut.key === n.text
+  ? `<button type="button" class="readbtn icon on" data-nread="${esc(n.id)}" aria-pressed="true" aria-label="Vorlesen stoppen">${ICON.stop}</button>`
+  : `<button type="button" class="readbtn icon" data-nread="${esc(n.id)}" aria-pressed="false" aria-label="Vorlesen">${ICON.sound}</button>`;
 // Passt eine „lange“ Notiz doch ganz in die Karte (breiter Bildschirm), braucht sie keinen Knopf.
 // Erst alles messen, dann ändern: so rechnet das iPad das Layout nur einmal aus.
 function fitCards() {
@@ -3866,6 +3893,229 @@ function saveFileNotes(p, fileName, notes) {
   return saved;
 }
 
+// ---------- Vorlesungen ----------
+// Aufnahme aus der Vorlesung (Sprachmemos auf dem iPhone): in den Notizen wählen oder mit dem Kurzbefehl „An Merki“
+// direkt aus Sprachmemos teilen. Der Server schreibt sie mit (Workers AI, kostenlos bis etwa 3 Stunden am Tag), auch wenn
+// die App zu ist. Ist die Mitschrift fertig, schreibt Merki beim nächsten Öffnen daraus die Notiz und legt die ganze
+// Mitschrift unter Dateien ab. Immer nur ein Gerät schreibt die Notiz (der Server vergibt sie für 10 Minuten).
+let serverRec = false;
+const rec = { items: [], ups: [], timer: 0, busy: false, writing: new Set(), err: {}, tried: new Set(), chain: Promise.resolve(), html: '' };
+const recMin = s => `${Math.max(1, Math.round((s || 0) / 60))} Min.`;
+const recPost = (what, id) => api('/api/rec/' + what, { method: 'POST', body: JSON.stringify(id ? { id } : {}) });
+async function recSweep() {
+  clearTimeout(rec.timer);
+  if (MODE !== 'server' || !code || !serverRec || rec.busy) return;
+  rec.busy = true;
+  try {
+    const { items } = await (await recPost('list')).json();
+    rec.items = Array.isArray(items) ? items : [];
+  } catch (e) { if (e && e.code !== 'offline') console.warn('Aufnahmen', e); }
+  rec.busy = false;
+  renderRecs();
+  // Mitschrift fertig: Notiz schreiben (schreibt gerade ein anderes Gerät, nach einer Minute nochmal schauen)
+  for (const it of rec.items) {
+    const err = rec.err[it.id];
+    if (it.state === 'text' && aiReady() && !rec.writing.has(it.id) && (!rec.tried.has(it.id) || (err && err.busy && Date.now() - err.at > 60000))) lectureQueue(it);
+  }
+  recPlan();
+}
+// Nachfragen, solange etwas läuft und die App zu sehen ist (sonst beim nächsten Öffnen)
+function recPlan() {
+  clearTimeout(rec.timer);
+  const active = rec.ups.length || rec.writing.size || rec.items.some(x => (x.state === 'listen' && !x.paused) || (x.state === 'text' && rec.err[x.id] && rec.err[x.id].busy));
+  if (active && !document.hidden) rec.timer = setTimeout(recSweep, 8000);
+}
+function recUpload(file) {
+  if (file.size > 100 * 1024 * 1024) { toast('Die Aufnahme ist zu groß (höchstens 100 MB, das sind über 3 Stunden).', 5000); return; }
+  const up = { id: 'u' + uid8(), name: file.name.replace(/\.[a-z0-9]{2,4}$/i, '') || 'Aufnahme', pct: 0, xhr: new XMLHttpRequest() };
+  rec.ups.push(up); renderRecs();
+  // Mit XMLHttpRequest, weil es den Fortschritt beim Hochladen meldet
+  const x = up.xhr;
+  x.open('POST', '/api/rec?' + new URLSearchParams({ pid: ui.pid || '', name: file.name }));
+  x.setRequestHeader('x-merkheft-code', encodeURIComponent(code || ''));
+  x.upload.onprogress = e => { if (e.lengthComputable) { const pct = Math.min(99, Math.floor(e.loaded / e.total * 100)); if (pct !== up.pct) { up.pct = pct; renderRecs(); } } };
+  const end = msg => { rec.ups = rec.ups.filter(u => u !== up); renderRecs(); if (msg) toast(msg, 6000); recSweep(); };
+  x.onload = () => {
+    let j = null; try { j = JSON.parse(x.responseText); } catch {}
+    end(x.status >= 200 && x.status < 300 ? (j && j.msg) || 'Merki hat die Aufnahme und schreibt sie jetzt mit.' : (j && j.error && j.error.msg) || 'Die Aufnahme kam nicht an. Versuch es bitte nochmal.');
+  };
+  x.onerror = () => end('Keine Verbindung. Die Aufnahme kam nicht an.');
+  x.onabort = () => end('');
+  x.send(file);
+}
+function recDiscard(id) {
+  const up = rec.ups.find(u => u.id === id);
+  if (up) { up.xhr.abort(); return; }
+  const it = rec.items.find(x => x.id === id); if (!it) return;
+  confirmSheet('Aufnahme verwerfen?', `Merki schreibt „${it.name}“ dann nicht weiter mit. In Sprachmemos bleibt die Aufnahme.`, 'Verwerfen', async () => {
+    rec.items = rec.items.filter(x => x.id !== id); renderRecs();
+    await recPost('delete', id).catch(() => {});
+    recSweep();
+  });
+}
+function renderRecs() {
+  const box = $('#recs'); if (!box) return;
+  const bar = v => `<div class="progress"><i style="width:${Math.round(Math.max(0, Math.min(1, v)) * 100)}%"></i></div>`;
+  const card = (id, name, line, { extra = '', part = null, del = true } = {}) => `<div class="rec"><div class="rtop">${ICON.lecture}<b>${esc(name)}</b>${del ? `<button type="button" class="iconbtn plain" data-rdel="${esc(id)}" aria-label="Aufnahme verwerfen">${ICON.close}</button>` : ''}</div><p role="status">${line}</p>${part === null ? '' : bar(part)}${extra}</div>`;
+  const html = rec.ups.map(u => card(u.id, u.name, `Wird hochgeladen … ${u.pct} %. Lass die App so lange offen.`, { part: u.pct / 100 }))
+    .concat(rec.items.map(it => {
+      const err = rec.err[it.id];
+      if (it.state === 'failed') return card(it.id, it.name, esc(it.err || 'Das Mitschreiben hat nicht geklappt.'));
+      if (it.state === 'listen') return card(it.id, it.name, it.paused ? 'Die kostenlose Spracherkennung ist für heute aufgebraucht. Morgen früh schreibt Merki von selbst weiter.'
+        : `Merki schreibt mit … ${Math.floor((it.doneSecs || 0) / 60)} von ${recMin(it.secs)}`, { part: it.secs ? it.doneSecs / it.secs : 0 });
+      if (rec.writing.has(it.id)) return card(it.id, it.name, '<span class="spin"></span>Mitschrift fertig. Merki schreibt die Notiz …', { del: false });
+      if (err && err.busy) return card(it.id, it.name, 'Merki schreibt die Notiz gerade auf einem anderen Gerät …', { del: false });
+      if (err) return card(it.id, it.name, esc(err.msg), { extra: `<button class="btn alt" type="button" data-rretry="${esc(it.id)}">${ICON.refresh}Nochmal versuchen</button>` });
+      return card(it.id, it.name, aiReady() ? 'Mitschrift fertig. Merki schreibt gleich die Notiz.' : 'Mitschrift fertig. Die Notiz schreibt Merki, sobald die KI wieder da ist.');
+    })).join('');
+  if (html === rec.html) return; // nichts Neues: nicht neu zeichnen (altes iPad)
+  rec.html = html; box.innerHTML = html; box.hidden = !html;
+}
+// Eine Notiz nach der anderen
+function lectureQueue(it) {
+  rec.tried.add(it.id);
+  rec.chain = rec.chain.then(() => lectureWrite(it)).catch(e => console.warn('Vorlesung', e));
+}
+async function lectureWrite(it) {
+  if (rec.writing.has(it.id) || !aiReady()) return;
+  // Schon gespeichert (zum Beispiel kam „fertig“ nicht beim Server an): nur noch Bescheid geben
+  if (state.notes.some(n => n.recId === it.id)) { await recPost('done', it.id).catch(() => {}); return; }
+  rec.writing.add(it.id); delete rec.err[it.id]; renderRecs();
+  try {
+    const t = await (await recPost('take', it.id)).json();
+    if (t.state === 'busy') { rec.err[it.id] = { busy: true, at: Date.now() }; return; }
+    if (t.state !== 'ready') return;
+    const known = state.projects.find(p => p.id === t.pid) || null, list = sortedProjects();
+    const x = await aiJson(lecturePrompt(t, known, list), { schema: SCHEMA.lecture, maxTokens: 16000, purpose: 'lecture' });
+    const text = String((x && x.notiz) || '').trim();
+    if (!text) throw { code: 'invalid_json' };
+    // Fach: beim Hochladen in der App das offene Projekt, beim Teilen aus Sprachmemos das, das Merki passend findet
+    const want = String((x && x.projekt) || '').trim().toLowerCase();
+    let p = known || list.find(q => q.name.trim().toLowerCase() === want) || proj() || list[0] || null;
+    if (!p) { p = { id: 'p-' + uid8(), name: 'Vorlesungen', desc: '', examDate: '', color: nextColor(), createdAt: Date.now() }; put('project', p, false); ui.pid = p.id; saveUi(); }
+    const n = lectureSave(p, { ...t, id: it.id }, String((x && x.titel) || '').trim().slice(0, 120) || t.name, text);
+    await recPost('done', it.id).catch(() => {});
+    toast(`Die Notiz zur Vorlesung „${n.title}“ ist fertig${p.id !== ui.pid ? ` (im Projekt ${p.name})` : ''}`, 6000);
+  } catch (e) {
+    rec.err[it.id] = { msg: aiError(e) };
+    recPost('free', it.id).catch(() => {});
+  } finally {
+    rec.writing.delete(it.id);
+    renderAll(!busy);
+    recSweep();
+  }
+}
+function lecturePrompt(t, known, list) {
+  const when = new Date(t.created || Date.now()).toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
+  const pick = known ? 'projekt: "" (das Fach steht schon fest).'
+    : list.length ? `projekt: genau einer dieser Namen, zu dem die Vorlesung am besten passt, oder "", wenn keiner passt: ${list.map(p => `„${p.name}“${p.desc ? ' (' + p.desc.slice(0, 80) + ')' : ''}`).join(', ')}.`
+    : 'projekt: "".';
+  return `Unten steht die automatische Mitschrift einer Vorlesung vom ${when} (${recMin(t.secs)}), aufgenommen mit dem Handy. Eine Spracherkennung hat sie geschrieben. Die Zeitangaben [mm:ss] zeigen, wo in der Aufnahme etwas gesagt wurde.${known ? ` Fach: „${known.name}“${known.desc ? ' (' + known.desc + ')' : ''}.` : ''}
+Schreib daraus eine Lernnotiz auf Deutsch, mit der die Person die Vorlesung vollständig nacharbeiten kann, auch das, was sie in der Vorlesung nicht mitbekommen hat. Sie liest die Notiz und lässt sie sich vorlesen.
+notiz (Markdown) in diesem Aufbau:
+- "## Kurz gesagt": 3 bis 5 Sätze, worum es ging und wie die Themen zusammenhängen.
+- Danach alle Themen in der Reihenfolge der Vorlesung, jedes mit der Überschrift "## Thema (ab mm:ss)". Darunter erklärst du in ganzen Sätzen, was gesagt und erklärt wurde: Definitionen, Herleitungen, Abläufe, Beispiele, Zahlen und Formeln mit der Bedeutung der Zeichen. Aufzählungen mit "- ", wo es hilft, eine Markdown-Tabelle, wenn etwas verglichen oder eingeordnet wurde. So ausführlich, dass nichts Fachliches fehlt.
+- "## Begriffe": eine Markdown-Tabelle | Begriff | Bedeutung | mit den wichtigen Fachbegriffen der Vorlesung.
+- "## Prüfungsrelevant": was die lehrende Person als wichtig oder klausurrelevant betont hat, jeweils mit Zeitangabe. Wurde dazu nichts gesagt, lass den Abschnitt weg.
+- "## Organisatorisches": Termine, Abgaben und Hinweise zur Klausur, falls genannt. Sonst weglassen.
+- "## Unklar in der Aufnahme": Stellen, die schlecht zu verstehen waren, mit Zeitangabe, damit sie dort in der Aufnahme nachhören kann. Sonst weglassen.
+Regeln:
+- Die Spracherkennung verhört sich, vor allem bei Fachbegriffen und Namen. Verbessere solche Wörter still, wenn aus dem Zusammenhang klar ist, was gemeint war. Bist du unsicher, schreib (?) dahinter und nenne die Stelle unter „Unklar in der Aufnahme“.
+- Erfinde nichts dazu, was nicht gesagt wurde. Bezieht sich die lehrende Person auf eine Folie oder die Tafel, die man nicht hört, schreib das kurz dazu.
+- Begrüßung, Smalltalk und Wiederholungen weglassen. Fachliche Fragen aus dem Publikum mit der Antwort übernehmen.
+- **fett** sparsam, nur für die wichtigsten Fachbegriffe (höchstens ein bis zwei pro Absatz). Keine Emojis.
+- titel: das Thema der Vorlesung in höchstens 8 Wörtern (nicht „Vorlesung vom …“).
+- ${pick}${wishLine()}
+Antworte nur mit JSON: {"titel": "...", "projekt": "...", "notiz": "..."}
+
+Mitschrift:
+${String(t.text || '').slice(0, 400000)}`;
+}
+// Notiz zum Lesen und Vorlesen, dazu die ganze Mitschrift als Datei (Merki findet darin im Chat die passenden Stellen)
+function lectureSave(p, t, title, text) {
+  const fid = 'f-' + uid8(), full = String(t.text || '').slice(0, MAX_TEXT), name = `Mitschrift ${title}`.slice(0, 120);
+  const short = ((/##\s*Kurz gesagt[^\n]*\n+([\s\S]*?)(?=\n\s*#|$)/i.exec(text) || [])[1] || '').trim();
+  const f = { id: fid, projectId: p.id, name, kind: 'TON', size: full.length, textLen: full.length, truncated: String(t.text || '').length > MAX_TEXT, summary: short.slice(0, 700), secs: t.secs || 0, createdAt: t.created || Date.now() };
+  if (full.length > PART) {
+    const parts = splitText(full, PART);
+    f.parts = parts.length;
+    parts.forEach((x, i) => put('part', { id: `fp-${fid.slice(2)}-${i}`, fileId: fid, projectId: p.id, i, text: x }, false));
+  } else f.text = full;
+  put('file', f, false);
+  const n = { id: 'n-' + uid8(), projectId: p.id, title, text: text.slice(0, 80000), source: 'lecture', fileName: name, fileId: fid, recId: t.id, secs: t.secs || 0, createdAt: t.created || Date.now() };
+  put('note', n, false);
+  return n;
+}
+function lectureView(n) {
+  const f = state.files.find(x => x.id === n.fileId);
+  const when = new Date(n.createdAt || Date.now()).toLocaleDateString('de-DE', { day: 'numeric', month: 'long' });
+  openSheet(`<h2>${esc(n.title)}</h2>
+    <p class="muted">Vorlesung vom ${when}${n.secs ? ' · ' + recMin(n.secs) : ''}</p>
+    <div class="row">${canRead() ? `<button class="btn readbtn" type="button" id="lRead" aria-pressed="false">${ICON.sound}Vorlesen</button>` : ''}${aiReady() ? `<button class="btn alt" type="button" id="lAsk">${ICON.ask}Frag Merki</button>` : ''}${f ? `<button class="btn alt" type="button" id="lText">${ICON.file}Ganze Mitschrift</button>` : ''}</div>
+    <div class="ntext lec">${md(n.text || '')}</div>
+    <div class="row"><button class="btn alt" type="button" id="lEdit">${ICON.edit}Bearbeiten</button><button class="btn alt" type="button" id="lClose">Schließen</button></div>`, el => {
+    const q = s => el.querySelector(s);
+    q('#lClose').onclick = closeSheet;
+    q('#lEdit').onclick = () => { closeSheet(); openPad(n); };
+    const r = q('#lRead');
+    if (r) {
+      if (readOut.key === n.text) { r.classList.add('on'); r.setAttribute('aria-pressed', 'true'); r.innerHTML = `${ICON.stop}Stopp`; }
+      r.onclick = () => readAloud({ content: n.text }, r);
+    }
+    const a = q('#lAsk'); if (a) a.onclick = () => { closeSheet(); openPad(n, { ask: true }); };
+    const t = q('#lText'); if (t) t.onclick = () => viewFile(f);
+  });
+}
+function lectureSheet() {
+  if (!serverRec) return;
+  openSheet(`<h2>Vorlesung mitschreiben lassen</h2>
+    <p class="muted">Nimm die Vorlesung mit Sprachmemos auf dem iPhone auf. Merki schreibt alles mit und macht daraus eine Notiz, die du lesen und dir vorlesen lassen kannst. Die ganze Mitschrift mit Zeitangaben kommt unter Dateien.</p>
+    <div class="row"><button class="btn" type="button" id="lPick">${ICON.lecture}Aufnahme wählen</button></div>
+    <p class="notice tip">Direkt aus Sprachmemos teilen geht mit dem Kurzbefehl „An Merki“. <button type="button" class="linkbtn" id="lHow">So richtest du ihn ein</button></p>
+    <p class="muted">Das Mitschreiben kostet nichts, bis etwa 3 Stunden Aufnahme am Tag. Die Notiz kostet etwa 5 bis 10 Cent pro 90 Minuten. Frag vorher, ob du die Vorlesung aufnehmen darfst, und leg das Handy möglichst nah nach vorne.</p>
+    <button class="btn alt" type="button" id="lNo">Schließen</button>`, el => {
+    el.querySelector('#lNo').onclick = closeSheet;
+    el.querySelector('#lPick').onclick = () => { closeSheet(); $('#recIn').click(); };
+    el.querySelector('#lHow').onclick = shortcutSheet;
+  });
+}
+async function copyText(t, btn) {
+  const label = btn.innerHTML;
+  let ok = false;
+  try { await navigator.clipboard.writeText(t); ok = true; } catch {
+    const ta = document.createElement('textarea');
+    ta.value = t; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = document.execCommand('copy'); } catch {}
+    ta.remove();
+  }
+  btn.innerHTML = `${ICON.check}${ok ? 'Kopiert' : 'Kopieren ging nicht'}`;
+  setTimeout(() => { if (btn.isConnected) btn.innerHTML = label; }, 2200);
+}
+// Anleitung: Kurzbefehl „An Merki“, damit sie Aufnahmen direkt aus Sprachmemos teilen kann.
+// Der Code wird nur in die Zwischenablage kopiert, nie angezeigt.
+function shortcutSheet() {
+  openSheet(`<h2>Kurzbefehl „An Merki“</h2>
+    <p class="muted">Einmal auf dem iPhone einrichten. Danach teilst du jede Aufnahme mit ein paar Tipps aus Sprachmemos an Merki. Öffne diese Seite dafür am besten auf dem iPhone.</p>
+    <ol class="steps">
+      <li>Öffne die App „Kurzbefehle“ und tippe oben rechts auf „+“.</li>
+      <li>Tippe oben auf den Namen und dann auf „Umbenennen“: <b>An Merki</b>. Danach wieder oben auf den Namen, „Details“, „Im Share-Sheet anzeigen“ einschalten und „Fertig“.</li>
+      <li>Tippe auf „Aktion hinzufügen“, suche <b>Inhalte von URL abrufen</b> und tippe darauf.</li>
+      <li>Tippe in der Aktion auf „URL“ und füge die Adresse ein.<div class="copyrow"><button class="btn alt" type="button" id="kUrl">${ICON.share}Adresse kopieren</button></div></li>
+      <li>Tippe in der Aktion auf den kleinen Pfeil. Stell „Methode“ auf <b>POST</b>.</li>
+      <li>Bei „Header“ auf „Neuen Header hinzufügen“ tippen. Schlüssel: <code>x-merkheft-code</code>, Text: dein Zugangscode.<div class="copyrow"><button class="btn alt" type="button" id="kCode">${ICON.share}Code kopieren</button></div></li>
+      <li>Stell „Anfragetext“ auf <b>Datei</b>. Tippe dann auf das Feld „Datei“ und wähle <b>Kurzbefehl-Eingabe</b>.</li>
+      <li>Suche unten die Aktion <b>Ergebnis anzeigen</b> und füge sie hinzu. Darin steht schon „Inhalte der URL“, das passt so. Oben auf „Fertig“ tippen.</li>
+    </ol>
+    <p class="notice tip"><b>So teilst du eine Aufnahme:</b> In Sprachmemos die Aufnahme antippen, auf „…“ und „Teilen“ tippen, dann <b>An Merki</b>. Merki sagt kurz, dass die Aufnahme angekommen ist. Die Notiz schreibt Merki, wenn du das Merkheft das nächste Mal öffnest.</p>
+    <p class="muted">In den iPhone-Einstellungen bei Sprachmemos die Audioqualität auf „Komprimiert“ lassen, „Verlustfrei“ kann Merki nicht lesen. Im Kurzbefehl steckt dein Zugangscode: Schick ihn deshalb nicht an andere weiter.</p>
+    <button class="btn alt" type="button" id="kNo">Schließen</button>`, el => {
+    el.querySelector('#kNo').onclick = closeSheet;
+    el.querySelector('#kUrl').onclick = e => copyText(location.origin + '/api/rec?kurzbefehl=1', e.currentTarget);
+    el.querySelector('#kCode').onclick = e => copyText(code || '', e.currentTarget);
+  });
+}
+
 // ---------- Sammelaufträge ----------
 // Große Dateien fasst Merki im Sammelauftrag zusammen: halber Preis, das Ergebnis kommt meist nach ein paar Minuten.
 // Der Server fragt bei Claude nach und schickt eine Mitteilung. Die App fragt nach, solange sie offen ist (und beim Öffnen),
@@ -4103,7 +4353,7 @@ function renderFiles() {
     // Ältere Dateien kennen ihre Seitenzahl nicht. Früher stand hier eine Schätzung aus der Textmenge („etwa 15 Seiten“), die wie „nur 15 Seiten gelesen“ aussah.
     const pg = pagesText(f);
     return `<div class="file"><div class="ficon">${esc(f.kind || '')}</div><div class="fbody"><b>${esc(f.name)}</b>
-      <p>${fmtSize(f.size || 0)}${pg ? ` · ${pg}` : ''} · ${new Date(f.createdAt).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}${nn ? ` · ${nn} ${nn === 1 ? 'Notiz' : 'Notizen'}` : ''}</p>
+      <p>${f.secs ? `Aufnahme ${recMin(f.secs)}` : fmtSize(f.size || 0)}${pg ? ` · ${pg}` : ''} · ${new Date(f.createdAt).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}${nn ? ` · ${nn} ${nn === 1 ? 'Notiz' : 'Notizen'}` : ''}</p>
       ${f.batch ? `<p class="sum muted">Die Zusammenfassung kommt in ein paar Minuten (Sammelauftrag, halber Preis).</p>` : ''}
       ${f.summary ? `<p class="sum">${inl(f.summary)}</p>` : ''}
       ${f.sum ? `<button type="button" class="linkbtn fs-open" data-view="${esc(f.id)}">Zusammenfassung ansehen${f.sum.abschnitte.length > 1 ? ` · ${f.sum.abschnitte.length} Themen` : ''}</button>` : ''}</div>
@@ -4186,6 +4436,7 @@ function viewFile(f) {
       q('#fsPane').hidden = b.dataset.tab !== 'sum'; q('#ftPane').hidden = b.dataset.tab !== 'text';
     });
     paint();
+    if (f.secs && !f.sum) q('#fsTabs [data-tab="text"]').click(); // Mitschrift einer Vorlesung: gleich der Text
   });
 }
 // ---------- PDF-Lernzettel ----------
@@ -5080,7 +5331,7 @@ function tab(name) {
 }
 
 // Wofür die KI heute Geld gebraucht hat (Einstellungen)
-const KIND_LABEL = { chat: 'Chat', ask: 'Frag Merki', voice: 'Gespräch', file: 'Dateien', order: 'Alles in einer', learn: 'Lernen', ink: 'Handschrift', vnote: 'Sprachnotizen', note: 'Notiz per Knopf' };
+const KIND_LABEL = { chat: 'Chat', ask: 'Frag Merki', voice: 'Gespräch', file: 'Dateien', order: 'Alles in einer', learn: 'Lernen', ink: 'Handschrift', vnote: 'Sprachnotizen', note: 'Notiz per Knopf', lecture: 'Vorlesungen' };
 // Einstellungen: Name und Stimme überall, Installieren, Verbrauch und Abmelden nur auf dem eigenen Server
 let installEvt = null;
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
@@ -5195,6 +5446,7 @@ function settingsSheet() {
     <p class="muted">Im Gespräch hört Merki dann schon zu, während es spricht, und hört auf, sobald du etwas sagst. Mit Kopfhörern klappt das am besten. Wird Merkis Stimme dabei leiser oder stockt sie, schalte es wieder aus.</p></div>` : ''}
     ${ios && !serverTts ? '<p class="notice tip">Schönere Stimme: Auf dem iPhone oder iPad unter Einstellungen › Bedienungshilfen › Gesprochene Inhalte › Stimmen › Deutsch eine Stimme mit „Erweitert“ oder „Premium“ laden. Danach hier auswählen.</p>' : ''}` : ''}
     ${server ? remindHtml() : ''}
+    ${server && serverRec ? `<div class="field"><span class="label">Vorlesungen aus Sprachmemos</span><p class="muted">Mit dem Kurzbefehl „An Merki“ teilst du eine Aufnahme direkt aus Sprachmemos. Merki schreibt sie mit und macht daraus eine Notiz.</p><button class="btn alt" type="button" id="sShortcut">${ICON.lecture}Kurzbefehl einrichten</button></div>` : ''}
     ${server && !inApp ? `<div class="notice"><b>Als App auf den Startbildschirm</b><br>${installEvt ? 'Tippe auf „Installieren“.' : ios ? 'Tippe in Safari unten auf das Teilen-Symbol und dann auf „Zum Home-Bildschirm“.' : 'Öffne das Browser-Menü (⋮) und tippe auf „App installieren“ oder „Zum Startbildschirm hinzufügen“.'}</div>` : ''}
     ${server && installEvt && !inApp ? '<button class="btn" type="button" id="sInstall">Installieren</button>' : ''}
     ${server ? `<p class="notice" id="sStatus">KI-Verbrauch heute wird geladen …</p>
@@ -5252,6 +5504,7 @@ function settingsSheet() {
       };
     }
     if (server) remindSetup(el);
+    const sc = q('#sShortcut'); if (sc) sc.onclick = shortcutSheet;
     const ib = q('#sInstall'); if (ib) ib.onclick = async () => { installEvt.prompt(); await installEvt.userChoice.catch(() => null); installEvt = null; closeSheet(); };
     const out = q('#sOut');
     if (out) out.onclick = () => confirmSheet('Abmelden?', 'Deine Notizen bleiben auf dem Server. Auf diesem Gerät brauchst du danach wieder den Zugangscode.', 'Abmelden', async () => {
@@ -5348,6 +5601,14 @@ $('#flist').addEventListener('click', e => {
   if (d) { const f = state.files.find(x => x.id === d.dataset.fdel); if (f) confirmSheet('Datei löschen?', `„${f.name}“ ist danach weg. Die Notizen daraus bleiben.`, 'Löschen', () => deleteFile(f)); }
 });
 $('#newNote').onclick = () => openPad(null);
+$('#lectureBtn').onclick = lectureSheet;
+$('#recIn').onchange = () => { const f = $('#recIn').files[0]; $('#recIn').value = ''; if (f) recUpload(f); };
+$('#recs').addEventListener('click', e => {
+  const d = e.target.closest('[data-rdel]');
+  if (d) { recDiscard(d.dataset.rdel); return; }
+  const r = e.target.closest('[data-rretry]');
+  if (r) { const it = rec.items.find(x => x.id === r.dataset.rretry); if (it) { delete rec.err[it.id]; lectureQueue(it); } }
+});
 // Beim Tippen erst kurz warten, sonst zeichnet das alte iPad bei jedem Buchstaben alle Notizen neu
 let searchT = 0;
 $('#search').addEventListener('input', () => { clearTimeout(searchT); searchT = setTimeout(renderNotes, 180); });
@@ -5382,9 +5643,13 @@ $('#cards').addEventListener('click', e => {
   }
   const ask = e.target.closest('[data-ask]');
   if (ask) { const n = state.notes.find(x => x.id === ask.dataset.ask); if (n) openPad(n, { ask: true }); return; }
+  const rd = e.target.closest('[data-nread]');
+  if (rd) { const n = state.notes.find(x => x.id === rd.dataset.nread); if (n) readAloud({ content: n.text }, rd); return; }
   const op = e.target.closest('[data-edit],[data-open]');
   const n = op && state.notes.find(x => x.id === (op.dataset.edit || op.dataset.open));
-  if (n) openPad(n);
+  // Vorlesungen öffnen zum Lesen (lang, mit Tabellen), „Bearbeiten“ wie jede Notiz
+  if (n && n.source === 'lecture' && op.dataset.open) lectureView(n);
+  else if (n) openPad(n);
 });
 $('#playSource').addEventListener('change', () => { playPicked = true; $('#topicWrap').hidden = $('#playSource').value !== '__topic'; playMsg(''); });
 $('#startQuiz').onclick = () => startQuiz(); $('#startMemory').onclick = startMemory;

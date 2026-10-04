@@ -243,12 +243,55 @@ function embedRoute(req, res, p, path) {
   res.end(JSON.stringify({ shape: [list.length, 1024], data: list.map(embedOne), pooling: 'cls' }));
 }
 
+// Ersatz für Whisper (Workers AI, Vorlesungen): zählt die Audio-Frames im Stück (ADTS oder MP3) und
+// schreibt passend lange Sätze mit Zeitangaben. So zeigt der Test, dass wirklich Ton in den Stücken steckt.
+const WHISPER = { mode: 'ok', calls: 0, prompts: [], secs: [] };
+const ADTS_RATES = [96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350];
+const MP3_KBPS = { 1: [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320], 2: [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160] };
+const MP3_RATES = { 3: [44100, 48000, 32000], 2: [22050, 24000, 16000], 0: [11025, 12000, 8000] };
+function audioSecs(b) {
+  let secs = 0, o = 0, frames = 0;
+  if (b[0] === 0x49 && b[1] === 0x44 && b[2] === 0x33) o = 10 + (((b[6] & 127) << 21) | ((b[7] & 127) << 14) | ((b[8] & 127) << 7) | (b[9] & 127));
+  while (o + 7 <= b.length) {
+    if (b[o] !== 0xff || (b[o + 1] & 0xe0) !== 0xe0) { o++; continue; }
+    if ((b[o + 1] & 0x06) === 0) { // ADTS (Layer 0)
+      const sr = ADTS_RATES[(b[o + 2] >> 2) & 15], len = ((b[o + 3] & 3) << 11) | (b[o + 4] << 3) | (b[o + 5] >> 5);
+      if (!sr || len < 7) { o++; continue; }
+      secs += 1024 / sr; o += len; frames++;
+    } else { // MP3 (Layer III)
+      const ver = (b[o + 1] >> 3) & 3, br = MP3_KBPS[ver === 3 ? 1 : 2][b[o + 2] >> 4], sr = (MP3_RATES[ver] || [])[(b[o + 2] >> 2) & 3], pad = (b[o + 2] >> 1) & 1;
+      if (!br || !sr || ((b[o + 1] >> 1) & 3) !== 1) { o++; continue; }
+      const spf = ver === 3 ? 1152 : 576, len = Math.floor(spf / 8 * br * 1000 / sr) + pad;
+      secs += spf / sr; o += len; frames++;
+    }
+  }
+  return frames ? secs : 0;
+}
+function whisperRoute(req, res, body, path) {
+  const send = (status, data) => { res.writeHead(status, { 'content-type': 'application/json' }); res.end(typeof data === 'string' ? data : JSON.stringify(data)); };
+  let p = {};
+  try { p = JSON.parse(body || '{}'); } catch {}
+  if (path === '/whisper/ctl') { WHISPER.mode = p.mode || 'ok'; WHISPER.say = p.say || ''; if (p.reset) Object.assign(WHISPER, { calls: 0, prompts: [], secs: [] }); return send(200, { ok: true }); }
+  if (path === '/whisper/log') return send(200, WHISPER);
+  WHISPER.calls++;
+  WHISPER.prompts.push(String(p.initial_prompt || ''));
+  if (WHISPER.mode === 'fail') return send(500, 'test: Spracherkennung kaputt');
+  if (WHISPER.mode === 'quota') return send(429, 'AiError: 4006: you have used up your daily free allocation of 10,000 neurons, please upgrade');
+  const secs = audioSecs(Buffer.from(String(p.audio || ''), 'base64'));
+  WHISPER.secs.push(Math.round(secs * 10) / 10);
+  if (!secs) return send(400, 'test: kein Ton erkannt');
+  const segments = [];
+  for (let t = 0; t < secs - 1; t += 15) segments.push({ start: t, end: Math.min(secs, t + 15), text: WHISPER.say || `Heute geht es um Enzyme und die Michaelis-Menten-Kinetik, Satz bei ${Math.round(t)} Sekunden.` });
+  return send(200, { text: segments.map((x) => x.text).join(' '), segments, transcription_info: { language: 'de', duration: secs } });
+}
+
 const server = http.createServer((req, res) => {
   const chunks = [];
   req.on('data', (c) => chunks.push(c));
   req.on('end', async () => {
     const buf = Buffer.concat(chunks), body = buf.toString();
     if (req.url === '/push-log' || req.url.startsWith('/push/')) return push(req, res, buf);
+    if (req.url.startsWith('/whisper')) return whisperRoute(req, res, body, req.url.split('?')[0]);
     let p = {};
     try { p = JSON.parse(body || '{}'); } catch {}
     fs.appendFileSync(LOG, JSON.stringify({ path: req.url, headers: { key: req.headers['x-api-key'], version: req.headers['anthropic-version'], beta: req.headers['anthropic-beta'], xi: req.headers['xi-api-key'], g: req.headers['x-goog-api-key'] }, body: p }) + '\n');
@@ -278,7 +321,13 @@ const server = http.createServer((req, res) => {
       res.writeHead(400, { 'content-type': 'application/json' });
       return res.end(JSON.stringify({ type: 'error', error: { type: 'invalid_request_error', message: 'test: Seite 5 kaputt' } }));
     }
-    if (pageNos) text = JSON.stringify({ seiten: pageNos.map(n => ({ seite: n, text: `Abgeschrieben Seite ${n}: Abbildung der Zellteilung r${reqNo}` })) });
+    // Notiz aus der Mitschrift einer Vorlesung: Überschriften, Tabelle und das Fach aus der Liste in der Frage
+    if (schema && schema.properties && schema.properties.notiz && !pageNos) text = JSON.stringify({
+      titel: `Enzymkinetik r${reqNo}`,
+      projekt: last.includes('„Biochemie“') ? 'Biochemie' : '',
+      notiz: `## Kurz gesagt\nIn der Vorlesung ging es um Enzyme und die Michaelis-Menten-Kinetik r${reqNo}.\n\n## Michaelis-Menten-Kinetik (ab 00:00)\nDie Reaktionsgeschwindigkeit steigt mit der Substratkonzentration und nähert sich der **Maximalgeschwindigkeit**.\n- Km ist die Substratkonzentration bei halber Maximalgeschwindigkeit.\n\n## Begriffe\n| Begriff | Bedeutung |\n|---|---|\n| Km | Michaelis-Konstante |\n| Vmax | Maximalgeschwindigkeit |\n\n## Unklar in der Aufnahme\n- 04:15 schlecht zu verstehen`,
+    });
+    else if (pageNos) text = JSON.stringify({ seiten: pageNos.map(n => ({ seite: n, text: `Abgeschrieben Seite ${n}: Abbildung der Zellteilung r${reqNo}` })) });
     else if (isJson) text = JSON.stringify(sample(schema));
     else if (last.includes('LANG')) text = 'Teil '.repeat(400);
     else if (last.includes('TABELLE')) text = 'Hier der Vergleich:\n\n| Phase | Was passiert |\n|---|---|\n| Prophase | Chromosomen verdichten sich |\n| Metaphase | Chromosomen in der Mitte |\n\n```mermaid\nflowchart LR\n  A["Prophase"] --> B["Metaphase"]\n```\n\nSo läuft die Mitose ab.';

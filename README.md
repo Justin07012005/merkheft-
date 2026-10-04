@@ -29,6 +29,12 @@ Einschalten in der App unter **Einstellungen** → **Tägliche Erinnerung** → 
 
 Dafür braucht es keinen weiteren Schlüssel. Der Server legt seinen Schlüssel für die Mitteilungen beim ersten Mal selbst an und behält ihn im Speicher. Mitteilungen gehen nur an die Dienste von Apple, Google, Mozilla und Microsoft.
 
+## Vorlesungen mitschreiben
+
+In den Notizen gibt es den Knopf **Vorlesung**: eine Aufnahme wählen (zum Beispiel aus Sprachmemos auf dem iPhone, Format m4a, mp3 oder aac, bis 100 MB, das sind über 3 Stunden). Direkt aus Sprachmemos teilen geht mit einem Kurzbefehl „An Merki“; die Schritte stehen in der App unter **Einstellungen** → **Kurzbefehl einrichten**, mit Knöpfen zum Kopieren von Adresse und Code. Der Kurzbefehl schickt die Datei an `/api/rec?kurzbefehl=1` (Methode POST, Header `x-merkheft-code`, Anfragetext „Datei“) und zeigt die Antwort als kurzen Satz an.
+
+Der Speicher teilt die Aufnahme in Stücke von höchstens 1 MB und schreibt sie im Hintergrund mit, auch wenn die App zu ist: Spracherkennung Whisper (`@cf/openai/whisper-large-v3-turbo`) von Cloudflares Workers AI, im kostenlosen Tarif enthalten, bis etwa 3 Stunden Aufnahme am Tag (10.000 Neuronen). Ist die Tagesmenge aufgebraucht, macht er nach Mitternacht (UTC) von selbst weiter. Ist die Mitschrift fertig, kommt eine Mitteilung (wenn die Erinnerung an ist). Beim nächsten Öffnen schreibt Merki daraus die Notiz (Kurz gesagt, Themen mit Zeitangabe, Begriffe, Prüfungsrelevantes, unklare Stellen) und legt die ganze Mitschrift mit Zeitangaben unter Dateien ab. Beim Teilen aus Sprachmemos sucht Merki das passende Fach aus. Die Notiz kostet etwa 5 bis 10 Cent pro 90 Minuten Vorlesung. Sprachmemos muss bei der Audioqualität auf „Komprimiert“ stehen (AAC), „Verlustfrei“ geht nicht.
+
 ## Echte Stimme für Merki (freiwillig)
 
 Ohne weiteren Schlüssel spricht Merki mit der Stimme des Geräts. Mit einem Sprachdienst klingt Merki wie ein Mensch.
@@ -71,6 +77,7 @@ Klappt die echte Stimme einmal nicht, liest die Gerätestimme den Satz. Den Grun
 - `public/sw.js`, `public/manifest.webmanifest`: damit sie sich wie eine App installieren und offline öffnen lässt
 - `src/index.ts`: Server mit Zugangscode, KI, echter Stimme, Tages- und Monatslimit und dem App-Symbol für den Home-Bildschirm
 - `src/sem.ts`: Suche nach Bedeutung (Vektoren von Workers AI)
+- `src/audio.ts`: Aufnahmen in Stücke teilen (m4a ohne Umwandeln als AAC-Frames, mp3) und mitschreiben (Whisper von Workers AI)
 - `src/store.ts`: Speicher (Durable Object mit SQLite), Handy und Tablet gleichen sich darüber ab, dazu der Wecker für die tägliche Erinnerung
 - `src/push.ts`: Mitteilungen verschlüsseln und signieren (Web Push)
 
