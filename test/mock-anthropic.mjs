@@ -116,6 +116,57 @@ function push(req, res, buf) {
   res.end();
 }
 
+// ---------- Sammelaufträge (Message Batches) ----------
+// Ein Auftrag ist nach MOCK_BATCH_MS fertig. Mit BATCHLANGSAM im Text erst, wenn ein Test POST /batch-ctl/end schickt.
+// BATCHFEHLER irgendwo im Auftrag: die Anfrage p1 geht schief.
+const BATCHES = new Map();
+let batchNo = 0;
+function batchObj(b, base) {
+  const ended = b.cancel || b.end || Date.now() - b.created >= b.wait;
+  const n = b.requests.length;
+  return {
+    id: b.id, type: 'message_batch', processing_status: ended ? 'ended' : 'in_progress',
+    request_counts: { processing: ended ? 0 : n, succeeded: ended && !b.cancel ? n : 0, errored: 0, canceled: b.cancel ? n : 0, expired: 0 },
+    created_at: new Date(b.created).toISOString(), expires_at: new Date(b.created + 864e5).toISOString(), ended_at: ended ? new Date().toISOString() : null,
+    cancel_initiated_at: b.cancel ? new Date().toISOString() : null, archived_at: null, results_url: ended ? `${base}/v1/messages/batches/${b.id}/results` : null,
+  };
+}
+function batches(req, res, p, path) {
+  const base = `http://${req.headers.host}`;
+  const send = (code, obj) => { res.writeHead(code, { 'content-type': 'application/json' }); res.end(JSON.stringify(obj)); };
+  if (path.startsWith('/batch-ctl')) {
+    if (req.method === 'POST' && path === '/batch-ctl/end') for (const b of BATCHES.values()) b.end = true;
+    return send(200, [...BATCHES.values()].map(b => ({ id: b.id, n: b.requests.length, cancel: !!b.cancel, polls: b.polls, results: b.results })));
+  }
+  if (req.headers['x-api-key'] !== 'test-key') return send(401, { type: 'error', error: { type: 'authentication_error', message: 'invalid x-api-key' } });
+  if (req.method === 'POST' && path === '/v1/messages/batches') {
+    const all = JSON.stringify(p.requests || []);
+    const b = { id: 'msgbatch_test' + (++batchNo) + Date.now().toString(36), created: Date.now(), wait: all.includes('BATCHLANGSAM') ? 1e12 : Number(process.env.MOCK_BATCH_MS || 2500), requests: p.requests || [], fail: all.includes('BATCHFEHLER'), polls: 0, results: 0 };
+    BATCHES.set(b.id, b);
+    return send(200, batchObj(b, base));
+  }
+  const m = path.match(/^\/v1\/messages\/batches\/([\w-]+)(\/results|\/cancel)?$/);
+  const b = m && BATCHES.get(m[1]);
+  if (!b) return send(404, { type: 'error', error: { type: 'not_found_error', message: 'batch not found' } });
+  if (m[2] === '/cancel') { b.cancel = true; return send(200, batchObj(b, base)); }
+  if (!m[2]) { b.polls++; return send(200, batchObj(b, base)); }
+  b.results++;
+  res.writeHead(200, { 'content-type': 'application/binary' });
+  for (const r of b.requests) {
+    let result;
+    if (b.cancel) result = { type: 'canceled' };
+    else if (b.fail && r.custom_id === 'p1') result = { type: 'errored', error: { type: 'error', error: { type: 'api_error', message: 'test' } } };
+    else {
+      reqNo++;
+      const schema = r.params.output_config && r.params.output_config.format && r.params.output_config.format.schema;
+      const text = schema ? JSON.stringify(sample(schema)) : 'Test';
+      result = { type: 'succeeded', message: { id: 'msg_b' + reqNo, type: 'message', role: 'assistant', model: r.params.model, content: [{ type: 'text', text }], stop_reason: 'end_turn', stop_sequence: null, usage: { input_tokens: 100000, output_tokens: 20000, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 } } };
+    }
+    res.write(JSON.stringify({ custom_id: r.custom_id, result }) + '\n');
+  }
+  res.end();
+}
+
 const server = http.createServer((req, res) => {
   const chunks = [];
   req.on('data', (c) => chunks.push(c));
@@ -127,6 +178,8 @@ const server = http.createServer((req, res) => {
     fs.appendFileSync(LOG, JSON.stringify({ path: req.url, headers: { key: req.headers['x-api-key'], version: req.headers['anthropic-version'], beta: req.headers['anthropic-beta'], xi: req.headers['xi-api-key'], g: req.headers['x-goog-api-key'] }, body: p }) + '\n');
     if (req.url.startsWith('/v2/voices') || req.url.startsWith('/v1/text-to-speech/')) return eleven(req, res, p);
     if (req.url.startsWith('/v1/voices') || req.url.startsWith('/v1/text:synthesize')) return google(req, res, p);
+    const path = req.url.split('?')[0];
+    if (path.startsWith('/v1/messages/batches') || path.startsWith('/batch-ctl')) return batches(req, res, p, path);
     if (req.method !== 'POST' || !req.url.startsWith('/v1/messages')) { res.writeHead(404); return res.end(); }
     const last = JSON.stringify((p.messages || []).slice(-1));
     if (req.headers['x-api-key'] !== 'test-key' || last.includes('FEHLER401')) {

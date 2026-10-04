@@ -12,9 +12,13 @@
  * - push_subs: Geräte, die eine tägliche Erinnerung wollen (Uhrzeit und Zeitzone des Geräts).
  *          Ein Alarm des Durable Objects weckt den Speicher zur nächsten Erinnerung.
  * - kv:    sonstige Werte, z. B. der VAPID-Schlüssel für die Erinnerungen.
+ * - batches: Sammelaufträge an Claude (halber Preis). Der Alarm fragt nach, bis sie fertig sind,
+ *          holt die Ergebnisse ab und bucht die Kosten. Die App holt sie dann hier ab.
  */
 import { DurableObject } from 'cloudflare:workers';
+import Anthropic from '@anthropic-ai/sdk';
 import { makeVapidKeys, pushEndpointOk, sendPush, unb64url, type VapidKeys } from './push';
+import { berlinDay, costUsd, emptyUsage, takeUsage } from './cost';
 
 export interface DocRow {
   id: string;
@@ -36,6 +40,58 @@ export const MAX_FAILS_PER_HOUR = 30;
 export interface StoreEnv {
   /** Nur für lokale Tests: diese Adresse darf als Push-Dienst dienen */
   PUSH_TEST_ORIGIN?: string;
+  /** Für Sammelaufträge: nachfragen und Ergebnisse abholen */
+  ANTHROPIC_API_KEY?: string;
+  ANTHROPIC_BASE_URL?: string;
+}
+
+export interface BatchInput {
+  id: string;
+  fileId: string;
+  name: string;
+  n: number;
+  purpose: string;
+}
+
+/** Ergebnis einer Anfrage im Sammelauftrag: Text der Antwort oder warum es nicht geklappt hat */
+export interface BatchResult {
+  id: string;
+  ok: boolean;
+  text: string;
+  stop: string;
+  err: string;
+}
+
+export interface BatchItem {
+  id: string;
+  /** running: Claude arbeitet noch; ready: Ergebnisse hier; busy: ein anderes Gerät verarbeitet sie gerade;
+   *  done: ein Gerät hat sie schon gespeichert; failed/gone: hat nicht geklappt oder ist unbekannt */
+  state: 'running' | 'ready' | 'busy' | 'done' | 'failed' | 'gone';
+  results?: BatchResult[];
+}
+
+type BatchRow = {
+  id: string;
+  file_id: string;
+  name: string;
+  n: number;
+  purpose: string;
+  created: number;
+  checked: number;
+  state: string;
+  lease: number;
+  results: string | null;
+};
+
+/** Ein Gerät hat so lange Zeit, die Ergebnisse zu verarbeiten, dann darf ein anderes */
+const BATCH_LEASE_MS = 10 * 60_000;
+/** Claude braucht höchstens 24 Stunden, danach gilt der Auftrag als gescheitert */
+const BATCH_MAX_MS = 26 * 3600_000;
+/** Nicht abgeholte Ergebnisse so lange aufheben */
+const BATCH_KEEP_MS = 7 * 24 * 3600_000;
+/** Wie oft nachfragen: anfangs jede Minute, später seltener */
+function batchEvery(age: number): number {
+  return age < 15 * 60_000 ? 60_000 : age < 2 * 3600_000 ? 3 * 60_000 : 10 * 60_000;
 }
 
 export interface PushSubInput {
@@ -99,6 +155,18 @@ export class Store extends DurableObject<StoreEnv> {
         last_sent INTEGER NOT NULL DEFAULT 0,
         last_status INTEGER NOT NULL DEFAULT 0,
         created INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS batches (
+        id TEXT PRIMARY KEY,
+        file_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        n INTEGER NOT NULL,
+        purpose TEXT NOT NULL,
+        created INTEGER NOT NULL,
+        checked INTEGER NOT NULL DEFAULT 0,
+        state TEXT NOT NULL DEFAULT 'running',
+        lease INTEGER NOT NULL DEFAULT 0,
+        results TEXT
       );
     `);
   }
@@ -234,6 +302,137 @@ export class Store extends DurableObject<StoreEnv> {
     return row ? row.n : 1;
   }
 
+  // ---------- Sammelaufträge ----------
+
+  /** Neuer Sammelauftrag: merken und den Alarm stellen, damit nachgefragt wird. */
+  async batchAdd(b: BatchInput): Promise<void> {
+    const now = Date.now();
+    this.sql.exec(
+      `INSERT OR REPLACE INTO batches (id, file_id, name, n, purpose, created, checked, state) VALUES (?, ?, ?, ?, ?, ?, ?, 'running')`,
+      b.id,
+      b.fileId,
+      b.name,
+      b.n,
+      b.purpose,
+      now,
+      now,
+    );
+    await this.schedule();
+  }
+
+  /**
+   * Was die App wissen will: läuft der Auftrag noch, oder sind die Ergebnisse da?
+   * Fertige Ergebnisse bekommt immer nur ein Gerät auf einmal (es hat dann 10 Minuten Zeit).
+   * War die letzte Nachfrage bei Claude länger her, wird gleich nachgefragt.
+   */
+  async batchCheck(ids: string[]): Promise<BatchItem[]> {
+    const out: BatchItem[] = [];
+    const now = Date.now();
+    for (const id of ids) {
+      let row = this.sql.exec<BatchRow>(`SELECT * FROM batches WHERE id = ?`, id).toArray()[0];
+      if (!row) {
+        out.push({ id, state: 'gone' });
+        continue;
+      }
+      if (row.state === 'running' && now - row.checked >= 20_000) {
+        await this.batchPoll(row);
+        row = this.sql.exec<BatchRow>(`SELECT * FROM batches WHERE id = ?`, id).toArray()[0];
+      }
+      if (row.state === 'ready') {
+        if (row.lease > now) out.push({ id, state: 'busy' });
+        else {
+          this.sql.exec(`UPDATE batches SET lease = ? WHERE id = ?`, now + BATCH_LEASE_MS, id);
+          out.push({ id, state: 'ready', results: JSON.parse(row.results || '[]') as BatchResult[] });
+        }
+      } else out.push({ id, state: row.state === 'failed' ? 'failed' : row.state === 'done' ? 'done' : 'running' });
+    }
+    await this.schedule();
+    return out;
+  }
+
+  /** Die App hat die Ergebnisse gespeichert. Der Eintrag bleibt noch eine Weile, damit andere Geräte wissen, dass es erledigt ist. */
+  async batchDone(id: string): Promise<void> {
+    this.sql.exec(`UPDATE batches SET state = 'done', results = NULL WHERE id = ?`, id);
+    await this.schedule();
+  }
+
+  /** Die App will nicht mehr warten (sofort zusammenfassen) oder die Datei ist gelöscht: bei Claude abbrechen. Gilt als erledigt. */
+  async batchCancel(id: string): Promise<void> {
+    const row = this.sql.exec<BatchRow>(`SELECT * FROM batches WHERE id = ?`, id).toArray()[0];
+    this.sql.exec(`UPDATE batches SET state = 'done', results = NULL WHERE id = ?`, id);
+    if (row && row.state === 'running' && this.env.ANTHROPIC_API_KEY) {
+      try {
+        await this.claude().beta.messages.batches.cancel(id);
+      } catch (e) {
+        console.warn('batch cancel failed', e instanceof Error ? e.message : e);
+      }
+    }
+    await this.schedule();
+  }
+
+  private claude(): Anthropic {
+    return new Anthropic({ apiKey: this.env.ANTHROPIC_API_KEY, baseURL: this.env.ANTHROPIC_BASE_URL || undefined, maxRetries: 1 });
+  }
+
+  /** Bei Claude nachfragen. Ist der Auftrag fertig: Ergebnisse holen, Kosten buchen (halber Preis), Mitteilung schicken. */
+  private async batchPoll(row: BatchRow): Promise<void> {
+    const now = Date.now();
+    this.sql.exec(`UPDATE batches SET checked = ? WHERE id = ?`, now, row.id);
+    if (!this.env.ANTHROPIC_API_KEY) return;
+    const client = this.claude();
+    try {
+      const b = await client.beta.messages.batches.retrieve(row.id);
+      if (b.processing_status !== 'ended') {
+        if (now - row.created > BATCH_MAX_MS) this.sql.exec(`UPDATE batches SET state = 'failed' WHERE id = ?`, row.id);
+        return;
+      }
+      const results: BatchResult[] = [];
+      let usd = 0;
+      for await (const r of await client.beta.messages.batches.results(row.id)) {
+        if (r.result.type === 'succeeded') {
+          const m = r.result.message;
+          const u = emptyUsage();
+          takeUsage(u, m.usage);
+          usd += costUsd(m.model || '', u, 0.5);
+          const text = m.content.map((c) => (c.type === 'text' ? c.text : '')).join('');
+          results.push({ id: r.custom_id, ok: true, text, stop: m.stop_reason || '', err: '' });
+        } else {
+          results.push({ id: r.custom_id, ok: false, text: '', stop: '', err: r.result.type });
+        }
+      }
+      // Hat inzwischen eine andere Nachfrage (Alarm oder App) die Ergebnisse schon geholt oder wurde abgebrochen: nichts doppelt buchen
+      const cur = this.sql.exec<{ state: string }>(`SELECT state FROM batches WHERE id = ?`, row.id).toArray()[0];
+      if (!cur || cur.state !== 'running') return;
+      if (usd > 0) this.addSpend(berlinDay(), usd, row.purpose);
+      this.sql.exec(`UPDATE batches SET state = 'ready', results = ? WHERE id = ?`, JSON.stringify(results), row.id);
+      await this.notifyAll({
+        title: 'Zusammenfassung fertig',
+        body: `„${row.name}“ ist zusammengefasst. Tippe hier, dann holt Merki sie in die App.`,
+        tag: 'merkheft-batch-' + row.file_id,
+      });
+    } catch (e) {
+      // Auftrag unbekannt: gescheitert. Sonst (Netz, Überlastung) beim nächsten Mal nochmal
+      if (e instanceof Anthropic.NotFoundError) this.sql.exec(`UPDATE batches SET state = 'failed' WHERE id = ?`, row.id);
+      console.warn('batch poll failed', e instanceof Error ? e.message : e);
+    }
+  }
+
+  /** Mitteilung an alle Geräte mit eingeschalteter Erinnerung (abgemeldete fliegen raus). */
+  private async notifyAll(msg: { title: string; body: string; tag: string }): Promise<void> {
+    const rows = this.sql.exec<PushSubRow>(`SELECT * FROM push_subs`).toArray();
+    if (!rows.length) return;
+    const keys = await this.vapid();
+    for (const row of rows) {
+      let status = 0;
+      try {
+        status = await sendPush(row, { ...msg, url: '/' }, keys);
+      } catch (e) {
+        console.warn('push failed', e instanceof Error ? e.message : e);
+      }
+      if (status === 404 || status === 410) this.sql.exec(`DELETE FROM push_subs WHERE endpoint = ?`, row.endpoint);
+    }
+  }
+
   // ---------- Tägliche Erinnerung ----------
 
   /** VAPID-Schlüssel: entsteht beim ersten Mal und bleibt hier. */
@@ -306,7 +505,7 @@ export class Store extends DurableObject<StoreEnv> {
     return await this.deliver(row, localNow(row.tz, Date.now()).day, false);
   }
 
-  /** Der Alarm: alle Geräte, deren Uhrzeit dran ist, bekommen ihre Erinnerung. */
+  /** Der Alarm: alle Geräte, deren Uhrzeit dran ist, bekommen ihre Erinnerung. Laufende Sammelaufträge: nachfragen. */
   async alarm(): Promise<void> {
     const now = Date.now();
     for (const row of this.sql.exec<PushSubRow>(`SELECT * FROM push_subs`).toArray()) {
@@ -314,6 +513,10 @@ export class Store extends DurableObject<StoreEnv> {
       if (!isDue(row, local)) continue;
       await this.deliver(row, local.day, true);
     }
+    for (const row of this.sql.exec<BatchRow>(`SELECT * FROM batches WHERE state = 'running'`).toArray()) {
+      if (now - row.checked >= batchEvery(now - row.created) - 5000) await this.batchPoll(row);
+    }
+    this.sql.exec(`DELETE FROM batches WHERE state != 'running' AND created < ?`, now - BATCH_KEEP_MS);
     await this.schedule();
   }
 
@@ -401,11 +604,14 @@ export class Store extends DurableObject<StoreEnv> {
     };
   }
 
-  /** Stellt den Alarm auf die nächste fällige Erinnerung (oder löscht ihn, wenn keine an ist). */
+  /** Stellt den Alarm auf die nächste fällige Erinnerung oder Nachfrage (oder löscht ihn, wenn nichts ansteht). */
   private async schedule(): Promise<void> {
     const now = Date.now();
     let next = Infinity;
     for (const row of this.sql.exec<PushSubRow>(`SELECT * FROM push_subs`).toArray()) next = Math.min(next, nextSend(row, now));
+    for (const row of this.sql.exec<BatchRow>(`SELECT * FROM batches WHERE state = 'running'`).toArray()) {
+      next = Math.min(next, Math.max(row.checked, row.created) + batchEvery(now - row.created));
+    }
     if (next === Infinity) await this.ctx.storage.deleteAlarm();
     else await this.ctx.storage.setAlarm(Math.max(next, now + 5000));
   }

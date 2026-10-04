@@ -1301,10 +1301,11 @@ async function startServer() {
   await pull();
   fixOrphans();
   if (Object.keys(SYNC.outbox).length) flush();
+  batchSweep(); // fertige Sammelaufträge abholen
   if (serverStarted) return;
   serverStarted = true;
   setInterval(() => { if (document.visibilityState === 'visible') pull(); }, 20000);
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { pull(); renderAll(!busy); } else { if (saveT) saveLocal(true); flush(); } });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { pull().then(batchSweep); renderAll(!busy); } else { if (saveT) saveLocal(true); flush(); } });
   window.addEventListener('online', () => flush().then(pull));
 }
 
@@ -3538,11 +3539,121 @@ async function picOnlyPages(pdf, texts) {
   }
   return out;
 }
+// Auftrag für die Zusammenfassung eines Teils beim Hochladen: Zusammenfassung und Notizen in einer Anfrage.
+// f sagt, ob Seiten als Bild (picPages) oder per Texterkennung (ocrPages) gelesen wurden.
+function docsumPrompt(chunks, k, name, p, f, known) {
+  const many = chunks.length > 1;
+  return `Du bekommst ${many ? `Teil ${k + 1} von ${chunks.length} des Lern-Dokuments` : 'das Lern-Dokument'} „${name}“ für das Projekt „${p.name}“${p.desc ? ' (' + p.desc + ')' : ''}. Lies ${many ? 'diesen Teil' : 'es'} vollständig.${f.picPages ? ' Stellen mit „[Seite …, als Bild gelesen]“ sind abgeschriebene Seiten und Abbildungen, sie gehören genauso dazu.' : ''}${f.ocrPages ? OCR_NOTE : ''}
+- zusammenfassung: eine ausführliche Lern-Zusammenfassung auf Deutsch${many ? ' für diesen Teil' : ''}. ${SUM_RULES}
+- ${NOTES_JSON(many ? '6 bis 15' : '6 bis 20')}${wishLine()}
+Antworte nur mit JSON: {"zusammenfassung": ${SUM_JSON}, "notizen": [{"titel": "kurzer Titel", "inhalt": "2 bis 8 Sätze"}]}
+Schon vorhandene Notizen (nicht doppelt): ${known}
+
+${many ? 'Teil' : 'Dokument'}:
+${chunks[k]}`;
+}
+// Notizen aus einer Datei speichern (ohne doppelte Titel). Gibt die neuen Titel zurück.
+function saveFileNotes(p, fileName, notes) {
+  const saved = [];
+  for (const n of notes.slice(0, 60)) {
+    if (!n || !(n.titel || n.inhalt)) continue;
+    const title = String(n.titel || n.inhalt).slice(0, 120);
+    if (pNotes(p.id).some(o => o.title.toLowerCase() === title.toLowerCase())) continue;
+    put('note', { id: 'n-' + uid8(), projectId: p.id, title, text: String(n.inhalt || '').slice(0, 4000), source: 'file', fileName, createdAt: Date.now() }, false);
+    saved.push(title);
+  }
+  return saved;
+}
+
+// ---------- Sammelaufträge ----------
+// Große Dateien fasst Merki im Sammelauftrag zusammen: halber Preis, das Ergebnis kommt meist nach ein paar Minuten.
+// Der Server fragt bei Claude nach und schickt eine Mitteilung. Die App fragt nach, solange sie offen ist (und beim Öffnen),
+// und verarbeitet fertige Ergebnisse wie beim Hochladen. Was nicht geklappt hat, fasst sie dann sofort zusammen.
+const BATCH_MIN = 40000; // ab so vielen Zeichen (etwa 15 Seiten) als Sammelauftrag
+let batchTimer = 0, batchBusy = false;
+async function batchStart(fileId, name, prompts) {
+  const r = await api('/api/batch', { method: 'POST', body: JSON.stringify({ fileId, name, requests: prompts.map((content, k) => ({ id: 'p' + k, kind: 'json', schema: SCHEMA.docsum, maxTokens: 32000, purpose: 'file', messages: [{ role: 'user', content }] })) }) });
+  const j = await r.json();
+  if (!j || !j.batch) throw { code: 'server' };
+  return j.batch;
+}
+const batchPost = (what, id) => api('/api/batch/' + what, { method: 'POST', body: JSON.stringify({ id }) }).catch(() => {});
+function batchPlan(ms = 60000) {
+  clearTimeout(batchTimer);
+  if (MODE === 'server' && state.files.some(f => f.batch)) batchTimer = setTimeout(batchSweep, ms);
+}
+async function batchSweep() {
+  clearTimeout(batchTimer);
+  const pend = state.files.filter(f => f.batch && f.batch.id);
+  if (MODE !== 'server' || !pend.length) return;
+  if (batchBusy || document.hidden || !aiReady()) return batchPlan();
+  batchBusy = true;
+  try {
+    const r = await api('/api/batch/check', { method: 'POST', body: JSON.stringify({ ids: pend.map(f => f.batch.id) }) });
+    const { items } = await r.json();
+    for (const it of items || []) {
+      const f = state.files.find(x => x.batch && x.batch.id === it.id);
+      if (!f) continue;
+      // Fertig: verarbeiten. Gescheitert oder unbekannt: alles sofort zusammenfassen. Schon erledigt (anderes Gerät): kommt per Abgleich
+      if (it.state === 'ready') await batchFinish(f, it.results || []);
+      else if (it.state === 'failed' || it.state === 'gone') await batchFinish(f, []);
+      else if (it.state === 'done') pull();
+    }
+  } catch (e) { console.warn('Sammelauftrag', e); }
+  finally { batchBusy = false; batchPlan(); }
+}
+// Ergebnisse eines Sammelauftrags in die Datei übernehmen. Teile ohne Ergebnis fasst Merki jetzt sofort zusammen.
+async function batchFinish(f, results, step = () => {}) {
+  const p = state.projects.find(x => x.id === f.projectId);
+  if (!p || !state.files.some(x => x.id === f.id)) { await batchPost('done', f.batch.id); return; }
+  const chunks = splitText(fileText(f), PART), n = Math.min(f.batch.n || chunks.length, chunks.length), parts = [], notes = [];
+  const known = () => pNotes(p.id).map(x => x.title).concat(notes.map(x => x && x.titel)).join('; ').slice(0, 2000) || 'keine';
+  let err = null;
+  for (let k = 0; k < n; k++) {
+    const r = results.find(x => x.id === 'p' + k);
+    let x = null;
+    if (r && r.ok && r.stop !== 'max_tokens' && r.stop !== 'refusal') { try { x = JSON.parse(r.text); } catch {} }
+    if (!x) {
+      step(n > 1 ? `Teil ${k + 1} von ${n}` : '');
+      try { x = await aiJson(docsumPrompt(chunks, k, f.name, p, f, known()), { schema: SCHEMA.docsum, maxTokens: 32000, purpose: 'file' }); }
+      catch (e) {
+        // Ohne Verbindung: später nochmal (die Ergebnisse bleiben auf dem Server)
+        if (e && (e.code === 'offline' || e.code === 'cancelled')) throw e;
+        err = err || e;
+        if (e && e.code === 'budget') break;
+        continue;
+      }
+    }
+    parts.push(normSum(x && x.zusammenfassung));
+    if (x && Array.isArray(x.notizen)) notes.push(...x.notizen);
+  }
+  if (parts.filter(Boolean).length > 1) step('Überblick über alles');
+  const sum = await joinSums(parts, f.name, p);
+  const cur = state.files.find(x => x.id === f.id);
+  if (cur) {
+    const { batch, partial, ...rest } = cur;
+    put('file', { ...rest, ...(sum ? { sum, summary: sum.ueberblick || '' } : {}), ...(err || !sum ? { partial: aiError(err || { code: 'invalid_json' }) } : {}) }, false);
+  }
+  const saved = cur ? saveFileNotes(p, cur.name, notes) : [];
+  await batchPost('done', f.batch.id);
+  renderAll(!busy);
+  if (cur) toast(sum ? `Die Zusammenfassung von „${cur.name}“ ist fertig${saved.length ? ` · ${saved.length} neue Notizen` : ''}` : `„${cur.name}“: ${aiError(err)}`, 5000);
+}
+// „Sofort zusammenfassen“: nicht auf den Sammelauftrag warten (voller Preis)
+async function batchNow(f, step) {
+  while (batchBusy) await new Promise(r => setTimeout(r, 300));
+  const cur = state.files.find(x => x.id === f.id);
+  if (!cur || !cur.batch) return;
+  batchBusy = true;
+  try { await batchPost('cancel', cur.batch.id); await batchFinish(cur, [], step); }
+  finally { batchBusy = false; batchPlan(); }
+}
 async function readOne(file, p, step) {
   const ext = (file.name.split('.').pop() || '').toLowerCase();
   const isImg = (file.type || '').startsWith('image/');
   if (file.size > 40 * 1024 * 1024) throw { msg: 'Die Datei ist größer als 40 MB.' };
-  let text = '', images = null, pg = null, err = null;
+  let text = '', images = null, pg = null, err = null, batch = null;
+  const fid = 'f-' + uid8();
   const kind = isImg ? 'FOTO' : ext.toUpperCase().slice(0, 4);
   if (isImg) images = [file];
   else if (ext === 'pdf') {
@@ -3611,19 +3722,19 @@ Schon vorhandene Notizen (nicht doppelt): ${known()}`, { images, schema: SCHEMA.
     if (aiReady()) {
       // Jeder Teil (bis 100.000 Zeichen) bekommt seine eigene ausführliche Zusammenfassung und Notizen, in einer Anfrage
       const chunks = splitText(text.slice(0, MAX_TEXT), PART), parts = [];
-      for (let k = 0; k < chunks.length; k++) {
+      const flags = { picPages: pg ? pg.pics : 0, ocrPages: pg ? pg.ocr : 0 };
+      // Große Datei: als Sammelauftrag (halber Preis), die Zusammenfassung kommt nach ein paar Minuten.
+      // Klappt das nicht (außer Tageslimit), fasst Merki wie bisher sofort zusammen.
+      if (MODE === 'server' && text.length >= BATCH_MIN) {
+        step('Auftrag an Merki');
+        batch = await batchStart(fid, file.name, chunks.map((c, k) => docsumPrompt(chunks, k, file.name, p, flags, known()))).catch(e => { if (e && e.code === 'budget') throw e; console.warn('Sammelauftrag', e); return null; });
+      }
+      for (let k = 0; !batch && k < chunks.length; k++) {
         const many = chunks.length > 1;
         step(many ? `Teil ${k + 1} von ${chunks.length} zusammenfassen` : 'Zusammenfassung und Notizen');
         let x;
         try {
-          x = await aiJson(`Du bekommst ${many ? `Teil ${k + 1} von ${chunks.length} des Lern-Dokuments` : 'das Lern-Dokument'} „${file.name}“ für das Projekt „${p.name}“${p.desc ? ' (' + p.desc + ')' : ''}. Lies ${many ? 'diesen Teil' : 'es'} vollständig.${pg && pg.pics ? ' Stellen mit „[Seite …, als Bild gelesen]“ sind abgeschriebene Seiten und Abbildungen, sie gehören genauso dazu.' : ''}${pg && pg.ocr ? OCR_NOTE : ''}
-- zusammenfassung: eine ausführliche Lern-Zusammenfassung auf Deutsch${many ? ' für diesen Teil' : ''}. ${SUM_RULES}
-- ${NOTES_JSON(many ? '6 bis 15' : '6 bis 20')}${wishLine()}
-Antworte nur mit JSON: {"zusammenfassung": ${SUM_JSON}, "notizen": [{"titel": "kurzer Titel", "inhalt": "2 bis 8 Sätze"}]}
-Schon vorhandene Notizen (nicht doppelt): ${known()}
-
-${many ? 'Teil' : 'Dokument'}:
-${chunks[k]}`, { schema: SCHEMA.docsum, maxTokens: 32000, purpose: 'file' });
+          x = await aiJson(docsumPrompt(chunks, k, file.name, p, flags, known()), { schema: SCHEMA.docsum, maxTokens: 32000, purpose: 'file' });
         } catch (e) {
           // Der erste Teil klappt nicht: Fehler zeigen. Ein späterer: das Fertige behalten, „Neu zusammenfassen“ holt den Rest
           if (!parts.some(Boolean) || (e && e.code === 'cancelled')) throw e;
@@ -3635,27 +3746,22 @@ ${chunks[k]}`, { schema: SCHEMA.docsum, maxTokens: 32000, purpose: 'file' });
         if (x && Array.isArray(x.notizen)) notes.push(...x.notizen);
       }
       if (parts.filter(Boolean).length > 1) step('Überblick über alles');
-      sum = await joinSums(parts, file.name, p);
+      if (!batch) sum = await joinSums(parts, file.name, p);
     }
   }
   const full = text.slice(0, MAX_TEXT);
   // Echte Seitenzahl (PDF), wie viele Seiten Merki gelesen hat und wie viele davon als Bild
-  const f = { id: 'f-' + uid8(), projectId: p.id, name: file.name.slice(0, 120), kind, size: file.size, textLen: full.length, truncated: text.length > MAX_TEXT, summary: sum ? sum.ueberblick : '', ...(sum ? { sum } : {}),
-    ...(pg ? { pages: pg.all, readPages: pg.read, ...(pg.pics ? { picPages: pg.pics } : {}), ...(pg.ocr ? { ocrPages: pg.ocr } : {}), ...(pg.scan ? { scan: true } : {}) } : {}), ...(err ? { partial: aiError(err) } : {}), createdAt: Date.now() };
+  const f = { id: fid, projectId: p.id, name: file.name.slice(0, 120), kind, size: file.size, textLen: full.length, truncated: text.length > MAX_TEXT, summary: sum ? sum.ueberblick : '', ...(sum ? { sum } : {}),
+    ...(pg ? { pages: pg.all, readPages: pg.read, ...(pg.pics ? { picPages: pg.pics } : {}), ...(pg.ocr ? { ocrPages: pg.ocr } : {}), ...(pg.scan ? { scan: true } : {}) } : {}), ...(err ? { partial: aiError(err) } : {}),
+    ...(batch ? { batch: { id: batch, n: splitText(full, PART).length, at: Date.now() } } : {}), createdAt: Date.now() };
   if (full.length > PART) {
     const parts = splitText(full, PART);
     f.parts = parts.length;
     parts.forEach((t, i) => put('part', { id: `fp-${f.id.slice(2)}-${i}`, fileId: f.id, projectId: p.id, i, text: t }, false));
   } else f.text = full;
   put('file', f, false);
-  const saved = [];
-  for (const n of notes.slice(0, 60)) {
-    if (!n || !(n.titel || n.inhalt)) continue;
-    const title = String(n.titel || n.inhalt).slice(0, 120);
-    if (pNotes(p.id).some(o => o.title.toLowerCase() === title.toLowerCase())) continue;
-    put('note', { id: 'n-' + uid8(), projectId: p.id, title, text: String(n.inhalt || '').slice(0, 4000), source: 'file', fileName: f.name, createdAt: Date.now() }, false);
-    saved.push(title);
-  }
+  const saved = saveFileNotes(p, f.name, notes);
+  if (batch) batchPlan();
   return { f, saved };
 }
 // Seitenzahl für die Dateikarte: „70 Seiten (12 als Bild gelesen)“, bei Scans „70 Seiten (Scan, 58 per Texterkennung)“
@@ -3677,7 +3783,8 @@ async function handleFiles(list, p = proj()) {
     try {
       const { f, saved } = await readOne(file, p, s => job(`${base} ${s}`));
       const part = f.partial ? ' · Ein Teil hat nicht geklappt' : f.pages && f.readPages < f.pages ? ` · ${pagesText(f)}` : '';
-      toast((saved.length ? `„${f.name}“ gelesen · ${saved.length} neue Notizen` : `„${f.name}“ gespeichert`) + part, part ? 6000 : 2800);
+      if (f.batch) toast(`„${f.name}“ gespeichert · Die Zusammenfassung kommt in ein paar Minuten (halber Preis)${part}`, 6000);
+      else toast((saved.length ? `„${f.name}“ gelesen · ${saved.length} neue Notizen` : `„${f.name}“ gespeichert`) + part, part ? 6000 : 2800);
     } catch (e) {
       console.warn(e);
       const m = e && e.msg ? e.msg : e && e.code === 'lib' ? 'Das Lese-Werkzeug für diese Datei lädt gerade nicht. Versuch es später nochmal.' : e && e.code ? aiError(e) : 'Die Datei konnte nicht gelesen werden.';
@@ -3696,6 +3803,7 @@ function renderFiles() {
     const pg = pagesText(f);
     return `<div class="file"><div class="ficon">${esc(f.kind || '')}</div><div class="fbody"><b>${esc(f.name)}</b>
       <p>${fmtSize(f.size || 0)}${pg ? ` · ${pg}` : ''} · ${new Date(f.createdAt).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}${nn ? ` · ${nn} ${nn === 1 ? 'Notiz' : 'Notizen'}` : ''}</p>
+      ${f.batch ? `<p class="sum muted">Die Zusammenfassung kommt in ein paar Minuten (Sammelauftrag, halber Preis).</p>` : ''}
       ${f.summary ? `<p class="sum">${inl(f.summary)}</p>` : ''}
       ${f.sum ? `<button type="button" class="linkbtn fs-open" data-view="${esc(f.id)}">Zusammenfassung ansehen${f.sum.abschnitte.length > 1 ? ` · ${f.sum.abschnitte.length} Themen` : ''}</button>` : ''}</div>
       <div class="acts"><button type="button" data-view="${esc(f.id)}" aria-label="Zusammenfassung und Text ansehen">${ICON.eye}</button><button type="button" data-fdel="${esc(f.id)}" aria-label="Datei löschen">${ICON.trash}</button></div></div>`;
@@ -3728,14 +3836,17 @@ function viewFile(f) {
     const paint = (msg = '') => {
       const cur = state.files.find(x => x.id === f.id) || f, can = aiReady() && !!t;
       const old = cur.sum && !cur.sum.abschnitte.some(a => a.text) && !(cur.sum.fragen || []).length;
-      q('#fsPane').innerHTML = (cur.partial ? `<p class="notice">Ein Teil dieser Datei hat beim Hochladen nicht geklappt. Lösch sie und lade sie nochmal hoch, dann liest Merki alles.</p>` : '')
+      q('#fsPane').innerHTML = (cur.batch ? `<p class="notice tip">Merki fasst diese Datei gerade im Sammelauftrag zusammen, zum halben Preis. Das dauert meist ein paar Minuten, dann kommen Zusammenfassung und Notizen von selbst.</p>` : '')
+        + (cur.partial ? `<p class="notice">Ein Teil dieser Datei hat beim Hochladen nicht geklappt. Lösch sie und lade sie nochmal hoch, dann liest Merki alles.</p>` : '')
         + (cur.sum ? sumHtml(cur.sum) + (old && can ? '<p class="notice tip">Diese Zusammenfassung ist noch die kürzere Fassung. Mit „Neu zusammenfassen“ schreibt Merki sie ausführlich, mit Erklärungen, Tabellen, Diagrammen und Klausurfragen.</p>' : '')
         : cur.summary ? `<div class="fsum"><p class="fs-intro">${inl(cur.summary)}</p></div>${can ? '<p class="notice tip">Das ist noch die alte, kurze Zusammenfassung. Merki kann sie jetzt ausführlich schreiben, auf Uni-Niveau mit Erklärungen, Tabellen, Diagrammen und typischen Klausurfragen.</p>' : ''}`
         : `<p class="muted">Zu dieser Datei gibt es noch keine Zusammenfassung.</p>`)
         + (msg ? `<p class="notice err">${esc(msg)}</p>` : '')
         + (cur.sum && MODE === 'server' ? `<button class="btn alt" type="button" id="fsPdf"${working ? ' disabled' : ''}>${ICON.pdf}PDF-Lernzettel</button>` : '')
-        + (can ? `<button class="btn${cur.sum && !old ? ' alt' : ''}" type="button" id="fsGen"${working ? ' disabled' : ''}>${working ? `<span class="spin"></span>${esc(working === true ? 'Merki fasst zusammen …' : working)}` : ICON.refresh + (cur.sum ? 'Neu zusammenfassen' : 'Besser zusammenfassen')}</button>` : '');
+        + (can && cur.batch ? `<button class="btn alt" type="button" id="fsNow"${working ? ' disabled' : ''}>${working ? `<span class="spin"></span>${esc(working === true ? 'Merki fasst zusammen …' : working)}` : ICON.refresh + 'Sofort zusammenfassen (voller Preis)'}</button>` : '')
+        + (can && !cur.batch ? `<button class="btn${cur.sum && !old ? ' alt' : ''}" type="button" id="fsGen"${working ? ' disabled' : ''}>${working ? `<span class="spin"></span>${esc(working === true ? 'Merki fasst zusammen …' : working)}` : ICON.refresh + (cur.sum ? 'Neu zusammenfassen' : 'Besser zusammenfassen')}</button>` : '');
       const b = q('#fsGen'); if (b) b.onclick = regen;
+      const nw = q('#fsNow'); if (nw) nw.onclick = now;
       const z = q('#fsPdf'); if (z) z.onclick = () => lernzettel(z, () => sumPdf(cur, cur.sum, state.projects.find(x => x.id === cur.projectId)));
     };
     const regen = async () => {
@@ -3750,6 +3861,16 @@ function viewFile(f) {
         if (cur) put('file', { ...cur, sum, summary: sum.ueberblick || cur.summary }, false);
         renderFiles();
       } catch (e) { msg = aiError(e); }
+      working = false;
+      if (el.isConnected) paint(msg);
+    };
+    // Nicht auf den Sammelauftrag warten
+    const now = async () => {
+      if (working) return;
+      working = true; paint();
+      let msg = '';
+      try { await batchNow(f, s => { working = s ? `Merki fasst zusammen: ${s} …` : true; const b = q('#fsNow'); if (b) b.innerHTML = '<span class="spin"></span>' + esc(working === true ? 'Merki fasst zusammen …' : working); }); }
+      catch (e) { msg = aiError(e); }
       working = false;
       if (el.isConnected) paint(msg);
     };
@@ -3922,6 +4043,7 @@ async function lernzettel(btn, make) {
   }
 }
 function deleteFile(f) {
+  if (f.batch) batchPost('cancel', f.batch.id); // Sammelauftrag läuft noch: abbrechen, kostet dann nichts mehr
   fileParts(f).forEach(x => remove('part', x.id, false));
   remove('file', f.id);
 }
@@ -3968,7 +4090,7 @@ function projectMenu() {
     el.querySelector('#mDel').onclick = () => confirmSheet('Projekt löschen?', `„${p.name}“ mit allen Chats, Notizen, Dateien und Karteikarten ist danach weg.`, 'Löschen', () => {
       pNotes(p.id).forEach(n => remove('note', n.id, false));
       state.inks.filter(x => x.projectId === p.id).forEach(x => remove('ink', x.id, false));
-      pFiles(p.id).forEach(f => { fileParts(f).forEach(x => remove('part', x.id, false)); remove('file', f.id, false); });
+      pFiles(p.id).forEach(f => { if (f.batch) batchPost('cancel', f.batch.id); fileParts(f).forEach(x => remove('part', x.id, false)); remove('file', f.id, false); });
       pChats(p.id).forEach(c => remove('chat', c.id, false));
       pCards(p.id).forEach(c => remove('card', c.id, false));
       state.plans.filter(x => x.projectId === p.id).forEach(x => remove('plan', x.id, false));

@@ -5,6 +5,7 @@
  * - /api/data  speichert Notizen, Chats usw. im Durable Object (Handy und Tablet gleich)
  * - /api/ai    fragt Claude mit dem API-Schlüssel aus dem Cloudflare-Secret
  *              und reicht die Antwort als Stream an die App durch
+ * - /api/batch Zusammenfassungen großer Dateien als Sammelauftrag (halber Preis, kommt später)
  * - /api/tts   macht aus einem Satz echte Sprache (Google oder ElevenLabs), wenn dafür
  *              ein Schlüssel hinterlegt ist. Sonst spricht Merki mit der Gerätestimme.
  *
@@ -13,6 +14,7 @@
  */
 import Anthropic from '@anthropic-ai/sdk';
 import type { Store, DocOp } from './store';
+import { berlinDay, costUsd, emptyUsage, takeUsage, type RawUsage, type UsageSum } from './cost';
 
 export { Store } from './store';
 
@@ -84,11 +86,6 @@ function fail(status: number, code: string, msg: string): Response {
 
 function store(env: Env) {
   return env.STORE.get(env.STORE.idFromName('main'));
-}
-
-/** Heutiges Datum in Deutschland, z. B. 2026-10-01 (dann beginnt das Tageslimit neu). */
-function berlinDay(): string {
-  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(new Date());
 }
 
 function budgetUsd(env: Env): number {
@@ -193,27 +190,6 @@ const PURPOSES = new Set(['chat', 'ask', 'voice', 'file', 'order', 'learn', 'ink
 
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
-/** Preise in US-Dollar pro 1 Million Tokens: Eingabe, Ausgabe, Cache schreiben, Cache lesen. */
-const PRICES: [RegExp, number, number, number, number][] = [
-  [/opus-5-5/, 4, 20, 5, 0.2],
-  [/opus/, 5, 25, 6.25, 0.5],
-  [/sonnet/, 2, 10, 2.5, 0.2],
-  [/haiku/, 1, 5, 1.25, 0.1],
-  [/fable|mythos/, 10, 50, 12.5, 1],
-];
-
-interface UsageSum {
-  input: number;
-  output: number;
-  cacheWrite: number;
-  cacheRead: number;
-}
-
-function costUsd(model: string, u: UsageSum): number {
-  const p = PRICES.find(([re]) => re.test(model)) ?? PRICES[1];
-  return (u.input * p[1] + u.output * p[2] + u.cacheWrite * p[3] + u.cacheRead * p[4]) / 1_000_000;
-}
-
 function toAnthropicContent(content: string | ClientBlock[]): string | Anthropic.Beta.BetaContentBlockParam[] | null {
   if (typeof content === 'string') return content;
   if (!Array.isArray(content) || content.length > 40) return null;
@@ -259,7 +235,7 @@ class UsageMeter {
   private carry = '';
   private tail = '';
   private models = new Set<string>();
-  private usage: UsageSum = { input: 0, output: 0, cacheWrite: 0, cacheRead: 0 };
+  private usage: UsageSum = emptyUsage();
   private deltas = 0;
   private finished = false;
 
@@ -306,11 +282,7 @@ class UsageMeter {
   }
 
   private take(u: RawUsage | undefined): void {
-    if (!u) return;
-    this.usage.input = Math.max(this.usage.input, u.input_tokens || 0);
-    this.usage.output = Math.max(this.usage.output, u.output_tokens || 0);
-    this.usage.cacheWrite = Math.max(this.usage.cacheWrite, u.cache_creation_input_tokens || 0);
-    this.usage.cacheRead = Math.max(this.usage.cacheRead, u.cache_read_input_tokens || 0);
+    takeUsage(this.usage, u);
   }
 
   /** Kosten in US-Dollar. Bei abgebrochenen Antworten wird die Ausgabe geschätzt. Bei mehreren Modellen zählt das teuerste. */
@@ -321,22 +293,19 @@ class UsageMeter {
   }
 }
 
-interface RawUsage {
-  input_tokens?: number | null;
-  output_tokens?: number | null;
-  cache_creation_input_tokens?: number | null;
-  cache_read_input_tokens?: number | null;
-}
-
 const enc = new TextEncoder();
 /** Hält die Verbindung am Handy offen, wenn Claude länger nachdenkt (SSE-Kommentar, wird ignoriert). */
 const PING = enc.encode(': ping\n\n');
 /** Wenn die Verbindung zu Claude mitten in der Antwort abreißt. */
 const STREAM_BROKEN = enc.encode('event: error\ndata: {"type":"error","error":{"type":"api_error","message":"stream broken"}}\n\n');
 
-async function postAi(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-  if (!env.ANTHROPIC_API_KEY) return fail(503, 'no_key', 'Auf dem Server fehlt der API-Schlüssel (Secret ANTHROPIC_API_KEY).');
-  const input = await readJson<AiRequest>(request);
+type BuiltParams = { params: Anthropic.Beta.MessageCreateParamsNonStreaming; model: string; purpose: string };
+
+/**
+ * Baut aus der Anfrage der App die Anfrage an Claude (Prüfung, Merkpunkte für den Zwischenspeicher, Modell, Aufwand).
+ * forBatch: für Sammelaufträge ohne Modell-Ersatz (fallbacks), den es dort nicht gibt.
+ */
+function buildParams(input: AiRequest | null, env: Env, forBatch = false): BuiltParams | Response {
   if (!input || !Array.isArray(input.messages) || !input.messages.length || input.messages.length > 100) {
     return fail(400, 'bad_request', 'Ungültige Anfrage.');
   }
@@ -372,13 +341,6 @@ async function postAi(request: Request, env: Env, ctx: ExecutionContext): Promis
     }
   }
 
-  const day = berlinDay();
-  const s = store(env);
-  const spent = await s.spentOn(day);
-  if (spent.usd >= budgetUsd(env)) {
-    return fail(429, 'budget', 'Das Tageslimit für die KI ist erreicht. Morgen geht es weiter.');
-  }
-
   const model = env.MODEL || DEFAULT_MODEL;
   const purpose = typeof input.purpose === 'string' && PURPOSES.has(input.purpose) ? input.purpose : 'other';
   const smart = !/haiku/.test(model); // Die kleinen Modelle kennen weder effort noch fallbacks
@@ -386,11 +348,10 @@ async function postAi(request: Request, env: Env, ctx: ExecutionContext): Promis
   // Ausführliche Zusammenfassungen langer Dateien brauchen viel Platz, darum bis 32.000
   const maxTokens = Math.min(Math.max(Number(input.maxTokens) || (kind === 'chat' ? 6000 : 8000), 1000), 32000);
 
-  const params: Anthropic.Beta.MessageCreateParamsStreaming = {
+  const params: Anthropic.Beta.MessageCreateParamsNonStreaming = {
     model,
     max_tokens: maxTokens,
     messages,
-    stream: true,
     ...(system.length ? { system } : {}),
     // Im Chat wiederholt sich der Anfang jeder Anfrage: den Rest automatisch zwischenspeichern
     ...(kind === 'chat' ? { cache_control: { type: 'ephemeral' as const } } : {}),
@@ -403,8 +364,24 @@ async function postAi(request: Request, env: Env, ctx: ExecutionContext): Promis
         }
       : {}),
     // Lehnt das Modell eine harmlose Frage fälschlich ab, macht automatisch ein anderes Claude-Modell weiter
-    ...(smart ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const } : {}),
+    ...(smart && !forBatch ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const } : {}),
   };
+  return { params, model, purpose };
+}
+
+async function postAi(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  if (!env.ANTHROPIC_API_KEY) return fail(503, 'no_key', 'Auf dem Server fehlt der API-Schlüssel (Secret ANTHROPIC_API_KEY).');
+  const built = buildParams(await readJson<AiRequest>(request), env);
+  if (built instanceof Response) return built;
+  const { model, purpose } = built;
+  const params: Anthropic.Beta.MessageCreateParamsStreaming = { ...built.params, stream: true };
+
+  const day = berlinDay();
+  const s = store(env);
+  const spent = await s.spentOn(day);
+  if (spent.usd >= budgetUsd(env)) {
+    return fail(429, 'budget', 'Das Tageslimit für die KI ist erreicht. Morgen geht es weiter.');
+  }
 
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, baseURL: env.ANTHROPIC_BASE_URL || undefined, maxRetries: 2 });
   const aborter = new AbortController();
@@ -480,6 +457,66 @@ async function postAi(request: Request, env: Env, ctx: ExecutionContext): Promis
       'x-content-type-options': 'nosniff',
     },
   });
+}
+
+// ---------- Sammelaufträge (halber Preis, Antwort kommt später) ----------
+// Zusammenfassungen großer Dateien schickt die App als Sammelauftrag. Der Speicher fragt regelmäßig nach,
+// holt die Ergebnisse ab, bucht die Kosten und meldet sich mit einer Mitteilung. Die App verarbeitet die Ergebnisse.
+
+interface BatchIn {
+  fileId?: string;
+  name?: string;
+  requests?: (AiRequest & { id?: string })[];
+}
+const BATCH_REQ_RE = /^[A-Za-z0-9_-]{1,64}$/;
+const MAX_BATCH_REQUESTS = 10;
+
+async function postBatch(request: Request, env: Env): Promise<Response> {
+  if (!env.ANTHROPIC_API_KEY) return fail(503, 'no_key', 'Auf dem Server fehlt der API-Schlüssel (Secret ANTHROPIC_API_KEY).');
+  const input = await readJson<BatchIn>(request);
+  if (!input || typeof input.fileId !== 'string' || !ID_RE.test(input.fileId) || !Array.isArray(input.requests) || !input.requests.length || input.requests.length > MAX_BATCH_REQUESTS) {
+    return fail(400, 'bad_request', 'Ungültige Anfrage.');
+  }
+  const requests: Anthropic.Beta.Messages.BatchCreateParams.Request[] = [];
+  const ids = new Set<string>();
+  let purpose = 'file';
+  for (const r of input.requests) {
+    if (!r || typeof r.id !== 'string' || !BATCH_REQ_RE.test(r.id) || ids.has(r.id)) return fail(400, 'bad_request', 'Ungültige Anfrage.');
+    ids.add(r.id);
+    const built = buildParams({ ...r, kind: 'json' }, env, true);
+    if (built instanceof Response) return built;
+    purpose = built.purpose;
+    requests.push({ custom_id: r.id, params: built.params as Anthropic.Beta.Messages.BatchCreateParams.Request['params'] });
+  }
+  const s = store(env);
+  if ((await s.spentOn(berlinDay())).usd >= budgetUsd(env)) {
+    return fail(429, 'budget', 'Das Tageslimit für die KI ist erreicht. Morgen geht es weiter.');
+  }
+  const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, baseURL: env.ANTHROPIC_BASE_URL || undefined, maxRetries: 2 });
+  let id: string;
+  try {
+    id = (await client.beta.messages.batches.create({ requests })).id;
+  } catch (e) {
+    const f = apiFailure(e);
+    console.error('batch error', f.code, e instanceof Anthropic.APIError ? e.status : '', e instanceof Error ? e.message : e);
+    return fail(f.status, f.code, f.msg);
+  }
+  await s.batchAdd({ id, fileId: input.fileId, name: String(input.name || '').slice(0, 120), n: requests.length, purpose });
+  return json({ batch: id });
+}
+
+async function postBatchAction(action: string, request: Request, env: Env): Promise<Response> {
+  const input = await readJson<{ ids?: unknown; id?: unknown }>(request);
+  const s = store(env);
+  if (action === 'check') {
+    const ids = Array.isArray(input?.ids) ? input!.ids.filter((x): x is string => typeof x === 'string' && x.length <= 100).slice(0, 50) : [];
+    return json({ items: await s.batchCheck(ids) });
+  }
+  const id = typeof input?.id === 'string' && input.id.length <= 100 ? input.id : '';
+  if (!id) return fail(400, 'bad_request', 'Ungültige Anfrage.');
+  if (action === 'done') await s.batchDone(id);
+  else await s.batchCancel(id);
+  return json({ ok: true });
 }
 
 async function getStatus(env: Env): Promise<Response> {
@@ -831,6 +868,9 @@ export default {
       if (url.pathname === '/api/data' && request.method === 'GET') return await getData(url, env);
       if (url.pathname === '/api/data' && request.method === 'POST') return await postData(request, env);
       if (url.pathname === '/api/ai' && request.method === 'POST') return await postAi(request, env, ctx);
+      if (url.pathname === '/api/batch' && request.method === 'POST') return await postBatch(request, env);
+      const batch = /^\/api\/batch\/(check|done|cancel)$/.exec(url.pathname);
+      if (batch && request.method === 'POST') return await postBatchAction(batch[1], request, env);
       if (url.pathname === '/api/tts' && request.method === 'POST') return await postTts(request, env);
       if (url.pathname === '/api/tts/voices' && request.method === 'GET') return await getVoices(env);
       if (url.pathname === '/api/push/key' && request.method === 'GET') return json({ key: await store(env).pushKey() });
