@@ -187,7 +187,22 @@ nav.tabs button[aria-selected="true"] svg{background:var(--marker);color:var(--m
 .saved .notebtn svg{width:14px;height:14px}
 .suggest{display:flex;flex-wrap:wrap;gap:8px}
 .suggest button{border:1px dashed var(--ink-soft);background:transparent;color:var(--ink);border-radius:999px;padding:6px 12px;font-size:14px}
-.composer{position:sticky;bottom:0;display:flex;gap:6px;align-items:flex-end;background:var(--paper);padding-top:8px}
+.composer{position:sticky;bottom:0;display:flex;flex-wrap:wrap;gap:6px;align-items:flex-end;background:var(--paper);padding-top:8px}
+.composer.over textarea{border-color:var(--ink);border-style:dashed}
+.attbar{flex:1 0 100%;display:flex;flex-direction:column;gap:6px;min-width:0}
+.attchips,.attquick{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:1px}
+.attchips::-webkit-scrollbar,.attquick::-webkit-scrollbar{display:none}
+.attchip{display:inline-flex;flex:none;align-items:center;gap:6px;background:var(--sheet);border:1px solid var(--line);border-radius:14px;padding:4px 2px 4px 6px;font-size:14px;color:var(--text)}
+.attchip img{width:40px;height:40px;object-fit:cover;border-radius:9px;display:block;flex:none}
+.attchip>svg{width:20px;height:20px;flex:none;color:var(--ink-soft)}
+.attchip .an{min-width:0;max-width:min(220px,40vw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.attchip button{border:0;background:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:var(--ink-soft);flex:none}
+.attchip button svg{width:16px;height:16px}
+.attquick button{flex:none;white-space:nowrap;border:1px solid var(--line);background:var(--sheet);border-radius:999px;padding:6px 12px;font-size:14px;font-weight:700;color:var(--ink-soft)}
+.msg.me .matt{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.msg.me .matt img{width:84px;height:84px;object-fit:cover;border-radius:10px;display:block}
+.msg.me .matt span{display:inline-flex;align-items:center;gap:5px;font-size:14px;font-weight:700}
+.msg.me .matt svg{width:16px;height:16px;flex:none}
 .composer textarea{flex:1;min-width:0;resize:none;border:1px solid var(--line);background:var(--sheet);border-radius:18px;padding:10px 14px;max-height:140px;line-height:1.4}
 .iconbtn{flex:none;width:44px;height:44px;border-radius:50%;border:0;background:var(--ink);color:var(--sheet);display:grid;place-items:center}
 .iconbtn.ghost{background:var(--sheet);color:var(--ink);border:1px solid var(--line)}
@@ -770,7 +785,8 @@ input[type=range]{accent-color:var(--ink);width:100%}
           <button type="button" data-s="Was sind die wichtigsten Begriffe, die ich können muss?">Wichtigste Begriffe</button>
         </div>
         <form class="composer" id="chatform">
-          <button type="button" class="iconbtn ghost" id="attachBtn" aria-label="Datei hochladen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m20 11-8.5 8.5a5 5 0 0 1-7-7L13 4a3.3 3.3 0 0 1 4.7 4.7L9.2 17.2a1.7 1.7 0 0 1-2.4-2.4L14.5 7"/></svg></button>
+          <div class="attbar" id="attbar" hidden></div>
+          <button type="button" class="iconbtn ghost" id="attachBtn" aria-label="Datei anhängen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m20 11-8.5 8.5a5 5 0 0 1-7-7L13 4a3.3 3.3 0 0 1 4.7 4.7L9.2 17.2a1.7 1.7 0 0 1-2.4-2.4L14.5 7"/></svg></button>
           <button type="button" class="iconbtn ghost" id="voiceBtn" aria-label="Mit Merki reden" title="Mit Merki reden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4"/></svg></button>
           <textarea id="chatin" rows="1" placeholder="Frag Merki etwas …" aria-label="Nachricht"></textarea>
           <button type="submit" class="iconbtn" id="sendBtn" aria-label="Senden"></button>
@@ -945,6 +961,7 @@ const ICON = {
 const MODE = window.claude && typeof window.claude.use === 'function' ? 'artifact' : 'server';
 
 // ---------- Zustand ----------
+let chatAtt = []; // Anhänge im Chat, die noch nicht geschickt sind
 const state = { projects: [], notes: [], chats: [], files: [], parts: [], cards: [], plans: [], progress: [], inks: [], notedocs: [], stats: { xp: 0, streak: 0, lastDay: '', name: '', theme: '', design: '', palette: '', lookV: 3, help: {} }, legacyChat: null };
 // Aussehen: design (pastell oder klassisch) und palette (eine von sechs Farben, leer heißt Standardfarbe des Designs).
 // Ältere Stände: vor lookV 2 gab es nur das klassische Design, jetzt zeigt es dieselbe Farbe in Pastell (Mitternacht war dort der Standard).
@@ -1388,12 +1405,19 @@ async function streamAi(body, signal, onText) {
   if (stop === 'max_tokens') throw { code: 'too_long' };
   try { return JSON.parse(text); } catch { throw { code: 'invalid_json' }; }
 }
-async function aiChat({ system, turns, signal, onText, maxTokens, purpose }) {
+async function aiChat({ system, turns, signal, onText, maxTokens, purpose, images }) {
+  const pics = images && images.length ? images : null;
   if (MODE === 'artifact') {
-    const { text } = await sample([{ role: 'user', content: system.map(b => b.text).join('\n\n') }, ...turns], { cache: false, signal, onText: ({ text: t }) => onText && onText(t) });
+    const { text } = await sample([{ role: 'user', content: system.map(b => b.text).join('\n\n') }, ...turns], { cache: false, signal, ...(pics ? { images: pics } : {}), onText: ({ text: t }) => onText && onText(t) });
     return text;
   }
-  return streamAi({ kind: 'chat', system, messages: turns, purpose, ...(maxTokens ? { maxTokens } : {}) }, signal, onText);
+  // Bilder gehören zur neuesten Nachricht (nur für diese eine Anfrage, im Verlauf steht nur der Name)
+  let messages = turns;
+  if (pics) {
+    const last = turns[turns.length - 1];
+    messages = [...turns.slice(0, -1), { role: last.role, content: [...(await Promise.all(pics.map(imageBlock))), { type: 'text', text: last.content }] }];
+  }
+  return streamAi({ kind: 'chat', system, messages, purpose, ...(maxTokens ? { maxTokens } : {}) }, signal, onText);
 }
 async function aiJson(prompt, { schema, images, tier = 'default', signal, maxTokens, purpose } = {}) {
   if (MODE === 'artifact') return sample.json(prompt, { ...(images ? { images } : {}), modelTier: tier === 'quick' ? 'quick' : 'default', cache: false, signal });
@@ -1486,7 +1510,7 @@ function projectContext(p, query, key) {
 }
 // Verlauf für die KI. Der Anfang rückt nur in Schritten weiter, damit der Verlauf zwischengespeichert bleibt.
 function windowTurns(all, maxTurns, maxChars, step = 6) {
-  const list = all.map(t => ({ role: t.role, content: t.content }));
+  const list = all.map(t => ({ role: t.role, content: t.att && t.att.length ? `${t.content}\n\n[Angehängt: ${t.att.map(a => a.name).join(', ')}]` : t.content }));
   let start = Math.max(0, Math.ceil((list.length - maxTurns) / step) * step);
   while (start < list.length - 2 && JSON.stringify(list.slice(start)).length > maxChars) start += step;
   start = Math.min(start, Math.max(0, list.length - 1));
@@ -1606,7 +1630,7 @@ function readAloud(t, btn) {
   next();
 }
 function chatTurnHtml(t, i) {
-  if (t.role === 'user') return `<div class="msg me">${esc(t.content).replace(/\n/g, '<br>')}</div>`;
+  if (t.role === 'user') return `<div class="msg me">${t.att && t.att.length ? `<div class="matt">${t.att.map(a => a.thumb ? `<img src="${esc(a.thumb)}" alt="${esc(a.name)}">` : `<span>${ICON.file}${esc(a.name)}</span>`).join('')}</div>` : ''}${esc(t.content).replace(/\n/g, '<br>')}</div>`;
   const can = Number.isInteger(i) && !t.err && /[\p{L}\p{N}]/u.test(t.content);
   const btn = !can ? '' : (t.noted ? notedHtml(t.noted) : `<button type="button" class="notebtn" data-tnote="${i}">${ICON.pin}Als Notiz</button>`) + (canRead() ? readBtnHtml(t, i) : '');
   return `<div class="msg ai">${md(t.content)}${t.saved && t.saved.length ? `<div class="saved">${t.saved.map(x => `<span>${ICON.pin}${esc(x)}</span>`).join('')}</div>` : ''}${btn ? `<div class="msg-acts">${btn}</div>` : ''}</div>`;
@@ -1658,10 +1682,10 @@ function renderChat() {
   const log = $('#chatlog');
   if (!c || !c.turns.length) {
     const nf = pFiles().length, nn = pNotes().length;
-    log.innerHTML = `<div class="msg ai"><p>Hi, ich bin <mark>Merki</mark>. Frag mich alles zu „${esc(p.name)}“. Was du behalten willst, speicherst du mit <b>Als Notiz</b> unter meiner Antwort.</p><p>${nf || nn ? `Ich kenne hier schon ${nf} ${nf === 1 ? 'Datei' : 'Dateien'} und ${nn} ${nn === 1 ? 'Notiz' : 'Notizen'}.` : 'Mit der Büroklammer kannst du mir Dateien geben, zum Beispiel ein Skript oder ein Foto von deinen Notizen.'}</p></div>`;
+    log.innerHTML = `<div class="msg ai"><p>Hi, ich bin <mark>Merki</mark>. Frag mich alles zu „${esc(p.name)}“. Was du behalten willst, speicherst du mit <b>Als Notiz</b> unter meiner Antwort.</p><p>${nf || nn ? `Ich kenne hier schon ${nf} ${nf === 1 ? 'Datei' : 'Dateien'} und ${nn} ${nn === 1 ? 'Notiz' : 'Notizen'}.` : 'Mit der Büroklammer hängst du eine Datei oder ein Foto an, zum Beispiel ein Skript oder deine Mitschrift. Schreib dazu, was ich damit machen soll.'}</p></div>`;
   } else log.innerHTML = c.turns.map((t, i) => chatTurnHtml(t, i)).join('');
   if (readOut.key !== null && !document.querySelector('.readbtn.on')) readStop(); // anderer Chat: Vorlesen hört auf
-  $('#suggest').hidden = !!(c && c.turns.length);
+  $('#suggest').hidden = chatAtt.length > 0 || !!(c && c.turns.length);
   scrollDown();
 }
 function scrollDown() { if (ui.tab !== 'chat') return; const m = $('#main'); requestAnimationFrame(() => { m.scrollTop = m.scrollHeight; }); }
@@ -1670,7 +1694,7 @@ function getOrCreateChat(title) {
   if (!c) { c = { id: 'c-' + uid8(), projectId: ui.pid, title: title.replace(/\s+/g, ' ').slice(0, 48), turns: [], updatedAt: Date.now() }; state.chats.unshift(c); ui.cid = c.id; saveUi(); }
   return c;
 }
-function saveChat(c) { c.turns = trimTurns(c.turns); c.updatedAt = Date.now(); put('chat', { ...c }, false); }
+function saveChat(c) { c.turns = trimTurns(pruneThumbs(c.turns)); c.updatedAt = Date.now(); put('chat', { ...c }, false); }
 
 // Notizen macht die Person selbst mit dem Knopf „Als Notiz“ an Merkis Antworten. Merki schreibt nur auf ausdrücklichen Wunsch welche.
 const NOTE_RULE = `Notizen: Unter jeder deiner Antworten hat die Person einen Knopf „Als Notiz“, damit speichert sie selbst, was sie behalten will. Schreib deshalb nicht von dir aus Notizen und biete es auch nicht ständig an.
@@ -1730,38 +1754,159 @@ function helpText(spoken) {
 const wishLine = () => `\n${levelText()}` + (helpWish() ? `\nWunsch der Person (beachte ihn, wenn er hier passt, zum Beispiel Schwerpunkt oder Schwierigkeit): „${helpWish()}“` : '');
 const who = (spoken = false) => (myName() ? `\n\nDie Person, mit der du lernst, heißt ${myName()}. Sprich sie ab und zu mit ihrem Namen an.` : '') + helpText(spoken);
 
-async function send(text) {
+// ---------- Anhänge im Chat: erst anhängen, dann sagen, was Merki damit machen soll ----------
+const MAX_ATT = 4;
+const ATT_TEXT = 60000; // so viel Text aus angehängten Dateien kommt in die Frage
+const ATT_QUICK = [['Erklär mir das Thema', 'Erklär mir das Thema ausführlich.'], ['Was steht da drauf?', 'Was steht da drauf? Schreib das Wichtigste ab und erklär es mir.'], ['Frag mich dazu ab', 'Frag mich dazu ab, eine Frage nach der anderen.']];
+const isImgFile = f => (f.type || '').startsWith('image/');
+function attProblem(file) {
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  if (!(isImgFile(file) || ext === 'pdf' || ext === 'docx' || TEXT_EXT.includes(ext) || (file.type || '').startsWith('text/'))) return 'kennt Merki nicht. Es gehen PDF, Word (.docx), Text und Fotos.';
+  return file.size > 40 * 1024 * 1024 ? 'ist größer als 40 MB.' : '';
+}
+function addAtt(list) {
+  for (const file of list) {
+    const bad = attProblem(file);
+    if (bad) { toast(`„${file.name}“ ${bad}`, 5000); continue; }
+    if (chatAtt.length >= MAX_ATT) { toast(`Höchstens ${MAX_ATT} Dateien auf einmal`); break; }
+    chatAtt.push({ id: uid8(), file, url: isImgFile(file) ? URL.createObjectURL(file) : '' });
+  }
+  renderAtt();
+  if (chatAtt.length && window.matchMedia('(hover:hover)').matches) $('#chatin').focus();
+}
+function dropAtt(id) {
+  const a = chatAtt.find(x => x.id === id); if (!a) return;
+  if (a.url) URL.revokeObjectURL(a.url);
+  chatAtt = chatAtt.filter(x => x !== a); renderAtt();
+}
+function takeAtt() {
+  const files = chatAtt.map(a => a.file);
+  chatAtt.forEach(a => a.url && URL.revokeObjectURL(a.url)); chatAtt = []; renderAtt();
+  return files;
+}
+function renderAtt() {
+  const bar = $('#attbar'), on = chatAtt.length > 0;
+  bar.hidden = !on;
+  $('#chatin').placeholder = on ? 'Was soll Merki tun?' : 'Frag Merki etwas …';
+  const c = curChat(); $('#suggest').hidden = on || !!(c && c.turns.length); // die Schnellknöpfe für Anhänge ersetzen die Vorschläge
+  bar.innerHTML = on ? `<div class="attchips">${chatAtt.map(a => `<span class="attchip">${a.url ? `<img src="${a.url}" alt="">` : ICON.file}<span class="an">${esc(a.file.name)}</span><button type="button" data-unatt="${a.id}" aria-label="${esc(a.file.name)} entfernen">${ICON.close}</button></span>`).join('')}</div>
+    <div class="attquick" role="group" aria-label="Schnell fragen">${ATT_QUICK.map(([t, q]) => `<button type="button" data-attq="${esc(q)}">${t}</button>`).join('')}</div>` : '';
+}
+// Für den Verlauf: Name und bei Bildern ein kleines Vorschaubild
+async function attMeta(files) {
+  return Promise.all(files.map(async f => {
+    const a = { name: f.name.slice(0, 80) };
+    if (isImgFile(f)) {
+      const bmp = await createImageBitmap(f).catch(() => null);
+      if (bmp) {
+        const k = Math.min(1, 168 / Math.max(bmp.width, bmp.height)), cv = document.createElement('canvas');
+        cv.width = Math.max(1, Math.round(bmp.width * k)); cv.height = Math.max(1, Math.round(bmp.height * k));
+        cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
+        a.thumb = cv.toDataURL('image/jpeg', 0.6);
+      }
+    }
+    return a;
+  }));
+}
+// Vorschaubilder nur bei den letzten Anhängen behalten, damit der Chat klein bleibt
+function pruneThumbs(turns) {
+  let n = 0;
+  return turns.slice().reverse().map(t => {
+    if (!t.att || !t.att.some(a => a.thumb)) return t;
+    return ++n <= 4 ? t : { ...t, att: t.att.map(({ thumb, ...a }) => a) };
+  }).reverse();
+}
+// Was Merki für genau diese Frage bekommt: Bilder sieht Merki direkt (Scans: die ersten Seiten als Bild),
+// aus PDF, Word und Text kommt der Text mit. Bei langen Dateien der Anfang und die zur Frage passenden Stellen.
+async function attContent(files, query) {
+  const caps = await imageCaps(), maxImg = caps ? Math.min(caps.maxCount || 1, 4) : 0;
+  const images = [], texts = [], hints = [];
+  for (const file of files) {
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    if (isImgFile(file)) {
+      if (images.length < maxImg) images.push(file);
+      else hints.push(maxImg ? `Das Bild „${file.name}“ passt nicht mehr in diese Anfrage (höchstens ${maxImg} Bilder auf einmal).` : `Bilder kannst du hier nicht sehen, „${file.name}“ fehlt deshalb.`);
+      continue;
+    }
+    let text = '';
+    if (ext === 'pdf') {
+      const pdf = await pdfDoc(file), pt = await pdfPageTexts(pdf);
+      if (pt.join('').replace(/\s/g, '').length < 80) {
+        const n = Math.min(pdf.numPages, maxImg - images.length);
+        if (n > 0) images.push(...await pdfImages(pdf, Array.from({ length: n }, (_, i) => i + 1)));
+        hints.push(n > 0 ? `„${file.name}“ ist eingescannt. Du siehst ${n === 1 ? 'die erste Seite' : `die ersten ${n} Seiten`}${pdf.numPages > n ? ` von ${pdf.numPages}` : ''} als Bild.${pdf.numPages > n ? ' Die ganze Datei liest Merki danach für „Dateien“ ein.' : ''}` : `„${file.name}“ ist eingescannt und passt nicht mehr in diese Anfrage.`);
+        continue;
+      }
+      text = pt.map((t, i) => t ? `[Seite ${i + 1}]\n${t}` : '').filter(Boolean).join('\n\n');
+    } else if (ext === 'docx') {
+      await lib('docx');
+      text = (await window.mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })).value.trim();
+    } else {
+      text = (await file.text()).trim();
+      if (ext === 'html' || ext === 'htm') text = (new DOMParser().parseFromString(text, 'text/html').body.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
+    }
+    if (text) texts.push({ name: file.name, text });
+    else hints.push(`In „${file.name}“ steht kein lesbarer Text.`);
+  }
+  const per = Math.floor(ATT_TEXT / Math.max(1, texts.length));
+  let out = '';
+  for (const t of texts) {
+    let body = t.text;
+    if (body.length > per) {
+      const head = body.slice(0, Math.floor(per / 3));
+      body = `${head}\n[…]\n${filePassages([{ id: 'att-' + t.name, name: t.name, text: t.text }], query, per - head.length)}`;
+      hints.push(`„${t.name}“ ist lang. Du siehst den Anfang und die Stellen, die zur Frage passen. Die ganze Datei liest Merki danach für „Dateien“ ein.`);
+    }
+    out += `\n=== Angehängte Datei „${t.name}“ ===\n${body}\n`;
+  }
+  return { images, text: out, hints };
+}
+
+// Mit Anhängen (files): Merki beantwortet zuerst die Frage dazu. Danach liest Merki die Dateien in Ruhe
+// und legt sie unter „Dateien“ ab (Zusammenfassung und Notizen), wie beim Hochladen dort.
+async function send(text, files = []) {
   text = text.trim();
   const p = proj();
-  if (!text || busy || !aiReady() || !p) return;
+  if ((!text && !files.length) || busy || !aiReady() || !p) { if (files.length) addAtt(files); return; }
   busy = true; renderAiAvailability();
-  const c = getOrCreateChat(text);
-  c.turns.push({ role: 'user', content: text });
+  const asked = text || (files.length > 1 ? 'Erklär mir, worum es in diesen Dateien geht.' : 'Erklär mir, worum es hier geht.');
+  const c = getOrCreateChat(text || 'Datei: ' + files[0].name);
+  const att = files.length ? await attMeta(files) : null;
+  c.turns.push({ role: 'user', content: asked, ...(att ? { att } : {}) });
   renderChat();
+  const thinking = files.length ? 'Merki schaut sich das an …' : 'Merki denkt nach …';
   const bubble = document.createElement('div');
-  bubble.className = 'msg ai thinking'; bubble.textContent = 'Merki denkt nach …';
+  bubble.className = 'msg ai thinking'; bubble.textContent = thinking;
   $('#chatlog').appendChild(bubble); scrollDown();
-
-  const recent = c.turns.filter(t => t.role === 'user').slice(-3).map(t => t.content).join(' ');
-  const ctx = projectContext(p, text + ' ' + recent, 'c:' + c.id);
-  const system = [{ text: RULES + who() }, { text: ctx.files, cache: ctx.stable }, { text: ctx.notes }];
-  const turns = withPassages(windowTurns(c.turns, 20, 60000), ctx);
   ctl = new AbortController();
-  let partial = '';
+  let partial = '', ok = false;
   try {
-    const full = await aiChat({ system, turns, signal: ctl.signal, purpose: 'chat', onText: t => { partial = t; bubble.classList.toggle('thinking', !t); bubble.innerHTML = t ? md(visible(t)) : 'Merki denkt nach …'; scrollDown(); } });
+    const extra = files.length ? await attContent(files, asked) : null;
+    if (ctl.signal.aborted) throw { code: 'cancelled' };
+    const recent = c.turns.filter(t => t.role === 'user').slice(-3).map(t => t.content).join(' ');
+    const ctx = projectContext(p, asked + ' ' + recent, 'c:' + c.id);
+    const system = [{ text: RULES + who() }, { text: ctx.files, cache: ctx.stable }, { text: ctx.notes }];
+    let turns = withPassages(windowTurns(c.turns, 20, 60000), ctx);
+    if (extra && (extra.text || extra.hints.length)) {
+      const last = turns[turns.length - 1];
+      turns = [...turns.slice(0, -1), { role: 'user', content: `${extra.text}${extra.hints.map(h => '\nHinweis: ' + h).join('')}\n\n---\n\n${last.content}` }];
+    }
+    const full = await aiChat({ system, turns, images: extra && extra.images, signal: ctl.signal, purpose: 'chat', onText: t => { partial = t; bubble.classList.toggle('thinking', !t); bubble.innerHTML = t ? md(visible(t)) : thinking; scrollDown(); } });
     const saved = saveNoteLines(full, p.id);
     c.turns.push({ role: 'assistant', content: visible(full) || '…', saved });
+    ok = true;
   } catch (e) {
     if (e && e.code === 'cancelled') {
       const kept = visible((e.text || partial || ''));
-      if (kept) c.turns.push({ role: 'assistant', content: kept + ' …' });
+      if (kept) { c.turns.push({ role: 'assistant', content: kept + ' …' }); ok = true; }
       else { c.turns.pop(); if (!$('#chatin').value) { $('#chatin').value = text; autoGrow(); } }
-    } else c.turns.push({ role: 'assistant', content: (e && e.text ? visible(e.text) + '\n\n' : '') + aiError(e), err: true });
+    } else c.turns.push({ role: 'assistant', content: (e && e.text ? visible(e.text) + '\n\n' : '') + (e && e.msg ? e.msg : e && e.code === 'lib' ? 'Das Lese-Werkzeug für diese Datei lädt gerade nicht. Versuch es später nochmal.' : aiError(e)), err: true });
   }
   busy = false; ctl = null;
   if (c.turns.length) saveChat(c); else remove('chat', c.id, false);
   renderAll(); renderAiAvailability();
+  // Hat es nicht geklappt, liegen die Dateien wieder bereit. Sonst legt Merki sie unter „Dateien“ ab.
+  if (files.length) { if (ok) handleFiles(files, p); else if (!chatAtt.length) addAtt(files); }
 }
 
 // ---------- Notizen ----------
@@ -3390,32 +3535,23 @@ ${chunks[k]}`, { schema: SCHEMA.docsum, maxTokens: 32000, purpose: 'file' });
   }
   return { f, saved };
 }
-// Seitenzahl für Karte und Chat: „70 Seiten (12 als Bild gelesen)“
-// Im Chat (long): „alle 70 Seiten, 12 davon als Bild“
-function pagesText(f, long) {
+// Seitenzahl für die Dateikarte: „70 Seiten (12 als Bild gelesen)“
+function pagesText(f) {
   if (!f.pages) return '';
   if (f.readPages < f.pages) return `${f.readPages} von ${f.pages} Seiten gelesen`;
-  const n = `${long && f.pages > 1 ? 'alle ' : ''}${f.pages} ${f.pages === 1 ? 'Seite' : 'Seiten'}`;
-  if (long) return f.scan ? `${n}, eingescannt` : f.picPages ? `${n}, ${f.picPages} davon als Bild` : n;
+  const n = `${f.pages} ${f.pages === 1 ? 'Seite' : 'Seiten'}`;
   return f.scan ? `${n} (Scan)` : f.picPages ? `${n} (${f.picPages} als Bild gelesen)` : n;
 }
 let jobs = 0;
 function job(text) { $('#job').hidden = !text; $('#jobText').textContent = text || ''; }
-async function handleFiles(list, fromChat) {
-  const files = [...list], p = proj(); if (!files.length || !p) return;
+async function handleFiles(list, p = proj()) {
+  const files = [...list]; if (!files.length || !p) return;
   jobs++;
   for (const file of files) {
     const base = `Merki liest „${file.name}“ …`;
     job(base);
     try {
       const { f, saved } = await readOne(file, p, s => job(`${base} ${s}`));
-      if (fromChat && ui.pid === p.id && !busy) {
-        const c = getOrCreateChat('Datei: ' + f.name);
-        c.turns.push({ role: 'user', content: 'Datei hochgeladen: ' + f.name });
-        const more = f.partial || !(f.readPages < f.pages) ? '' : f.truncated ? ' Die Datei ist sehr lang, Merki hat die ersten 500.000 Zeichen gelesen.' : ' Mehr Seiten als Bild liest Merki in einer Datei nicht.';
-        c.turns.push({ role: 'assistant', content: `Ich habe **${f.name}** gelesen${f.pages ? ` (${pagesText(f, true)})` : ''}.${more}${f.summary ? '\n\n' + f.summary : ''}${f.sum ? `\n\nDie ganze Zusammenfassung${f.sum.abschnitte.length > 1 ? ` mit ${f.sum.abschnitte.length} Themen` : ''}, Begriffen und typischen Klausurfragen steht unter **Dateien**.` : ''}${f.partial ? `\n\nEin Teil hat gerade nicht geklappt: ${f.partial} Lösch die Datei später und lade sie nochmal hoch, dann liest Merki alles.` : ''}${saved.length ? '\n\nDas Wichtigste steht jetzt in deinen Notizen. Frag mich gern dazu oder lass dich abfragen.' : ''}`, saved });
-        saveChat(c);
-      }
       const part = f.partial ? ' · Ein Teil hat nicht geklappt' : f.pages && f.readPages < f.pages ? ` · ${pagesText(f)}` : '';
       toast((saved.length ? `„${f.name}“ gelesen · ${saved.length} neue Notizen` : `„${f.name}“ gespeichert`) + part, part ? 6000 : 2800);
     } catch (e) {
@@ -4601,9 +4737,24 @@ $('#delChat').onclick = () => { const c = curChat(); if (c && !busy) confirmShee
 $('#chatform').addEventListener('submit', e => {
   e.preventDefault();
   if (busy) { if (ctl) ctl.abort(); return; }
-  const t = $('#chatin').value; if (!t.trim() || !aiReady()) return;
-  $('#chatin').value = ''; autoGrow(); send(t);
+  const t = $('#chatin').value; if ((!t.trim() && !chatAtt.length) || !aiReady()) return;
+  $('#chatin').value = ''; autoGrow(); send(t, takeAtt());
 });
+$('#attbar').addEventListener('click', e => {
+  const x = e.target.closest('[data-unatt]');
+  if (x) { dropAtt(x.dataset.unatt); return; }
+  const q = e.target.closest('[data-attq]');
+  if (!q || busy || !aiReady()) return;
+  const typed = $('#chatin').value.trim();
+  $('#chatin').value = ''; autoGrow();
+  send(typed ? `${typed}\n${q.dataset.attq}` : q.dataset.attq, takeAtt());
+});
+// Bilder einfügen oder Dateien aufs Eingabefeld ziehen: werden angehängt
+$('#chatin').addEventListener('paste', e => { const f = [...((e.clipboardData && e.clipboardData.files) || [])]; if (f.length) { e.preventDefault(); addAtt(f); } });
+const cform = $('#chatform');
+cform.addEventListener('dragover', e => { if ([...e.dataTransfer.types].includes('Files')) { e.preventDefault(); cform.classList.add('over'); } });
+cform.addEventListener('dragleave', () => cform.classList.remove('over'));
+cform.addEventListener('drop', e => { if (!e.dataTransfer.files.length) return; e.preventDefault(); cform.classList.remove('over'); addAtt(e.dataTransfer.files); });
 const autoGrow = () => { const t = $('#chatin'); t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 140) + 'px'; };
 $('#chatin').addEventListener('input', autoGrow);
 $('#chatin').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && window.matchMedia('(hover:hover)').matches) { e.preventDefault(); if (!busy) $('#chatform').requestSubmit(); } });
@@ -4613,16 +4764,16 @@ $('#chatlog').addEventListener('click', e => {
   const b = e.target.closest('[data-tnote]'), c = curChat(); if (!b || !c) return;
   noteFromTurn(c.turns, +b.dataset.tnote, c.projectId, () => saveChat(c), b);
 });
-$('#suggest').addEventListener('click', e => { const s = e.target.closest('button'); if (!s) return; if (s.dataset.call) openCall(); else send(s.dataset.s); });
+$('#suggest').addEventListener('click', e => { const s = e.target.closest('button'); if (!s) return; if (s.dataset.call) openCall(); else send(s.dataset.s, takeAtt()); });
 $('#voiceBtn').onclick = () => openCall(); $('#voiceBtn2').onclick = () => voiceNote(false);
 let uploadFromChat = false;
 $('#attachBtn').onclick = () => { uploadFromChat = true; $('#fileIn').click(); };
 $('#uploadBtn').onclick = () => { uploadFromChat = false; $('#fileIn').click(); };
-$('#fileIn').onchange = () => { const f = [...$('#fileIn').files]; $('#fileIn').value = ''; handleFiles(f, uploadFromChat); };
+$('#fileIn').onchange = () => { const f = [...$('#fileIn').files]; $('#fileIn').value = ''; if (uploadFromChat) addAtt(f); else handleFiles(f); };
 const drop = $('#drop');
 drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
 drop.addEventListener('dragleave', () => drop.classList.remove('over'));
-drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); handleFiles(e.dataTransfer.files, false); });
+drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); handleFiles(e.dataTransfer.files); });
 $('#flist').addEventListener('click', e => {
   const v = e.target.closest('[data-view]'), d = e.target.closest('[data-fdel]');
   if (v) viewFile(state.files.find(f => f.id === v.dataset.view));
