@@ -1406,7 +1406,7 @@ async function streamAi(body, signal, onText) {
   if (stop === 'max_tokens') throw { code: 'too_long' };
   try { return JSON.parse(text); } catch { throw { code: 'invalid_json' }; }
 }
-async function aiChat({ system, turns, signal, onText, maxTokens, purpose, images }) {
+async function aiChat({ system, turns, signal, onText, maxTokens, purpose, images, ttl, tail }) {
   const pics = images && images.length ? images : null;
   if (MODE === 'artifact') {
     const { text } = await sample([{ role: 'user', content: system.map(b => b.text).join('\n\n') }, ...turns], { cache: false, signal, ...(pics ? { images: pics } : {}), onText: ({ text: t }) => onText && onText(t) });
@@ -1418,7 +1418,7 @@ async function aiChat({ system, turns, signal, onText, maxTokens, purpose, image
     const last = turns[turns.length - 1];
     messages = [...turns.slice(0, -1), { role: last.role, content: [...(await Promise.all(pics.map(imageBlock))), { type: 'text', text: last.content }] }];
   }
-  return streamAi({ kind: 'chat', system, messages, purpose, ...(maxTokens ? { maxTokens } : {}) }, signal, onText);
+  return streamAi({ kind: 'chat', system, messages, purpose, ...(maxTokens ? { maxTokens } : {}), ...(ttl ? { ttl } : {}), ...(tail === false ? { tail } : {}) }, signal, onText);
 }
 async function aiJson(prompt, { schema, images, tier = 'default', signal, maxTokens, purpose } = {}) {
   if (MODE === 'artifact') return sample.json(prompt, { ...(images ? { images } : {}), modelTier: tier === 'quick' ? 'quick' : 'default', cache: false, signal });
@@ -1473,33 +1473,41 @@ function passagesOf(f) {
   passageCache.set(key, list);
   return list;
 }
-function filePassages(files, query, budget) {
-  const q = [...new Set(words(query))]; if (!q.length) return '';
-  const all = files.flatMap(passagesOf); if (!all.length) return '';
+function pickPassages(files, query, budget) {
+  const q = [...new Set(words(query))]; if (!q.length) return [];
+  const all = files.flatMap(passagesOf); if (!all.length) return [];
   const df = {}; for (const w of q) df[w] = all.filter(p => p.w.has(w)).length;
   const scored = all.map(p => ({ p, s: q.reduce((s, w) => s + (p.w.has(w) ? Math.log(1 + all.length / df[w]) : 0), 0) })).filter(x => x.s > 0).sort((a, b) => b.s - a.s);
   const picked = []; let left = budget;
   for (const { p } of scored) { if (left < p.text.length) break; picked.push(p); left -= p.text.length; }
   picked.sort((a, b) => a.f.name.localeCompare(b.f.name) || a.i - b.i);
-  return picked.map(p => `\n[Aus „${p.f.name}“]\n${p.text}\n`).join('');
+  return picked;
 }
-// Kontext für den Chat. Claude speichert den Anfang einer Anfrage 5 Minuten zwischen, solange er gleich bleibt,
+const passageText = list => list.map(p => `\n[Aus „${p.f.name}“]\n${p.text}\n`).join('');
+const filePassages = (files, query, budget) => passageText(pickPassages(files, query, budget));
+// Kontext für den Chat. Claude speichert den Anfang einer Anfrage zwischen (die Dateien eine Stunde), solange er gleich bleibt,
 // und dann kostet er nur ein Zehntel. Darum: Dateien und Notizen bleiben während eines Gesprächs gleich
 // (key = Gespräch), und die zur Frage passenden Stellen aus langen Dateien kommen in die neue Nachricht (passages).
+// Beim Reden (pool) kommen die Stellen stattdessen in einen Vorrat, der das ganze Gespräch bleibt: Neue Stellen werden
+// unten angehängt, schon geschickte kommen beim nächsten Mal aus dem Zwischenspeicher. Beim Reden folgt Antwort auf
+// Antwort, und jedes Mal 30.000 Zeichen neu zu schicken war der größte Teil der Kosten.
 const ctxSnap = new Map();
-function projectContext(p, query, key) {
+const POOL_HEAD = 'Stellen aus den Dateien, die in diesem Gespräch bisher gebraucht wurden (neue kommen unten dazu):\n';
+const POOL_MAX = 90000, POOL_BLOCKS = 8;
+const pkey = x => x.f.id + ':' + x.i;
+function projectContext(p, query, key, pool = false) {
   const files = pFiles(p.id), total = files.reduce((n, f) => n + fileLen(f), 0);
   let ftext = '', passages = '';
   if (total <= 60000) for (const f of files) ftext += `\n=== Datei „${f.name}“ ===\n${fileText(f)}\n`;
   else {
     ftext = files.map(f => `\n[Datei „${f.name}“${f.summary ? ': ' + f.summary : ''}]`).join('');
-    passages = 'Passende Stellen aus den Dateien zu dieser Nachricht:\n' + (filePassages(files, query, 30000) || '(keine passende Stelle gefunden, nutze die Zusammenfassungen)');
+    if (!pool) passages = 'Passende Stellen aus den Dateien zu dieser Nachricht:\n' + (filePassages(files, query, 30000) || '(keine passende Stelle gefunden, nutze die Zusammenfassungen)');
   }
   const head = `Projekt: ${p.name}${p.desc ? '\nWorum es geht: ' + p.desc : ''}`;
   const now = Date.now();
   let snap = key ? ctxSnap.get(key) : null;
-  // Neu, wenn das Gespräch über 5 Minuten ruhte (dann ist nichts mehr zwischengespeichert) oder älter als 1 Stunde ist
-  if (!snap || snap.pid !== p.id || now - snap.used > 5 * 60e3 || now - snap.at > 60 * 60e3) {
+  // Neu nach 1 Stunde (so lange bleiben die Dateien zwischengespeichert, und die Notizen sind wieder aktuell)
+  if (!snap || snap.pid !== p.id || now - snap.at > 60 * 60e3) {
     const notes = digest(pNotes(p.id), 8000, n => `- ${n.title}: ${noteBody(n)}\n`) || '(noch keine)\n';
     const n = p.examDate ? daysBetween(today(), p.examDate) : null;
     const exam = n !== null && n >= 0 ? `\nPrüfung: ${fmtDay(p.examDate, { weekday: 'long', day: 'numeric', month: 'long' })} (${n === 0 ? 'heute' : n === 1 ? 'morgen' : 'in ' + n + ' Tagen'}).` : '';
@@ -1507,7 +1515,17 @@ function projectContext(p, query, key) {
   }
   snap.used = now;
   if (key) ctxSnap.set(key, snap);
-  return { files: files.length ? `${head}\n\nHochgeladene Dateien:${ftext}` : head, stable: true, notes: snap.notes, passages };
+  if (pool && total > 60000) {
+    const picked = pickPassages(files, query, 30000);
+    let pl = snap.pool, fresh = pl ? picked.filter(x => !pl.keys.has(pkey(x))) : picked;
+    if (fresh.length) {
+      // Zu voll: neu anfangen, mit den Stellen zu dieser Nachricht
+      if (!pl || pl.chars + passageText(fresh).length > POOL_MAX || pl.blocks.length >= POOL_BLOCKS) { pl = snap.pool = { blocks: [], keys: new Set(), chars: 0 }; fresh = picked; }
+      const add = (pl.blocks.length ? '' : POOL_HEAD) + passageText(fresh);
+      pl.blocks.push(add); pl.chars += add.length; fresh.forEach(x => pl.keys.add(pkey(x)));
+    }
+  }
+  return { files: files.length ? `${head}\n\nHochgeladene Dateien:${ftext}` : head, notes: snap.notes, passages, pool: (snap.pool && snap.pool.blocks.slice()) || [] };
 }
 // Verlauf für die KI. Der Anfang rückt nur in Schritten weiter, damit der Verlauf zwischengespeichert bleibt.
 function windowTurns(all, maxTurns, maxChars, step = 6) {
@@ -1710,10 +1728,11 @@ Nutze die Dateien und Notizen des Projekts. Wenn du etwas daraus hast, sag aus w
 const VOICE_RULES = `Du bist "Merki", ein herzlicher Lernbegleiter in der Lern-App "Merkheft". Gerade redet ihr miteinander: Deine Antwort wird laut vorgelesen, und die Person antwortet mit ihrer Stimme. Die Spracherkennung versteht manchmal einzelne Wörter falsch. Wenn etwas komisch klingt, rate sinnvoll oder frag kurz nach.
 So redest du:
 - Wie eine gute Freundin, die beim Lernen hilft: locker, warm, natürlich, auf Deutsch, mit „du“.
-- Kurz: meistens 1 bis 3 Sätze, höchstens 5. Lieber eine Rückfrage als ein langer Vortrag.
+- Kurz: meistens 2 bis 3 Sätze, nie mehr als 5 (etwa eine halbe Minute Sprechzeit). Lieber eine Rückfrage als ein langer Vortrag. Ein großes Thema teilst du auf: erst das Wichtigste, dann fragen, ob du weitermachen sollst.
 - Nur gesprochene Sprache: keine Listen, keine Aufzählungszeichen, kein Fettdruck, keine Emojis, keine Überschriften. Schreib Abkürzungen, Zahlen und Formeln so, wie man sie ausspricht, zum Beispiel „zum Beispiel“ statt „z. B.“ und „H zwei O“ statt „H2O“.
 - Halte das Gespräch am Laufen, zum Beispiel mit einer kurzen Frage am Ende.
 - Beim Abfragen: immer nur eine Frage. Warte auf die Antwort, sag ehrlich, ob sie stimmt, erklär kurz das Wichtigste und stell dann die nächste Frage. Lob, wenn etwas gut war.
+- Wenn du gerade eine Übung oder Frage gestellt hast, ist ihre nächste Nachricht fast immer die Antwort darauf, auch wenn sie bruchstückhaft klingt oder die Spracherkennung Wörter falsch verstanden hat. Bleib dann bei deiner Übung und beziehe dich darauf.
 - Nutze die Dateien und Notizen des Projekts, wenn sie passen.
 
 ` + NOTE_RULE;
@@ -1738,8 +1757,13 @@ const LEVEL_TEXT = {
   schule: 'Niveau Schule: Erkläre verständlich und mit einfachen Worten, Fachbegriffe immer kurz erklären.',
 };
 const levelText = () => LEVEL_TEXT[helpOf().level] || LEVEL_TEXT.uni;
+// Im Gespräch: genauso fachlich, aber in kurzen gesprochenen Häppchen (sonst hat „Uni“ lange Vorträge ausgelöst)
+const LEVEL_SPOKEN = {
+  uni: 'Niveau Universität: Die Person bereitet sich auf Klausuren an der Uni vor. Bleib fachlich genau und nutze die richtigen Fachbegriffe, aber erklär in kurzen gesprochenen Häppchen. Braucht ein Thema mehr, sag erst das Wichtigste und frag, ob du weitermachen sollst.',
+  schule: 'Niveau Schule: Erkläre mit einfachen Worten, Fachbegriffe immer kurz erklären.',
+};
 function helpText(spoken) {
-  const h = helpOf(), out = [levelText()];
+  const h = helpOf(), out = [spoken ? LEVEL_SPOKEN[h.level] || LEVEL_SPOKEN.uni : levelText()];
   if (h.len === 'kurz') out.push(spoken ? 'Antworte besonders kurz, meistens 1 bis 2 Sätze.' : 'Antworte besonders kurz und knapp, nur das Wichtigste.');
   if (h.len === 'lang') out.push(spoken ? 'Du darfst etwas ausführlicher erklären, bis zu 6 Sätze.' : 'Erkläre ausführlich und gründlich, mit Hintergründen und Zusammenhängen.');
   if (h.tone === 'sachlich') out.push('Bleib sachlich und ruhig, wenig Smalltalk, keine Emojis.');
@@ -1749,7 +1773,8 @@ function helpText(spoken) {
   if (h.steps) out.push('Erkläre Schritt für Schritt in kleinen Häppchen und frag zwischendurch, ob alles klar ist.');
   const wish = helpWish();
   if (wish) out.push(`Das wünscht sich die Person von dir (in ihren eigenen Worten, beachte es, solange es zum Lernen passt): „${wish}“`);
-  return out.length ? '\n\nSo möchte die Person mit dir lernen. Das gilt vor den Regeln oben:\n- ' + out.join('\n- ') : '';
+  const head = spoken ? 'So möchte die Person mit dir lernen. Das gilt vor den Regeln oben, nur die Länge nicht: Alles wird vorgelesen, darum bleibst du kurz.' : 'So möchte die Person mit dir lernen. Das gilt vor den Regeln oben:';
+  return out.length ? `\n\n${head}\n- ` + out.join('\n- ') : '';
 }
 // Für Quiz, Karten und Co.: nur der Wunsch aus den Einstellungen
 const wishLine = () => `\n${levelText()}` + (helpWish() ? `\nWunsch der Person (beachte ihn, wenn er hier passt, zum Beispiel Schwerpunkt oder Schwierigkeit): „${helpWish()}“` : '');
@@ -1886,13 +1911,14 @@ async function send(text, files = []) {
     if (ctl.signal.aborted) throw { code: 'cancelled' };
     const recent = c.turns.filter(t => t.role === 'user').slice(-3).map(t => t.content).join(' ');
     const ctx = projectContext(p, asked + ' ' + recent, 'c:' + c.id);
-    const system = [{ text: RULES + who() }, { text: ctx.files, cache: ctx.stable }, { text: ctx.notes }];
+    const system = [{ text: RULES + who() }, { text: ctx.files, cache: '1h' }, { text: ctx.notes }];
     let turns = withPassages(windowTurns(c.turns, 20, 60000), ctx);
     if (extra && (extra.text || extra.hints.length)) {
       const last = turns[turns.length - 1];
       turns = [...turns.slice(0, -1), { role: 'user', content: `${extra.text}${extra.hints.map(h => '\nHinweis: ' + h).join('')}\n\n---\n\n${last.content}` }];
     }
-    const full = await aiChat({ system, turns, images: extra && extra.images, signal: ctl.signal, purpose: 'chat', onText: t => { partial = t; bubble.classList.toggle('thinking', !t); bubble.innerHTML = t ? md(visible(t)) : thinking; scrollDown(); } });
+    // Textstellen und Anhänge gelten nur für diese eine Anfrage: die neueste Nachricht dann nicht zwischenspeichern
+    const full = await aiChat({ system, turns, images: extra && extra.images, signal: ctl.signal, purpose: 'chat', ttl: '1h', tail: !ctx.passages && !extra, onText: t => { partial = t; bubble.classList.toggle('thinking', !t); bubble.innerHTML = t ? md(visible(t)) : thinking; scrollDown(); } });
     const saved = saveNoteLines(full, p.id);
     c.turns.push({ role: 'assistant', content: visible(full) || '…', saved });
     ok = true;
@@ -2522,12 +2548,12 @@ function openPad(orig, opts = {}) {
     const title = ti.value.trim() || n.title || '(ohne Titel)';
     const body = [ta.value.trim(), strokes.length && n.inkText ? 'Handschrift: ' + n.inkText : '', strokes.length && !n.inkText ? '(Dazu gibt es Handschrift, die noch nicht gelesen ist.)' : ''].filter(Boolean).join('\n');
     const ctx = projectContext(p, text + ' ' + title + ' ' + body.slice(0, 400), 'n:' + n.id);
-    const system = [{ text: ASK_RULES + who() }, { text: ctx.files, cache: ctx.stable }, { text: `${ctx.notes}\n\nDie Notiz, um die es geht:\nTitel: ${title}\n${body || '(leer)'}` }];
+    const system = [{ text: ASK_RULES + who() }, { text: ctx.files, cache: '1h' }, { text: `${ctx.notes}\n\nDie Notiz, um die es geht:\nTitel: ${title}\n${body || '(leer)'}` }];
     const turns = withPassages(windowTurns(qa, 16, 40000), ctx);
     askCtl = new AbortController();
     let partial = '';
     try {
-      const full = await aiChat({ system, turns, signal: askCtl.signal, purpose: 'ask', onText: t => { partial = t; bubble.classList.toggle('thinking', !t); bubble.innerHTML = t ? md(visible(t)) : 'Merki denkt nach …'; askLog.scrollTop = askLog.scrollHeight; } });
+      const full = await aiChat({ system, turns, signal: askCtl.signal, purpose: 'ask', ttl: '1h', tail: !ctx.passages, onText: t => { partial = t; bubble.classList.toggle('thinking', !t); bubble.innerHTML = t ? md(visible(t)) : 'Merki denkt nach …'; askLog.scrollTop = askLog.scrollHeight; } });
       if (dead) return;
       qa.push({ role: 'assistant', content: visible(full) || '…', saved: saveNoteLines(full, n.projectId, title) });
     } catch (e) {
@@ -2707,7 +2733,13 @@ const voice = {
     this.live.push(u);
     try { speechSynthesis.speak(u); } catch { end(); }
   },
-  stop() { readReset(); cloud.stop(); this.live = []; if (TTS_OK) { try { speechSynthesis.cancel(); } catch {} } },
+  stop() {
+    readReset(); cloud.stop(); this.live = [];
+    if (!TTS_OK) return;
+    try { speechSynthesis.cancel(); } catch {}
+    // Manche iPads reden nach dem ersten Stopp noch weiter: kurz danach nochmal
+    setTimeout(() => { try { if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel(); } catch {} }, 150);
+  },
 };
 const canSpeak = () => TTS_OK || cloudReady();
 
@@ -2864,38 +2896,41 @@ function nextEnd(s, from, min) {
 // Satz für Satz in die Warteschlange: kurze Aufträge bleiben auf keinem Gerät hängen
 function sayReady(clean) { for (let end; (end = nextEnd(clean, call.spoken, call.spoken ? 24 : 1)) > 0;) { say(clean.slice(call.spoken, end)); call.spoken = end; } }
 // Einmal zuhören, bis sie eine kurze Pause macht
-function listenOnce({ onText, onDone, onFail }) {
+// wait: so lange auf den ersten Laut warten, danach gilt es als Stille
+function listenOnce({ onText, onDone, onFail, wait = 0 }) {
   const SR = SR_OF();
   if (!SR) { onFail('unsupported'); return null; }
   let rec;
   try { rec = new SR(); } catch { onFail('unsupported'); return null; }
   rec.lang = 'de-DE'; rec.continuous = false; rec.interimResults = true;
   try { rec.maxAlternatives = 1; } catch {}
-  let fin = '', mid = '', err = '', over = false, quiet = 0;
+  let fin = '', mid = '', err = '', over = false, quiet = 0, still = false;
   const cap = setTimeout(() => { try { rec.stop(); } catch {} }, 45000);
+  const first = wait ? setTimeout(() => { if (text()) return; still = true; try { rec.abort(); } catch {} }, wait) : 0;
   const text = () => (fin + ' ' + mid).replace(/\s+/g, ' ').trim();
   rec.onresult = e => {
     fin = ''; mid = '';
     for (let i = 0; i < e.results.length; i++) { const r = e.results[i]; if (r.isFinal) fin += r[0].transcript + ' '; else mid += r[0].transcript + ' '; }
+    if (text()) clearTimeout(first);
     onText(text());
     clearTimeout(quiet); quiet = setTimeout(() => { try { rec.stop(); } catch {} }, 1700);
   };
   rec.onerror = e => { err = e.error || 'error'; };
   rec.onend = () => {
-    clearTimeout(quiet); clearTimeout(cap);
+    clearTimeout(quiet); clearTimeout(cap); clearTimeout(first);
     if (over) return; over = true;
     const t = text();
-    if (t) onDone(t); else onFail(err || 'no-speech');
+    if (t) onDone(t); else onFail(still ? 'no-speech' : err || 'no-speech');
   };
   try { rec.start(); } catch { over = true; clearTimeout(cap); onFail('start'); return null; }
   return {
     stop: () => { try { rec.stop(); } catch {} },
-    abort: () => { if (over) return; over = true; clearTimeout(quiet); clearTimeout(cap); try { rec.abort(); } catch {} },
+    abort: () => { if (over) return; over = true; clearTimeout(quiet); clearTimeout(cap); clearTimeout(first); try { rec.abort(); } catch {} },
   };
 }
 
 const call = { open: false, blocked: false };
-const CALL_TEXT = { listening: 'Ich höre dir zu …', thinking: 'Merki denkt nach …', speaking: 'Merki spricht …', paused: 'Tippe aufs Mikrofon, wenn du weiterreden willst.', typing: 'Schreib deine Antwort unten.' };
+const CALL_TEXT = { listening: 'Ich höre dir zu …', thinking: 'Merki denkt nach …', speaking: 'Merki spricht … Tippe irgendwo, um zu unterbrechen.', paused: 'Tippe aufs Mikrofon, wenn du weiterreden willst.', typing: 'Schreib deine Antwort unten.' };
 function openCall(opts = {}) {
   const p = proj();
   if (!p || call.open || padClose) return;
@@ -2905,7 +2940,7 @@ function openCall(opts = {}) {
   const name = myName(), quiz = !!opts.quiz;
   Object.assign(call, {
     open: true, pid: p.id, quiz, turn: 0, gen: 0, pending: 0, spoken: 0, streamDone: true, answer: '', ctl: null, rec: null,
-    stopReq: false, misses: 0, inflight: 0, state: '', watch: 0, wake: null, micOff: false,
+    stopReq: false, misses: 0, inflight: 0, state: '', watch: 0, wake: null, micOff: false, said: '', until: 0,
     muted: !canSpeak() || pref('callMute', '0') === '1',
     typing: MODE === 'artifact' || !SR_OF() || call.blocked, // im Claude-Artifact ist das Mikrofon gesperrt
     chat: { id: 'c-' + uid8(), projectId: p.id, title: '', turns: [], updatedAt: Date.now() },
@@ -2928,6 +2963,11 @@ function openCall(opts = {}) {
   call.el = el; call.unfit = fitViewport(el);
   el.querySelector('#callEnd').onclick = hangUp;
   el.querySelector('#callMain').onclick = mainTap;
+  // Während Merki spricht oder nachdenkt, unterbricht ein Tippen irgendwo auf den Bildschirm (nicht nur der Knopf)
+  el.addEventListener('click', e => {
+    if (e.target.closest('button, input, form, a, .saved')) return;
+    if (call.state === 'speaking' || call.state === 'thinking') mainTap();
+  });
   el.querySelector('#callMute').onclick = toggleMute;
   el.querySelector('#callMic').onclick = toggleMic;
   el.querySelector('#callSwitch').onclick = () => { if (call.typing) toVoice(); else toTyping(''); };
@@ -2941,7 +2981,7 @@ function openCall(opts = {}) {
   document.addEventListener('visibilitychange', callVis);
   keepAwake(true);
   renderMute();
-  showAi(call.greeting);
+  showAi(call.greeting); call.said = call.greeting;
   // Der Gruß wird direkt beim Antippen gesprochen: Erst das schaltet die Sprachausgabe auf dem iPhone frei
   if (quiz) {
     setState('thinking');
@@ -3013,9 +3053,11 @@ function toggleMic() {
 function say(text) {
   const gen = call.gen;
   call.pending++;
+  // Geschätztes Ende (etwa 14 Zeichen pro Sekunde): vorher hört Merki nicht von selbst zu, auch wenn das Gerät „fertig“ meldet
+  call.until = Math.max(call.until, Date.now()) + 600 + String(text).length * 70 / Math.min(1.5, Math.max(0.6, +pref('rate', '1') || 1));
   voice.say(text, () => { if (gen !== call.gen) return; call.pending = Math.max(0, call.pending - 1); maybeDone(); });
 }
-function hush() { call.gen++; call.pending = 0; voice.stop(); }
+function hush() { call.gen++; call.pending = 0; call.until = 0; voice.stop(); }
 // Falls das Gerät das Ende eines Satzes nicht meldet: nach 2 Sekunden Stille trotzdem weitermachen,
 // und wenn die Sprachausgabe hängt (25 Sekunden ohne fertigen Satz), auch
 function startWatch() {
@@ -3024,9 +3066,9 @@ function startWatch() {
     if (!call.open || call.state !== 'speaking') { clearInterval(call.watch); return; }
     const cloudBusy = cloud.live();
     if (call.pending !== last || cloudBusy) { last = call.pending; still = 0; } else still++;
-    if (call.streamDone && call.pending && still >= 50) { hush(); maybeDone(); return; }
+    if (call.streamDone && call.pending && still >= 50 && Date.now() > call.until + 5000) { hush(); maybeDone(); return; }
     if (!call.streamDone || !call.pending || cloudBusy || !TTS_OK || speechSynthesis.speaking || speechSynthesis.pending) { strikes = 0; return; }
-    if (++strikes >= 4) { call.pending = 0; maybeDone(); }
+    if (++strikes >= 4 && Date.now() > call.until) { call.pending = 0; maybeDone(); }
   }, 500);
 }
 function maybeDone() {
@@ -3037,10 +3079,24 @@ function maybeDone() {
 function afterSpeaking() {
   if (call.typing) { setState('typing'); return; }
   if (document.visibilityState === 'hidden') { setState('paused'); return; }
-  listen(true);
+  const my = call.turn;
+  setTimeout(() => { if (call.open && call.turn === my && (call.state === 'speaking' || call.state === 'thinking')) listen(true); }, 400);
 }
 function stopListening() { if (call.rec) { const r = call.rec; call.rec = null; r.abort(); } }
-function listen(auto) {
+// Hat das Mikrofon nur Merkis eigene Stimme gehört (das Ende der Antwort klingt noch nach)?
+// Erkennbar daran, dass fast alle Wortpaare genau so in Merkis letzter Antwort vorkommen.
+function isEcho(heard) {
+  const norm = x => String(x).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(' ').filter(Boolean);
+  const h = norm(heard); if (h.length < 5) return false;
+  const a = norm(call.said || ''), pairs = new Set();
+  for (let i = 1; i < a.length; i++) pairs.add(a[i - 1] + ' ' + a[i]);
+  let hit = 0; for (let i = 1; i < h.length; i++) if (pairs.has(h[i - 1] + ' ' + h[i])) hit++;
+  return hit / (h.length - 1) >= 0.75;
+}
+// Klingt nach Denkpause mitten im Satz („Das passiert in der …“, „also ähm“): noch kurz weiter zuhören
+const UNFINISHED = /(?:^|\s)(und|oder|aber|also|weil|dass|denn|wenn|ob|der|die|das|den|dem|des|ein|eine|einen|einem|einer|mit|von|vom|zu|zum|zur|in|im|an|am|auf|für|bei|aus|nach|über|unter|vor|durch|ist|sind|war|wird|werden|hat|haben|kann|muss|ähm|äh|ähh|ehm|hm|hmm|mhm|nämlich|quasi|sozusagen)$/i;
+const unfinished = t => UNFINISHED.test(String(t).trim().replace(/[\s.,;:!?…-]+$/, ''));
+function listen(auto, carry = '') {
   if (!call.open) return;
   if (call.typing) { setState('typing'); return; }
   if (call.micOff) {
@@ -3051,13 +3107,23 @@ function listen(auto) {
   call.stopReq = false;
   const my = ++call.turn;
   setState('listening');
-  showMe('');
+  showMe(carry);
+  const join = t => (carry + ' ' + t).replace(/\s+/g, ' ').trim();
   call.rec = listenOnce({
-    onText: t => { if (my === call.turn) showMe(t); },
-    onDone: t => { if (my !== call.turn) return; call.rec = null; call.misses = 0; userSaid(t); },
+    wait: carry ? 2500 : 0,
+    onText: t => { if (my === call.turn) showMe(join(t)); },
+    onDone: t => {
+      if (my !== call.turn) return;
+      call.rec = null; call.misses = 0;
+      if (!carry && isEcho(t)) { listen(true); return; } // nur Merkis Stimme gehört: weiter zuhören
+      const all = join(t);
+      if (!carry && unfinished(all)) { listen(true, all); return; } // sie denkt noch nach
+      userSaid(all);
+    },
     onFail: err => {
       if (my !== call.turn) return;
       call.rec = null;
+      if (carry) { userSaid(carry); return; } // nichts mehr dazu: das Gesagte gilt
       if (err === 'aborted') return;
       if (err === 'not-allowed' || err === 'service-not-allowed' || err === 'start') {
         // Manche Geräte erlauben das Mikrofon nur direkt nach einem Tippen
@@ -3085,14 +3151,19 @@ async function askAi() {
   const my = ++call.turn, c = call.chat;
   call.streamDone = false; call.answer = ''; call.spoken = 0;
   setState('thinking'); showSaved([]);
-  const recent = c.turns.filter(t => t.role === 'user').slice(-3).map(t => t.content).join(' ');
-  const ctx = projectContext(p, recent, 'v:' + c.id);
-  const system = [{ text: VOICE_RULES + who(true) + `\n\nDu hast das Gespräch mit diesem Satz eröffnet: „${call.greeting}“ Begrüße nicht noch einmal.` }, { text: ctx.files, cache: ctx.stable }, { text: ctx.notes }];
-  const turns = withPassages(windowTurns(c.turns, 24, 40000), ctx);
+  // Passende Stellen auch zu Merkis letzter Antwort: Sie antwortet oft auf eine Übung, die Merki gerade gestellt hat
+  const lastAi = c.turns.slice(0, -1).reverse().find(t => t.role === 'assistant');
+  const recent = (lastAi ? lastAi.content.slice(-600) + ' ' : '') + c.turns.filter(t => t.role === 'user').slice(-3).map(t => t.content).join(' ');
+  const ctx = projectContext(p, recent, 'v:' + c.id, true);
+  // Dateien eine Stunde zwischenspeichern, den Vorrat an Textstellen und den Verlauf 5 Minuten (beim Reden geht es schnell hin und her)
+  const system = [{ text: VOICE_RULES + who(true) + `\n\nDu hast das Gespräch mit diesem Satz eröffnet: „${call.greeting}“ Begrüße nicht noch einmal.` }, { text: ctx.files, cache: '1h' }, { text: ctx.notes },
+    ...ctx.pool.map((text, i, a) => ({ text, ...(i === a.length - 1 ? { cache: true } : {}) }))];
+  const turns = windowTurns(c.turns, 24, 40000);
   const ctl = call.ctl = new AbortController();
   call.inflight = my; busy = true; renderAiAvailability();
   try {
-    const full = await aiChat({ system, turns, signal: ctl.signal, maxTokens: 2500, purpose: 'voice', onText: t => { if (my === call.turn) onAnswer(t); } });
+    // Obergrenze, damit Merki nie minutenlang redet (gut 3 Minuten Sprechzeit; die Regeln sagen 2 bis 3 Sätze)
+    const full = await aiChat({ system, turns, signal: ctl.signal, maxTokens: 700, purpose: 'voice', onText: t => { if (my === call.turn) onAnswer(t); } });
     if (my === call.turn) finishAnswer(full);
   } catch (e) {
     if (my === call.turn && !(e && e.code === 'cancelled')) answerFailed(e);
@@ -3105,6 +3176,7 @@ function onAnswer(t) {
   call.answer = t;
   const shown = visible(t);
   if (!shown) return;
+  call.said = shown;
   if (call.state === 'thinking') setState('speaking');
   showAi(shown);
   if (call.muted) return;
@@ -3115,7 +3187,7 @@ function finishAnswer(full) {
   const shown = visible(full) || '…';
   c.turns.push({ role: 'assistant', content: shown, saved });
   saveCallChat();
-  call.answer = full;
+  call.answer = full; call.said = shown;
   showAi(shown); showSaved(saved, c.turns[c.turns.length - 1]);
   if (!call.muted) {
     const clean = speakable(shown);

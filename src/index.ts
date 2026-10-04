@@ -177,13 +177,18 @@ type ClientBlock =
 
 interface AiRequest {
   kind?: 'chat' | 'json';
-  system?: { text: string; cache?: boolean }[];
+  /** cache: Merkpunkt für den Zwischenspeicher, '1h' hält eine Stunde statt fünf Minuten */
+  system?: { text: string; cache?: boolean | '1h' }[];
   messages?: { role: 'user' | 'assistant'; content: string | ClientBlock[] }[];
   schema?: Record<string, unknown>;
   tier?: 'quick' | 'default';
   maxTokens?: number;
   /** Wofür die Anfrage ist (nur für die Kostenübersicht) */
   purpose?: string;
+  /** Wie lange der Verlauf im Zwischenspeicher bleibt: '1h' statt fünf Minuten */
+  ttl?: '1h' | '5m';
+  /** false: die neueste Nachricht nicht zwischenspeichern (sie trägt Textstellen nur für diese eine Anfrage) */
+  tail?: boolean;
 }
 
 const PURPOSES = new Set(['chat', 'ask', 'voice', 'file', 'order', 'learn', 'ink', 'vnote', 'note']);
@@ -320,14 +325,21 @@ function buildParams(input: AiRequest | null, env: Env, forBatch = false): Built
   }
   if (messages[0].role !== 'user') return fail(400, 'bad_request', 'Die erste Nachricht muss vom Nutzer sein.');
 
+  // Merkpunkte für den Zwischenspeicher, in der Reihenfolge der Anfrage. Claude erlaubt höchstens 4 pro Anfrage:
+  // 2 im System (Dateien, Textstellen im Gespräch), 1 am Verlauf, 1 automatisch am Ende
+  type Markable = { cache_control?: Anthropic.Beta.BetaCacheControlEphemeral | null };
+  const marks: Markable[] = [];
+  const hours: boolean[] = [];
+  const mark = (b: Markable, oneHour: boolean) => { marks.push(b); hours.push(oneHour); };
   const system: Anthropic.Beta.BetaTextBlockParam[] = [];
-  let marks = 0; // Claude erlaubt höchstens 4 Merkpunkte pro Anfrage, 2 davon braucht der Chat selbst
-  for (const b of Array.isArray(input.system) ? input.system.slice(0, 4) : []) {
+  let sysMarks = 0;
+  for (const b of Array.isArray(input.system) ? input.system.slice(0, 12) : []) {
     if (!b || typeof b.text !== 'string' || !b.text) continue;
-    const mark = !!b.cache && marks < 2;
-    if (mark) marks++;
-    system.push({ type: 'text', text: b.text, ...(mark ? { cache_control: { type: 'ephemeral' as const } } : {}) });
+    const block: Anthropic.Beta.BetaTextBlockParam = { type: 'text', text: b.text };
+    if (b.cache && sysMarks < 2) { sysMarks++; mark(block, b.cache === '1h'); }
+    system.push(block);
   }
+  const ttl1h = input.ttl === '1h';
 
   // Die neue Nachricht bringt im Chat oft wechselnde Textstellen aus den Dateien mit. Der Verlauf davor bleibt aber gleich:
   // Merkpunkt an der letzten Antwort, damit er beim nächsten Mal aus dem Zwischenspeicher kommt (kostet ein Zehntel)
@@ -336,9 +348,18 @@ function buildParams(input: AiRequest | null, env: Env, forBatch = false): Built
     const blocks = typeof prev.content === 'string' ? (prev.content ? [{ type: 'text' as const, text: prev.content }] : []) : prev.content;
     const last = blocks[blocks.length - 1];
     if (last && last.type === 'text' && last.text) {
-      last.cache_control = { type: 'ephemeral' };
+      mark(last, ttl1h);
       prev.content = blocks;
     }
+  }
+  // Im Chat wiederholt sich der Anfang jeder Anfrage: den Rest automatisch zwischenspeichern,
+  // außer die neueste Nachricht trägt Textstellen nur für diese eine Anfrage (dann wäre das Speichern umsonst)
+  const tail: Markable = {};
+  if (kind === 'chat' && input.tail !== false) mark(tail, ttl1h);
+  // Ein Merkpunkt für 1 Stunde darf nicht hinter einem für 5 Minuten stehen: davor liegende werden auch 1 Stunde
+  for (let i = marks.length - 1, later = false; i >= 0; i--) {
+    later = later || hours[i];
+    marks[i].cache_control = later ? { type: 'ephemeral', ttl: '1h' } : { type: 'ephemeral' };
   }
 
   const model = env.MODEL || DEFAULT_MODEL;
@@ -346,15 +367,14 @@ function buildParams(input: AiRequest | null, env: Env, forBatch = false): Built
   const smart = !/haiku/.test(model); // Die kleinen Modelle kennen weder effort noch fallbacks
   const effort = kind === 'chat' || input.tier === 'quick' ? 'low' : 'medium';
   // Ausführliche Zusammenfassungen langer Dateien brauchen viel Platz, darum bis 32.000
-  const maxTokens = Math.min(Math.max(Number(input.maxTokens) || (kind === 'chat' ? 6000 : 8000), 1000), 32000);
+  const maxTokens = Math.min(Math.max(Number(input.maxTokens) || (kind === 'chat' ? 6000 : 8000), 300), 32000);
 
   const params: Anthropic.Beta.MessageCreateParamsNonStreaming = {
     model,
     max_tokens: maxTokens,
     messages,
     ...(system.length ? { system } : {}),
-    // Im Chat wiederholt sich der Anfang jeder Anfrage: den Rest automatisch zwischenspeichern
-    ...(kind === 'chat' ? { cache_control: { type: 'ephemeral' as const } } : {}),
+    ...(tail.cache_control ? { cache_control: tail.cache_control } : {}),
     ...(smart || kind === 'json'
       ? {
           output_config: {

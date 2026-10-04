@@ -2,6 +2,7 @@
 // Antwortet im SSE-Format der Messages API und baut JSON passend zum Schema.
 import http from 'node:http';
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 
 const PORT = Number(process.env.MOCK_PORT || 8788);
 const LOG = process.env.MOCK_LOG || 'mock-requests.jsonl';
@@ -167,6 +168,56 @@ function batches(req, res, p, path) {
   res.end();
 }
 
+// Kosten-Simulation (nur wenn ein Test sie mit POST /sim/on einschaltet): rechnet aus, was eine Anfrage bei Claude
+// mit Zwischenspeicher kosten würde. Tokens grob als Zeichen / 3,5. Der Zwischenspeicher wird wie bei Claude nachgebaut:
+// Ein Eintrag entsteht an jedem Merkpunkt (ab 1024 Tokens) für 5 Minuten oder 1 Stunde, gelesen wird der längste
+// gespeicherte Anfang an einem Merkpunkt oder bis zu 20 Blöcke davor. Preise wie Sonnet: 2 $ Eingabe, 10 $ Ausgabe,
+// 2,50 $ Schreiben für 5 Minuten, 4 $ für 1 Stunde, 0,20 $ Lesen (je 1 Million Tokens).
+const SIM = { on: false, text: '', offset: 0, store: new Map(), log: [] };
+const simNow = () => Date.now() + SIM.offset;
+const tokOf = (b) => (b.type === 'image' ? 1500 : Math.ceil(String(b.text || '').length / 3.5));
+function simUsage(p, outText) {
+  const blocks = [];
+  const sys = typeof p.system === 'string' ? [{ type: 'text', text: p.system }] : p.system || [];
+  for (const b of sys) blocks.push({ key: 'S|' + b.text, tok: tokOf(b), cc: b.cache_control });
+  for (const m of p.messages || []) {
+    const list = typeof m.content === 'string' ? [{ type: 'text', text: m.content }] : m.content;
+    list.forEach((b, i) => blocks.push({ key: m.role + (i ? '|' : '>') + (b.type === 'text' ? b.text : b.type + (b.source ? b.source.data.length : '')), tok: tokOf(b), cc: b.cache_control }));
+  }
+  if (p.cache_control && blocks.length && !blocks[blocks.length - 1].cc) blocks[blocks.length - 1].cc = p.cache_control;
+  const hash = [], cum = [];
+  let h = '', c = 0;
+  for (const b of blocks) { h = crypto.createHash('sha1').update(h + '\u0000' + b.key).digest('hex'); hash.push(h); c += b.tok; cum.push(c); }
+  const now = simNow(), live = (i) => (SIM.store.get(hash[i]) || 0) > now;
+  const bps = blocks.map((b, i) => (b.cc && cum[i] >= 1024 ? i : -1)).filter((i) => i >= 0);
+  let readEnd = -1;
+  for (const b of bps) for (let j = b; j >= Math.max(0, b - 20); j--) if (live(j)) { readEnd = Math.max(readEnd, j); break; }
+  const at = (i) => (i >= 0 ? cum[i] : 0);
+  let w5 = 0, w1h = 0, prev = readEnd;
+  for (const b of bps) {
+    if (b <= prev) continue;
+    const seg = at(b) - at(prev), hour = blocks[b].cc.ttl === '1h';
+    if (hour) w1h += seg; else w5 += seg;
+    prev = b;
+  }
+  const last = Math.max(prev, readEnd);
+  const input = at(blocks.length - 1) - at(last);
+  for (const b of bps) SIM.store.set(hash[b], Math.max(SIM.store.get(hash[b]) || 0, now + (blocks[b].cc.ttl === '1h' ? 3600e3 : 300e3)));
+  if (readEnd >= 0) SIM.store.set(hash[readEnd], Math.max(SIM.store.get(hash[readEnd]) || 0, now + 300e3));
+  const out = Math.ceil(outText.length / 3.5);
+  const u = { input_tokens: input, output_tokens: out, cache_creation_input_tokens: w5 + w1h, cache_read_input_tokens: at(readEnd), cache_creation: { ephemeral_5m_input_tokens: w5, ephemeral_1h_input_tokens: w1h } };
+  const usd = (input * 2 + out * 10 + w5 * 2.5 + w1h * 4 + at(readEnd) * 0.2) / 1e6;
+  SIM.log.push({ ...u, usd, blocks: blocks.length, marks: bps.length, json: !!(p.output_config && p.output_config.format) });
+  return u;
+}
+function simCtl(req, res, p, path) {
+  const send = (o) => { res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
+  if (path === '/sim/on') { Object.assign(SIM, { on: true, text: p.text || '', offset: 0, store: new Map(), log: [] }); return send({ ok: true }); }
+  if (path === '/sim/off') { SIM.on = false; return send({ ok: true }); }
+  if (path === '/sim/advance') { SIM.offset += Number(p.ms) || 0; return send({ ok: true }); }
+  return send({ log: SIM.log });
+}
+
 const server = http.createServer((req, res) => {
   const chunks = [];
   req.on('data', (c) => chunks.push(c));
@@ -180,6 +231,7 @@ const server = http.createServer((req, res) => {
     if (req.url.startsWith('/v1/voices') || req.url.startsWith('/v1/text:synthesize')) return google(req, res, p);
     const path = req.url.split('?')[0];
     if (path.startsWith('/v1/messages/batches') || path.startsWith('/batch-ctl')) return batches(req, res, p, path);
+    if (path.startsWith('/sim')) return simCtl(req, res, p, path);
     if (req.method !== 'POST' || !req.url.startsWith('/v1/messages')) { res.writeHead(404); return res.end(); }
     const last = JSON.stringify((p.messages || []).slice(-1));
     if (req.headers['x-api-key'] !== 'test-key' || last.includes('FEHLER401')) {
@@ -205,12 +257,14 @@ const server = http.createServer((req, res) => {
     else if (last.includes('LANG')) text = 'Teil '.repeat(400);
     else if (last.includes('TABELLE')) text = 'Hier der Vergleich:\n\n| Phase | Was passiert |\n|---|---|\n| Prophase | Chromosomen verdichten sich |\n| Metaphase | Chromosomen in der Mitte |\n\n```mermaid\nflowchart LR\n  A["Prophase"] --> B["Metaphase"]\n```\n\nSo läuft die Mitose ab.';
     else if (last.includes('VORLESEN')) text = Array.from({ length: 12 }, (_, i) => `Satz ${i + 1}: Die Zelle teilt sich in der Mitose in **zwei** gleiche Tochterzellen.`).join(' ') + '\n- Punkt eins\n- Punkt zwei';
+    else if (SIM.on && SIM.text) text = SIM.text;
     else text = `Hallo! Das ist eine **Testantwort** von Merki.\n- Punkt eins\n- Punkt zwei\nNOTIZ: Testbegriff :: Das ist eine Test-Notiz aus dem Chat.`;
+    const usage = SIM.on ? simUsage(p, text) : null;
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' });
     let gone = false;
     res.on('close', () => { if (!res.writableEnded) { gone = true; fs.appendFileSync(LOG, JSON.stringify({ aborted: true, at: Date.now() }) + '\n'); } });
     const model = p.model;
-    sse(res, 'message_start', { type: 'message_start', message: { id: 'msg_test', type: 'message', role: 'assistant', model, content: [], stop_reason: null, stop_sequence: null, usage: { input_tokens: 1200, cache_creation_input_tokens: 800, cache_read_input_tokens: 400, output_tokens: 1 } } });
+    sse(res, 'message_start', { type: 'message_start', message: { id: 'msg_test', type: 'message', role: 'assistant', model, content: [], stop_reason: null, stop_sequence: null, usage: usage ? { ...usage, output_tokens: 1 } : { input_tokens: 1200, cache_creation_input_tokens: 800, cache_read_input_tokens: 400, output_tokens: 1 } } });
     sse(res, 'ping', { type: 'ping' });
     let idx = 0;
     if (last.includes('PAUSE')) await new Promise((r) => setTimeout(r, 11500)); // langes Nachdenken ohne Ereignisse
@@ -235,7 +289,7 @@ const server = http.createServer((req, res) => {
     }
     sse(res, 'content_block_stop', { type: 'content_block_stop', index: idx });
     const stop = last.includes('REFUSE') ? 'refusal' : 'end_turn';
-    sse(res, 'message_delta', { type: 'message_delta', delta: { stop_reason: stop, stop_sequence: null }, usage: { output_tokens: 350 } });
+    sse(res, 'message_delta', { type: 'message_delta', delta: { stop_reason: stop, stop_sequence: null }, usage: { output_tokens: usage ? usage.output_tokens : 350 } });
     sse(res, 'message_stop', { type: 'message_stop' });
     res.end();
   });
