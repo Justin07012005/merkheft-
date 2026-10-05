@@ -34,8 +34,10 @@ TAGES_BUDGET_USD = "3"
 # ungenutzte Tage bleiben für später übrig. Leer lassen oder löschen = kein Monatslimit.
 MONATS_BUDGET_USD = "5.5"
 # Echte Stimme (nur mit Google- oder ElevenLabs-Schlüssel): höchstens so viele Zeichen pro Tag,
-# danach spricht Merki bis morgen mit der Gerätestimme. Etwa 1000 Zeichen sind 1 Minute.
-TTS_TAGES_ZEICHEN = "5000"
+# danach spricht Merki bis morgen mit der Gerätestimme. Etwa 1000 Zeichen sind 1 Minute, 30000 also
+# etwa eine halbe Stunde Reden. 30 Tage mal 30000 passen in die kostenlose Monatsmenge unten.
+# Mit ElevenLabs lieber "5000" (das Guthaben dort ist schnell weg).
+TTS_TAGES_ZEICHEN = "30000"
 # Höchstens so viele Zeichen pro Monat. Google schenkt 1 Million im Monat, so bleibt es kostenlos.
 TTS_MONATS_ZEICHEN = "900000"
 # Freiwillig: google oder elevenlabs, falls beide Schlüssel da sind (sonst Google)

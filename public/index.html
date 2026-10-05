@@ -95,7 +95,7 @@ mark{background:var(--marker);color:var(--marker-ink);padding:0 .15em;border-rad
 svg{flex:none}
 
 .shell{height:100%;display:grid;grid-template-columns:1fr}
-@media (min-width:760px){.shell{grid-template-columns:260px minmax(0,1fr)}}
+@media (min-width:760px){.shell{grid-template-columns:260px minmax(0,1fr)}:root{--side-w:260px}}
 
 /* Seitenleiste */
 .side{background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:10px;padding:14px 12px calc(12px + env(safe-area-inset-bottom,0px));min-height:0;overflow-y:auto}
@@ -121,7 +121,8 @@ svg{flex:none}
 .plist button span{font-size:12px;color:var(--ink-soft)}
 .plist button:hover{background:var(--sheet)}
 .plist button[aria-current="true"]{background:var(--sheet);box-shadow:inset 3px 0 0 var(--marker),var(--shadow)}
-.side-foot{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding:8px 4px 0;border-top:1px solid var(--line)}
+.side-foot{margin-top:auto;display:flex;flex-direction:column;gap:6px;padding:8px 4px 0;border-top:1px solid var(--line)}
+.side-foot .linkbtn{padding:6px 0;min-height:44px}
 .chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .chip{display:inline-flex;align-items:center;gap:5px;font-size:13px;padding:4px 10px;border-radius:999px;background:var(--sheet);border:1px solid var(--line);color:var(--ink-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
 .chip b{color:var(--text)}
@@ -153,7 +154,7 @@ nav.tabs button svg{width:24px;height:24px}
 .dateinp{border:1px solid var(--line);background:var(--sheet);color:var(--text);border-radius:12px;padding:9px 12px;font:inherit}
 nav.tabs button[aria-selected="true"]{color:var(--ink);font-weight:700}
 nav.tabs button[aria-selected="true"] svg{background:var(--marker);color:var(--marker-ink);border-radius:8px;padding:2px;box-sizing:content-box;margin:-2px}
-.badge{position:absolute;top:2px;left:calc(50% + 8px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--red);color:#fff;font:700 11px/18px var(--f-body);text-align:center}
+.badge{position:absolute;top:2px;left:calc(50% + 8px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--ink-soft);color:var(--sheet);font:700 11px/18px var(--f-body);text-align:center}
 
 /* Chat */
 .chatbar{display:flex;gap:8px;align-items:center}
@@ -191,7 +192,7 @@ nav.tabs button[aria-selected="true"] svg{background:var(--marker);color:var(--m
 .steps li{padding-left:2px}
 .steps code{background:var(--side);border-radius:5px;padding:1px 5px;font-size:13.5px;overflow-wrap:anywhere}
 .copyrow{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
-.notebtn{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:none;color:var(--ink-soft);border-radius:999px;padding:5px 11px;font-size:13px;line-height:1.2;max-width:100%;overflow-wrap:anywhere;text-align:left}
+.notebtn{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:none;color:var(--ink-soft);border-radius:999px;padding:8px 12px;min-height:36px;font-size:13px;line-height:1.2;max-width:100%;overflow-wrap:anywhere;text-align:left}
 .notebtn svg{width:14px;height:14px;flex:none}
 .notebtn:disabled{opacity:.7}
 .notebtn.done{background:var(--marker);color:var(--marker-ink);border-color:transparent}
@@ -201,7 +202,7 @@ nav.tabs button[aria-selected="true"] svg{background:var(--marker);color:var(--m
 .saved .notebtn svg{width:14px;height:14px}
 .suggest{display:flex;flex-wrap:wrap;gap:8px}
 .suggest button{border:1px dashed var(--ink-soft);background:transparent;color:var(--ink);border-radius:999px;padding:6px 12px;font-size:14px}
-.composer{position:sticky;bottom:0;display:flex;flex-wrap:wrap;gap:6px;align-items:flex-end;background:var(--paper);padding-top:8px}
+.composer{position:sticky;bottom:-16px;display:flex;flex-wrap:wrap;gap:6px;align-items:flex-end;background:var(--paper);padding:8px 0 16px;margin-bottom:-16px}
 .composer.over textarea{border-color:var(--ink);border-style:dashed}
 .attbar{flex:1 0 100%;display:flex;flex-direction:column;gap:6px;min-width:0}
 .attchips,.attquick{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:1px}
@@ -220,8 +221,11 @@ nav.tabs button[aria-selected="true"] svg{background:var(--marker);color:var(--m
 .composer textarea{flex:1;min-width:0;resize:none;border:1px solid var(--line);background:var(--sheet);border-radius:18px;padding:10px 14px;max-height:140px;line-height:1.4}
 .iconbtn{flex:none;width:44px;height:44px;border-radius:50%;border:0;background:var(--ink);color:var(--sheet);display:grid;place-items:center}
 .iconbtn.ghost{background:var(--sheet);color:var(--ink);border:1px solid var(--line)}
-.iconbtn.plain{background:none;color:var(--ink);width:40px;height:40px}
+.iconbtn.plain{background:none;color:var(--ink);width:44px;height:44px}
 .iconbtn svg{width:20px;height:20px}
+.iconbtn.talk{width:auto;display:inline-flex;align-items:center;gap:6px;padding:0 14px 0 11px;border-radius:22px;font-size:14px;font-weight:600}
+.composer.typing .iconbtn.talk{width:44px;padding:0;justify-content:center}
+.composer.typing .iconbtn.talk span{display:none}
 .iconbtn:disabled{opacity:.45}
 
 /* Buttons & Formulare */
@@ -238,7 +242,7 @@ nav.tabs button[aria-selected="true"] svg{background:var(--marker);color:var(--m
 .field label,.field .label{font-size:13px;color:var(--ink-soft);font-weight:700;letter-spacing:.03em}
 .field input,.field textarea,.field select{border:1px solid var(--line);background:var(--sheet);border-radius:12px;padding:10px 12px;width:100%}
 .field textarea{resize:vertical;min-height:110px}
-h2{font:800 22px/1.2 var(--f-display);color:var(--ink);margin:6px 0 0;text-wrap:balance;letter-spacing:-.01em}
+h2{font:800 22px/1.2 var(--f-display);color:var(--ink);margin:6px 0 0;text-wrap:balance;letter-spacing:-.01em;overflow-wrap:anywhere}
 h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .muted{color:var(--ink-soft);font-size:14px;margin:0}
 .notice{background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px;color:var(--ink-soft);margin:0}
@@ -249,9 +253,14 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap}
 .toolbar input{flex:1 1 180px;min-width:0;border:1px solid var(--line);background:var(--sheet);border-radius:12px;padding:10px 12px}
 .filters{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
-.filters button{flex:none;border:1px solid var(--line);background:var(--sheet);border-radius:999px;padding:4px 12px;font-size:14px;color:var(--ink-soft)}
+.filters button{flex:none;border:1px solid var(--line);background:var(--sheet);border-radius:999px;padding:7px 14px;font-size:14px;color:var(--ink-soft)}
 .filters button[aria-pressed="true"]{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;align-items:start}
+.morenotes{grid-column:1/-1;text-align:center}
+.older{text-align:center;margin-bottom:12px}
+.sheet-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.sheet-head .iconbtn{margin:-6px -10px 0 0}
+.syncnote{margin:0 0 8px;font-size:13px;color:var(--ink-soft);text-align:center}
 .card{position:relative;background:var(--sheet);border-radius:6px;box-shadow:var(--shadow);padding:12px 14px 12px 26px;min-width:0;
   background-image:linear-gradient(to right,transparent 15px,var(--red) 15px,var(--red) 16px,transparent 16px),repeating-linear-gradient(to bottom,transparent 0,transparent 23px,var(--line) 23px,var(--line) 24px);
   background-position:0 0,0 34px;line-height:24px}
@@ -271,7 +280,7 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .card .tag{display:inline-flex;align-items:center;gap:3px;background:var(--marker);color:var(--marker-ink);padding:1px 7px;border-radius:5px;font-weight:700}
 .card .tag svg{width:11px;height:11px}
 .acts{display:flex;gap:2px}
-.acts button{border:0;background:none;color:var(--ink-soft);padding:4px;border-radius:6px}
+.acts button{border:0;background:none;color:var(--ink-soft);padding:10px;margin:-6px 0;border-radius:8px;display:grid;place-items:center}
 .acts svg{width:16px;height:16px}
 .empty{text-align:center;padding:28px 12px;color:var(--ink-soft);display:flex;flex-direction:column;align-items:center;gap:10px}
 .empty svg{width:56px;height:56px;color:var(--line)}
@@ -338,8 +347,9 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .fs-toc{background:var(--paper);border-radius:10px;padding:8px 12px 10px}
 .fs-toc b{display:block;color:var(--ink);margin-bottom:2px}
 .fs-toc li{margin:.15em 0}
-.fs-toc .linkbtn{text-align:left;padding:2px 0;min-height:0}
+.fs-toc .linkbtn{text-align:left;padding:6px 0;min-height:0}
 .fs-fragen ol li{margin:.35em 0}
+.fs-fragen .qask{border:0;background:none;padding:4px 0;margin:0;font:inherit;color:inherit;text-align:left;cursor:pointer;display:block;width:100%;min-height:36px}
 .fs-fragen .muted{margin:8px 0 0;font-size:13.5px}
 #fsGen .spin{width:14px;height:14px}
 .textview{white-space:pre-wrap;background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:14px;max-height:50vh;overflow-y:auto;overflow-wrap:anywhere}
@@ -364,6 +374,8 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .q .question{font:700 19px/1.35 var(--f-body);margin:0;text-wrap:pretty}
 .progress{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
 .progress i{display:block;height:100%;background:var(--ink);transition:width .3s}
+.progress.wait i{width:30%;animation:pwait 1.6s ease-in-out infinite alternate}
+@keyframes pwait{from{transform:translateX(0)}to{transform:translateX(233%)}}
 .answers{display:grid;gap:8px}
 .answers button{text-align:left;border:1.5px solid var(--line);background:var(--paper);border-radius:12px;padding:12px 14px;line-height:1.35}
 .answers button.right{border-color:var(--good);background:var(--good-bg)}
@@ -394,6 +406,7 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .flash .fs .ftop{font:700 12px/1 var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
 .grade{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .grade .btn{padding:10px 6px;font-size:15px}
+@media (max-width:420px){.grade .btn{font-size:14px;padding:10px 4px}}
 .stack{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--line)}
 .stack i{display:block;height:100%}
 .stack .s1{background:var(--good)}.stack .s2{background:var(--marker)}.stack .s3{background:var(--ink-soft);opacity:.45}
@@ -479,7 +492,7 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .pad-bar{display:flex;align-items:center;gap:6px;padding:calc(8px + env(safe-area-inset-top,0px)) 10px 8px;border-bottom:1px solid var(--line);background:var(--sheet)}
 .pad-bar .btn{padding:8px 14px}
 .seg{display:flex;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:3px;margin:0 auto}
-.seg button{border:0;background:none;border-radius:9px;padding:6px 12px;font-weight:700;color:var(--ink-soft);display:flex;align-items:center;gap:6px}
+.seg button{border:0;background:none;border-radius:9px;padding:6px 12px;min-height:40px;font-weight:700;color:var(--ink-soft);display:flex;align-items:center;gap:6px}
 .seg button svg{width:16px;height:16px}
 .seg button[aria-pressed="true"]{background:var(--sheet);color:var(--ink);box-shadow:var(--shadow)}
 .seg button:disabled{opacity:.4;cursor:default}
@@ -534,7 +547,7 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .ask-log .msg{max-width:94%;font-size:15px}
 .pad-ask .suggest{padding:0 12px 8px}
 .pad-ask .suggest button{font-size:13px}
-.pad-ask .composer{position:static;padding:8px 12px calc(10px + env(safe-area-inset-bottom,0px))}
+.pad-ask .composer{position:static;padding:8px 12px calc(10px + env(safe-area-inset-bottom,0px));margin-bottom:0}
 
 /* Gespräch mit Merki: eigener Bildschirm wie bei einem Anruf */
 .call{position:fixed;inset:0;z-index:23;display:flex;flex-direction:column;align-items:center;gap:10px;padding:calc(18px + env(safe-area-inset-top,0px)) 16px calc(14px + env(safe-area-inset-bottom,0px));
@@ -552,15 +565,15 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .s-listening .orb::before{animation:orbRing 1.8s ease-out infinite}
 .s-thinking .orb i{opacity:.7;animation:orbDot 1.1s ease-in-out infinite}
 .s-thinking .orb i:nth-child(2){animation-delay:.15s}.s-thinking .orb i:nth-child(3){animation-delay:.3s}
-.s-speaking .orb{animation:orbTalk .45s ease-in-out infinite alternate}
-.s-speaking .orb::before{animation:orbRing 1.3s ease-out infinite}.s-speaking .orb::after{animation:orbRing 1.3s ease-out .65s infinite}
+.s-speaking .orb{animation:orbTalk 1.1s ease-in-out infinite alternate}
+.s-speaking .orb::before{animation:orbRing 1.6s ease-out infinite}
 .s-paused .orb,.s-typing .orb{opacity:.55;transform:scale(.88)}
 @keyframes orbBreathe{50%{transform:scale(1.05)}}
 @keyframes orbRing{0%{opacity:.9;transform:scale(.94)}100%{opacity:0;transform:scale(1.28)}}
 @keyframes orbDot{50%{transform:translateY(-9px)}}
-@keyframes orbTalk{to{transform:scale(1.07)}}
+@keyframes orbTalk{to{transform:scale(1.05)}}
 .call-status{margin:0;font-weight:700;font-size:17px;text-align:center;min-height:1.5em;max-width:520px}
-.call-log{width:100%;max-width:560px;max-height:30vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;text-align:center;-webkit-overflow-scrolling:touch}
+.call-log{width:100%;max-width:560px;max-height:40vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;text-align:center;-webkit-overflow-scrolling:touch}
 .cap{margin:0;overflow-wrap:anywhere;white-space:pre-line}
 .cap.me{color:var(--c-soft);font-size:15px;font-style:italic}
 .cap.ai{font-size:19px;line-height:1.45}
@@ -571,7 +584,7 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .call-type input{flex:1;min-width:0;border:1px solid var(--c-line);background:var(--c-btn);color:var(--c-text);border-radius:22px;padding:11px 16px}
 .call-type input::placeholder{color:var(--c-soft)}
 .call-type .iconbtn{background:var(--c-glow);color:var(--c-glow-ink)}
-.call-ctrl{display:flex;align-items:flex-start;justify-content:center;gap:clamp(6px,4vw,36px);width:100%}
+.call-ctrl{display:flex;align-items:flex-end;justify-content:center;gap:clamp(6px,4vw,36px);width:100%}
 .cbtn{display:flex;flex-direction:column;align-items:center;gap:6px;border:0;background:none;color:var(--c-text);font-size:13px;padding:0;min-width:64px}
 .cbtn[hidden]{display:none}
 .cbtn i{display:grid;place-items:center;width:58px;height:58px;border-radius:50%;background:var(--c-btn);border:1px solid var(--c-line)}
@@ -582,7 +595,8 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .cbtn[aria-pressed="true"] i{background:var(--c-text);color:var(--c-bg)}
 .cbtn:disabled{opacity:.4}
 @media (max-width:380px){.cbtn{min-width:54px;font-size:12px}.cbtn i{width:50px;height:50px}.cbtn.big i{width:66px;height:66px}}
-.call .linkbtn{color:var(--c-soft)}
+.call .linkbtn{color:var(--c-soft);padding:12px}
+.call .saved span{color:var(--c-soft)}
 .call :focus-visible{outline-color:var(--c-glow)}
 input[type=range]{accent-color:var(--ink);width:100%}
 
@@ -630,6 +644,7 @@ input[type=range]{accent-color:var(--ink);width:100%}
 :root[data-design="pastell"] header.top{background:var(--sec);color:var(--sec-ink);border-bottom:0;padding-bottom:30px}
 :root[data-design="pastell"] .ptitle h1,:root[data-design="pastell"] .ptitle p{color:var(--sec-ink)}
 :root[data-design="pastell"] .ptitle h1{font-size:24px}
+@media (max-width:480px){.ptitle h1,:root[data-design="pastell"] .ptitle h1{font-size:20px}.examchip{padding-left:8px;padding-right:8px}.examchip svg{display:none}}
 :root[data-design="pastell"] header.top .iconbtn.plain{width:40px;height:40px;background:var(--marker);color:var(--marker-ink);border:1.5px solid var(--edge)}
 :root[data-design="pastell"] header.top .chip{border:1.5px solid var(--edge)}
 :root[data-design="pastell"] main{position:relative;z-index:1;margin-top:-20px;background:var(--paper);border-top:1.5px solid var(--edge);border-radius:24px 24px 0 0;padding-top:16px}
@@ -757,7 +772,7 @@ input[type=range]{accent-color:var(--ink);width:100%}
 /* Altes iPad: nur zeichnen, was zu sehen ist */
 .card,.file{content-visibility:auto;contain-intrinsic-size:auto 220px}
 @media (prefers-reduced-motion:reduce){.call *,.call *::before,.call *::after{animation:none!important;transition:none!important}}
-@media (prefers-reduced-motion:reduce){.mcard .in,.flash .in,.progress i,.side{transition:none}.spin{animation:none}}
+@media (prefers-reduced-motion:reduce){.mcard .in,.flash .in,.progress i,.side{transition:none}.spin,.progress.wait i{animation:none}}
 </style>
 <script>var r=document.documentElement;r.setAttribute('data-design','pastell');r.setAttribute('data-palette','sonne');try{var l=JSON.parse(localStorage.getItem('merkheft.look')||'null');if(l){if(l.theme==='light'||l.theme==='dark')r.setAttribute('data-theme',l.theme);var p=/^[a-z]{2,20}$/.test(l.palette||'')&&l.palette!=='pastell'?l.palette:'';if(l.design==='klassisch'){r.removeAttribute('data-design');if(!p||p==='mitternacht')r.removeAttribute('data-palette');else r.setAttribute('data-palette',p)}else if(p)r.setAttribute('data-palette',p)}}catch(e){}</script>
 </head>
@@ -790,7 +805,7 @@ input[type=range]{accent-color:var(--ink);width:100%}
       <button class="iconbtn plain" type="button" id="pMenu" aria-label="Projekt-Einstellungen" hidden><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
     </header>
 
-    <main id="main"><div class="inner">
+    <main id="main"><div class="inner"><p class="syncnote only-phone" id="syncNote" role="status" hidden></p>
       <div class="job" id="job" role="status" hidden><span class="spin"></span><span id="jobText"></span></div>
 
       <!-- WILLKOMMEN -->
@@ -822,7 +837,7 @@ input[type=range]{accent-color:var(--ink);width:100%}
         <form class="composer" id="chatform">
           <div class="attbar" id="attbar" hidden></div>
           <button type="button" class="iconbtn ghost" id="attachBtn" aria-label="Datei anhängen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m20 11-8.5 8.5a5 5 0 0 1-7-7L13 4a3.3 3.3 0 0 1 4.7 4.7L9.2 17.2a1.7 1.7 0 0 1-2.4-2.4L14.5 7"/></svg></button>
-          <button type="button" class="iconbtn ghost" id="voiceBtn" aria-label="Mit Merki reden" title="Mit Merki reden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4"/></svg></button>
+          <button type="button" class="iconbtn ghost talk" id="voiceBtn" aria-label="Mit Merki reden" title="Mit Merki reden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/></svg><span aria-hidden="true">Reden</span></button>
           <textarea id="chatin" rows="1" placeholder="Frag Merki etwas …" aria-label="Nachricht"></textarea>
           <button type="submit" class="iconbtn" id="sendBtn" aria-label="Senden"></button>
         </form>
@@ -947,6 +962,7 @@ input[type=range]{accent-color:var(--ink);width:100%}
 'use strict';
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const cut = (s, n) => (s = String(s ?? '')).length > n ? s.slice(0, n - 1) + '…' : s;
 const uid8 = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 // Datum immer nach der Uhr auf dem Gerät (nicht UTC), damit Mitternacht in Deutschland stimmt
 const dstr = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -1141,7 +1157,15 @@ function fixOrphans() {
   renderAll();
 }
 
-function setSync(msg) { $('#sync').textContent = msg; }
+// Klappt das Speichern länger nicht, zeigt das Handy es auch (dort ist die Seitenleiste zu)
+let syncBadT = 0;
+function setSync(msg, bad = false) {
+  $('#sync').textContent = msg;
+  const note = $('#syncNote');
+  if (!bad) { clearTimeout(syncBadT); syncBadT = 0; note.hidden = true; return; }
+  note.textContent = msg;
+  if (!syncBadT && note.hidden) syncBadT = setTimeout(() => { syncBadT = 0; note.hidden = false; }, 120000);
+}
 
 // ---------- Artifact: Claude-Konto ----------
 async function use(name) {
@@ -1181,7 +1205,7 @@ async function connectArtifact() {
     if (stats) state.stats = normStats(stats);
     saveLocal(); fixOrphans(); renderAll(!busy);
     setSync('Gespeichert in deinem Konto · auf Handy und Tablet gleich');
-  }, () => setSync('Verbindung weg. Neu laden hilft meistens.'));
+  }, () => setSync('Verbindung weg. Neu laden hilft meistens.', true));
 }
 
 // ---------- Server: Zugangscode und Abgleich ----------
@@ -1276,7 +1300,9 @@ async function flush() {
     batch.push([id, o.v, o.doc]); size += s;
   }
   try {
-    await api('/api/data', { method: 'POST', body: JSON.stringify({ ops: batch.map(([id, , doc]) => doc ? { id, doc } : { id, del: true }) }) });
+    const r = await (await api('/api/data', { method: 'POST', body: JSON.stringify({ ops: batch.map(([id, , doc]) => doc ? { id, doc } : { id, del: true }) }) })).json().catch(() => null);
+    // Hat niemand sonst dazwischen gespeichert, muss das Gerät seine eigenen Änderungen nicht zurückholen
+    if (r && r.rev === SYNC.rev + batch.length) SYNC.rev = r.rev;
     for (const [id, v] of batch) if (SYNC.outbox[id] && SYNC.outbox[id].v === v) delete SYNC.outbox[id];
     SYNC.backoff = 0; SYNC.single = false; saveLocal();
     setSync('Gespeichert');
@@ -1287,7 +1313,7 @@ async function flush() {
     } else if (e.code === 'too_large' || e.code === 'bad_request') SYNC.single = true;
     else {
       SYNC.backoff = Math.min((SYNC.backoff || 1000) * 2, 60000);
-      if (e.code !== 'bad_code') setSync(e.code === 'offline' ? 'Offline · wird gespeichert, sobald du wieder Internet hast' : 'Speichern klappt gerade nicht · neuer Versuch gleich');
+      if (e.code !== 'bad_code') setSync(e.code === 'offline' ? 'Offline · wird gespeichert, sobald du wieder Internet hast' : 'Speichern klappt gerade nicht · neuer Versuch gleich', true);
     }
   }
   SYNC.flushing = false;
@@ -1295,8 +1321,13 @@ async function flush() {
   if (Object.keys(SYNC.outbox).length) scheduleFlush(SYNC.backoff || 30);
   else pull();
 }
+// Gleicher Inhalt (Reihenfolge der Felder egal): dann nichts ersetzen und nichts neu zeichnen
+function sameDoc(a, b) {
+  const ka = Object.keys(a), kb = Object.keys(b);
+  return ka.length === kb.length && ka.every(k => k in b && JSON.stringify(a[k]) === JSON.stringify(b[k]));
+}
 function applyDoc(id, doc) {
-  if (id === 'stats') { if (!doc) return false; state.stats = normStats(doc); return true; }
+  if (id === 'stats') { if (!doc) return false; const st = normStats(doc); if (sameDoc(st, state.stats)) return false; state.stats = st; return true; }
   if (!doc) {
     for (const k of Object.values(LISTS)) { const i = state[k].findIndex(x => x.id === id); if (i >= 0) { state[k].splice(i, 1); return true; } }
     return false;
@@ -1304,7 +1335,7 @@ function applyDoc(id, doc) {
   const { type, ...o } = doc; o.id = id;
   const k = LISTS[type]; if (!k) return false;
   const i = state[k].findIndex(x => x.id === id);
-  if (i >= 0) state[k][i] = o; else state[k].push(o);
+  if (i >= 0) { if (sameDoc(o, state[k][i])) return false; state[k][i] = o; } else state[k].push(o);
   return true;
 }
 async function pull() {
@@ -1325,19 +1356,25 @@ async function pull() {
     if (!Object.keys(SYNC.outbox).length) setSync('Gespeichert');
     if (changed) { fixOrphans(); renderAll(!busy); }
   } catch (e) {
-    if (e.code === 'offline') setSync('Offline · deine Änderungen werden später gespeichert');
+    if (e.code === 'offline') setSync('Offline · deine Änderungen werden später gespeichert', true);
   }
   SYNC.pulling = false;
 }
-let serverStarted = false;
+let serverStarted = false, healthDown = false;
+// Was der Server kann (KI, Stimme, Suche, Vorlesungen). Ging das beim Start nicht (kein Netz), später nochmal fragen.
+async function checkHealth() {
+  try {
+    const h = await (await fetch('/api/health', { cache: 'no-store' })).json();
+    serverAi = !!h.key; serverTts = !!h.tts; sem.off = !h.sem; serverRec = !!h.rec; healthDown = false;
+  } catch { serverAi = false; sem.off = true; healthDown = true; }
+  $('#lectureBtn').hidden = !serverRec;
+  renderAiAvailability();
+}
+const healthAgain = () => { if (healthDown && !connecting) checkHealth().then(() => { if (!healthDown) renderAll(!busy); }); };
 async function startServer() {
   connecting = true; renderAiAvailability();
   $('#settingsBtn').hidden = false;
-  try {
-    const h = await (await fetch('/api/health', { cache: 'no-store' })).json();
-    serverAi = !!h.key; serverTts = !!h.tts; sem.off = !h.sem; serverRec = !!h.rec;
-  } catch { serverAi = false; sem.off = true; }
-  $('#lectureBtn').hidden = !serverRec;
+  await checkHealth();
   connecting = false; renderAiAvailability();
   setSync('Wird abgeglichen …');
   await pull();
@@ -1348,8 +1385,8 @@ async function startServer() {
   if (serverStarted) return;
   serverStarted = true;
   setInterval(() => { if (document.visibilityState === 'visible') pull(); }, 20000);
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { pull().then(batchSweep).then(recSweep); renderAll(!busy); } else { if (saveT) saveLocal(true); flush(); } });
-  window.addEventListener('online', () => flush().then(pull));
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { healthAgain(); pull().then(batchSweep).then(recSweep); renderAll(!busy); } else { if (saveT) saveLocal(true); flush(); } });
+  window.addEventListener('online', () => { healthAgain(); flush().then(pull); });
 }
 
 // ---------- Helfer für das aktuelle Projekt ----------
@@ -1422,6 +1459,7 @@ async function imageBlock(blob) {
 // Der Server reicht Claudes Antwort als Stream (Server-Sent Events) durch, hier wird der Text zusammengesetzt
 async function streamAi(body, signal, onText) {
   const r = await api('/api/ai', { method: 'POST', body: JSON.stringify(body), signal });
+  noteAiLeft(r.headers.get('x-merkheft-left'));
   const reader = r.body.getReader(), dec = new TextDecoder();
   let buf = '', text = '', stop = null, ended = false;
   const handle = data => {
@@ -1451,7 +1489,8 @@ async function streamAi(body, signal, onText) {
   }
   if (stop === 'refusal') throw { code: 'refused', text: '' };
   if (!ended) throw { code: 'offline', text };
-  if (body.kind !== 'json') return text;
+  // Abgeschnitten (zu lang): sichtbar machen statt so tun, als wäre die Antwort fertig
+  if (body.kind !== 'json') return stop === 'max_tokens' && text ? text + (body.purpose === 'voice' ? ' …' : '\n\n*(Hier ist die Antwort abgeschnitten. Schreib „weiter“, dann macht Merki weiter.)*') : text;
   if (stop === 'max_tokens') throw { code: 'too_long' };
   try { return JSON.parse(text); } catch { throw { code: 'invalid_json' }; }
 }
@@ -1482,6 +1521,10 @@ async function imageCaps() {
 }
 function aiError(e) {
   const c = e && e.code;
+  if (e && (e.name === 'PasswordException' || e.name === 'InvalidPDFException')) return 'Diese PDF lässt sich nicht öffnen (beschädigt oder mit Passwort geschützt).';
+  if (c === 'no_credit') return 'Das Guthaben im Claude-Konto ist aufgebraucht. Es muss im Anthropic-Konto aufgeladen werden.';
+  if (c === 'bad_model') return 'Das eingestellte KI-Modell gibt es nicht. Bitte die Einstellung MODEL auf dem Server prüfen.';
+  if (c === 'too_large') return 'Das ist zu groß zum Speichern.';
   if (c === 'not_granted' || c === 'sampling_disabled' || c === 'not_declared' || c === 'capability_disabled') { sample = null; renderAiAvailability(); return 'Die KI ist hier nicht freigegeben. Lade die Seite neu und tippe bei der Frage auf Erlauben.'; }
   if (c === 'budget') return /^Merki macht/.test(e.message || '') ? e.message : 'Merki macht für heute Pause, das Tageslimit ist erreicht. Morgen geht es weiter.';
   if (c === 'rate_limited') return 'Gerade zu viele Anfragen. Warte kurz und versuch es nochmal.';
@@ -1496,6 +1539,18 @@ function aiError(e) {
   if (c === 'offline') return 'Keine Verbindung. Bist du online?';
   return 'Verbindung unterbrochen. Versuch es nochmal.';
 }
+// Wird der heutige KI-Anteil knapp, sagt die App es einmal am Tag leise, statt mitten im Gespräch aufzuhören
+let aiLow = false;
+function noteAiLeft(h) {
+  if (h === null || h === '') return;
+  const low = Number(h) < 0.2;
+  if (low === aiLow) return;
+  aiLow = low; renderAiAvailability();
+  if (!low) return;
+  const day = new Date().toDateString();
+  try { if (localStorage.getItem('merkheft.lowDay') === day) return; localStorage.setItem('merkheft.lowDay', day); } catch {}
+  toast('Für heute ist nur noch wenig KI übrig. Karteikarten gehen auch ohne.', 5000);
+}
 function renderAiAvailability() {
   const off = !aiReady();
   const b = $('#sendBtn');
@@ -1504,8 +1559,9 @@ function renderAiAvailability() {
   b.disabled = !busy && off;
   $('#voiceBtn').disabled = off;
   $('#chatin').placeholder = connecting ? 'Merki wird geladen …'
-    : !off ? 'Frag Merki etwas …'
+    : !off ? (aiLow ? 'Frag Merki etwas (für heute ist nur noch wenig KI übrig)' : 'Frag Merki etwas …')
     : MODE === 'artifact' ? 'KI nur verfügbar, wenn du das Merkheft in Claude öffnest'
+    : healthDown ? 'Keine Verbindung zu Merki. Bist du online?'
     : 'Die KI ist auf dem Server noch nicht eingerichtet';
 }
 function digest(list, max, fmt) { let out = ''; for (const x of list) { const l = fmt(x); if (out.length + l.length > max) break; out += l; } return out; }
@@ -1539,6 +1595,7 @@ function pickPassages(files, query, budget, hits) {
   scored.sort((a, b) => b.s - a.s);
   const picked = []; let left = budget;
   for (const { p } of scored) { if (left < p.text.length) break; picked.push(p); left -= p.text.length; }
+  picked.top = new Set(picked.slice(0, 3)); // die drei besten Treffer (danach wird nach Datei sortiert)
   picked.sort((a, b) => a.f.name.localeCompare(b.f.name) || a.i - b.i);
   return picked;
 }
@@ -1636,6 +1693,9 @@ function projectContext(p, query, key, pool = false, hits = null) {
   if (pool && total > SEM_MIN) {
     const picked = pickPassages(files, query, budget, hits);
     let pl = snap.pool, fresh = pl ? picked.filter(x => !pl.keys.has(pkey(x))) : picked;
+    // Jeder neue Block im Vorrat lässt den Verlauf danach neu zwischenspeichern: nur anhängen, wenn einer der
+    // drei besten Treffer neu ist oder viel Neues dazukommt (sonst hat der Vorrat schon Passendes)
+    if (pl && fresh.length && !fresh.some(x => picked.top.has(x)) && passageText(fresh).length < 2500) fresh = [];
     if (fresh.length) {
       // Zu voll: neu anfangen, mit den Stellen zu dieser Nachricht
       if (!pl || pl.chars + passageText(fresh).length > POOL_MAX || pl.blocks.length >= POOL_BLOCKS) { pl = snap.pool = { blocks: [], keys: new Set(), chars: 0 }; fresh = picked; }
@@ -1646,10 +1706,11 @@ function projectContext(p, query, key, pool = false, hits = null) {
   return { files: files.length ? `${head}\n\nHochgeladene Dateien:${ftext}` : head, notes: snap.notes, passages, pool: (snap.pool && snap.pool.blocks.slice()) || [] };
 }
 // Verlauf für die KI. Der Anfang rückt nur in Schritten weiter, damit der Verlauf zwischengespeichert bleibt.
-function windowTurns(all, maxTurns, maxChars, step = 6) {
+// base: so viele Nachrichten sind vorne schon weggekürzt (die Schritte zählen ab dem ersten Wort des Gesprächs)
+function windowTurns(all, maxTurns, maxChars, step = 6, base = 0) {
   const list = all.map(t => ({ role: t.role, content: t.att && t.att.length ? `${t.content}\n\n[Angehängt: ${t.att.map(a => a.name).join(', ')}]` : t.content }));
-  let start = Math.max(0, Math.ceil((list.length - maxTurns) / step) * step);
-  while (start < list.length - 2 && JSON.stringify(list.slice(start)).length > maxChars) start += step;
+  let start = Math.max(0, Math.max(0, Math.ceil((base + list.length - maxTurns) / step) * step) - base);
+  while (start < list.length - 2 && JSON.stringify(list.slice(start)).length > maxChars) start += 6;
   start = Math.min(start, Math.max(0, list.length - 1));
   while (start < list.length - 1 && list[start].role !== 'user') start++;
   return list.slice(start);
@@ -1739,7 +1800,11 @@ function saveNoteLines(full, pid, skip = '') {
   }
   return saved;
 }
-function trimTurns(turns) { let t = turns.slice(-60); while (t.length > 2 && JSON.stringify(t).length > 150000) t = t.slice(2); return t; }
+// Nur nach Größe kürzen (ein langes Gespräch soll nicht nach 60 Nachrichten vorne verschwinden)
+function trimTurns(turns) { let t = turns; while (t.length > 2 && JSON.stringify(t).length > 200000) t = t.slice(2); return t; }
+// Gekürzt wird vorne: base zählt, wie viele Nachrichten schon weggefallen sind, damit der Verlauf für die KI
+// an denselben Stellen beginnt wie vorher (sonst wäre er bei jeder Frage neu und nicht mehr zwischengespeichert)
+function trimChat(c, turns) { const t = trimTurns(turns); c.base = (c.base || 0) + turns.length - t.length; return t; }
 // Knopf „Vorlesen“ unter Merkis Antworten: Die Stimme des Geräts liest vor, das kostet nichts
 const readOut = { key: null, gen: 0, u: null };
 const canRead = () => !!window.speechSynthesis && typeof window.SpeechSynthesisUtterance === 'function';
@@ -1802,7 +1867,7 @@ function noteTitleFallback(text, q) {
   return (t.split(' ').slice(0, 6).join(' ') || 'Notiz aus dem Chat').slice(0, 120);
 }
 async function noteFromTurn(turns, i, pid, persist, btn) {
-  const t = turns[i], key = t;
+  const t = turns[i], key = t && pid + ':' + t.content; // nach dem Neuzeichnen ist es ein neues Objekt, der Text bleibt gleich
   if (!t || t.role !== 'assistant' || t.noted || noting.has(key) || !pid) return;
   if (!state.projects.some(x => x.id === pid)) { toast('Das Projekt gibt es nicht mehr.'); return; }
   noting.add(key);
@@ -1827,32 +1892,67 @@ ${t.content.slice(0, 12000)}`, { schema: SCHEMA.voice, tier: 'quick', maxTokens:
   put('note', { id: 'n-' + uid8(), projectId: pid, title, text, source: 'chat', createdAt: Date.now() }, false);
   t.noted = title;
   noting.delete(key);
-  persist();
+  persist(title, t);
   if (btn && btn.isConnected) btn.outerHTML = notedHtml(title);
   toast(`Als Notiz gespeichert: „${title}“`);
 }
 function renderChat() {
   const p = proj(); if (!p) return;
   const chats = pChats(), c = curChat();
-  $('#chatSel').innerHTML = (c ? '' : `<option value="">Neuer Chat</option>`) + chats.map(x => `<option value="${esc(x.id)}"${c && x.id === c.id ? ' selected' : ''}>${esc(x.title || 'Chat')}</option>`).join('');
+  $('#chatSel').innerHTML = (c ? '' : `<option value="">Noch leer</option>`) + chats.map(x => `<option value="${esc(x.id)}"${c && x.id === c.id ? ' selected' : ''}>${esc(x.title || 'Chat')}</option>`).join('');
   $('#chatSel').disabled = !chats.length;
   $('#delChat').hidden = !c;
   const log = $('#chatlog');
   if (!c || !c.turns.length) {
     const nf = pFiles().length, nn = pNotes().length;
     log.innerHTML = `<div class="msg ai"><p>Hi, ich bin <b>Merki</b>. Frag mich alles zu „${esc(p.name)}“. Was du behalten willst, speicherst du mit <b>Als Notiz</b> unter meiner Antwort.</p><p>${nf || nn ? `Ich kenne hier schon ${nf} ${nf === 1 ? 'Datei' : 'Dateien'} und ${nn} ${nn === 1 ? 'Notiz' : 'Notizen'}.` : 'Mit der Büroklammer hängst du eine Datei oder ein Foto an, zum Beispiel ein Skript oder deine Mitschrift. Schreib dazu, was ich damit machen soll.'}</p></div>`;
-  } else log.innerHTML = c.turns.map((t, i) => chatTurnHtml(t, i)).join('');
+  } else {
+    // Lange Chats: nur die letzten 40 Nachrichten zeichnen (das alte iPad dankt), ältere auf Knopfdruck
+    const from = chatAll.has(c.id) ? 0 : Math.max(0, c.turns.length - 40);
+    log.innerHTML = (from ? `<div class="older"><button type="button" class="btn alt" id="olderMsgs">Ältere Nachrichten zeigen (${from})</button></div>` : '')
+      + c.turns.slice(from).map((t, k) => chatTurnHtml(t, from + k)).join('');
+    const ob = $('#olderMsgs'); if (ob) ob.onclick = () => { const m = $('#main'), h = m.scrollHeight; chatAll.add(c.id); chatPin = () => { m.scrollTop += m.scrollHeight - h; }; renderChat(); };
+  }
   if (readOut.key !== null && !document.querySelector('.readbtn.on')) readStop(); // anderer Chat: Vorlesen hört auf
   $('#suggest').hidden = chatAtt.length > 0 || !!(c && c.turns.length);
-  scrollDown();
+  if (chatPin) { const pin = chatPin; chatPin = null; pin(); } else scrollDown(true);
 }
-function scrollDown() { if (ui.tab !== 'chat') return; const m = $('#main'); requestAnimationFrame(() => { m.scrollTop = m.scrollHeight; }); }
+// Nach unten nur, wenn sie ohnehin unten ist (oder gerade selbst etwas geschickt hat)
+function scrollDown(force) {
+  if (ui.tab !== 'chat') return;
+  const m = $('#main');
+  if (!force && m.scrollHeight - m.scrollTop - m.clientHeight > 160) return;
+  requestAnimationFrame(() => { m.scrollTop = m.scrollHeight; });
+}
+// Während Merki schreibt: mitlaufen, bis der Anfang der Antwort oben steht. So liest sie von vorn
+// und muss bei langen Antworten nicht zurückscrollen. Scrollt sie selbst nach oben, bleibt alles stehen.
+let chatPin = null;
+const chatAll = new Set();
+function follower(box, active = () => true) {
+  let set = null, on = true;
+  const to = el => {
+    if (!el || !el.isConnected) return;
+    const top = el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - 12;
+    const want = Math.min(box.scrollHeight - box.clientHeight, top);
+    if (want > box.scrollTop) box.scrollTop = want;
+    set = box.scrollTop;
+  };
+  return {
+    get on() { return on; },
+    to,
+    step: el => requestAnimationFrame(() => {
+      if (!on || !active()) return;
+      if (set !== null && box.scrollTop < set - 40) { on = false; return; }
+      to(el);
+    }),
+  };
+}
 function getOrCreateChat(title) {
   let c = curChat();
   if (!c) { c = { id: 'c-' + uid8(), projectId: ui.pid, title: title.replace(/\s+/g, ' ').slice(0, 48), turns: [], updatedAt: Date.now() }; state.chats.unshift(c); ui.cid = c.id; saveUi(); }
   return c;
 }
-function saveChat(c) { c.turns = trimTurns(pruneThumbs(c.turns)); c.updatedAt = Date.now(); put('chat', { ...c }, false); }
+function saveChat(c) { c.turns = trimChat(c, pruneThumbs(c.turns)); c.updatedAt = Date.now(); put('chat', { ...c }, false); }
 
 // Notizen macht die Person selbst mit dem Knopf „Als Notiz“ an Merkis Antworten. Merki schreibt nur auf ausdrücklichen Wunsch welche.
 const NOTE_RULE = `Notizen: Unter jeder deiner Antworten hat die Person einen Knopf „Als Notiz“, damit speichert sie selbst, was sie behalten will. Schreib deshalb nicht von dir aus Notizen und biete es auch nicht ständig an.
@@ -1964,10 +2064,13 @@ async function attMeta(files) {
     if (isImgFile(f)) {
       const bmp = await createImageBitmap(f).catch(() => null);
       if (bmp) {
-        const k = Math.min(1, 168 / Math.max(bmp.width, bmp.height)), cv = document.createElement('canvas');
-        cv.width = Math.max(1, Math.round(bmp.width * k)); cv.height = Math.max(1, Math.round(bmp.height * k));
-        cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
-        a.thumb = cv.toDataURL('image/jpeg', 0.6);
+        // Ist der Bildspeicher des iPads voll, gibt es eben kein Vorschaubild
+        try {
+          const k = Math.min(1, 168 / Math.max(bmp.width, bmp.height)), cv = document.createElement('canvas');
+          cv.width = Math.max(1, Math.round(bmp.width * k)); cv.height = Math.max(1, Math.round(bmp.height * k));
+          const g = cv.getContext('2d');
+          if (g) { g.drawImage(bmp, 0, 0, cv.width, cv.height); a.thumb = cv.toDataURL('image/jpeg', 0.6); }
+        } catch {}
       }
     }
     return a;
@@ -2036,16 +2139,17 @@ async function send(text, files = []) {
   busy = true; renderAiAvailability();
   const asked = text || (files.length > 1 ? 'Erklär mir, worum es in diesen Dateien geht.' : 'Erklär mir, worum es hier geht.');
   const c = getOrCreateChat(text || 'Datei: ' + files[0].name);
-  const att = files.length ? await attMeta(files) : null;
+  ctl = new AbortController(); // gleich, damit „Stopp“ auch beim Vorbereiten geht
+  const att = files.length ? await attMeta(files).catch(() => files.map(f => ({ name: f.name.slice(0, 80) }))) : null;
   c.turns.push({ role: 'user', content: asked, ...(att ? { att } : {}) });
   renderChat();
   const thinking = files.length ? 'Merki schaut sich das an …' : 'Merki denkt nach …';
   const bubble = document.createElement('div');
   bubble.className = 'msg ai thinking'; bubble.textContent = thinking;
-  $('#chatlog').appendChild(bubble); scrollDown();
-  ctl = new AbortController();
+  $('#chatlog').appendChild(bubble); scrollDown(true);
   let partial = '', ok = false;
-  const paint = throttled(t => { if (!bubble.isConnected) return; bubble.classList.toggle('thinking', !t); bubble.innerHTML = t ? mdRaw(visible(t)) : thinking; scrollDown(); });
+  const follow = follower($('#main'), () => ui.tab === 'chat');
+  const paint = throttled(t => { if (!bubble.isConnected) return; bubble.classList.toggle('thinking', !t); bubble.innerHTML = t ? mdRaw(visible(t)) : thinking; follow.step(bubble); });
   try {
     const extra = files.length ? await attContent(files, asked) : null;
     if (ctl.signal.aborted) throw { code: 'cancelled' };
@@ -2053,8 +2157,9 @@ async function send(text, files = []) {
     const hits = await semHits(p, asked + ' ' + recent);
     if (ctl.signal.aborted) throw { code: 'cancelled' };
     const ctx = projectContext(p, asked + ' ' + recent, 'c:' + c.id, false, hits);
-    const system = [{ text: RULES + who() }, { text: ctx.files, cache: '1h' }, { text: ctx.notes }];
-    let turns = withPassages(windowTurns(c.turns, 20, 60000), ctx);
+    // Dateien zuerst: Chat, Gespräch und „Frag Merki“ teilen sich dann einen Zwischenspeicher dafür
+    const system = [{ text: ctx.files, cache: '1h' }, { text: RULES + who() }, { text: ctx.notes, cache: '1h' }];
+    let turns = withPassages(windowTurns(c.turns, 26, 60000, 12, c.base || 0), ctx);
     if (extra && (extra.text || extra.hints.length)) {
       const last = turns[turns.length - 1];
       turns = [...turns.slice(0, -1), { role: 'user', content: `${extra.text}${extra.hints.map(h => '\nHinweis: ' + h).join('')}\n\n---\n\n${last.content}` }];
@@ -2074,7 +2179,11 @@ async function send(text, files = []) {
   }
   paint.cancel(); busy = false; ctl = null;
   if (c.turns.length) saveChat(c); else remove('chat', c.id, false);
+  // Nach dem Neuzeichnen dort bleiben, wo sie liest: am Anfang der Antwort oder wo sie hingescrollt hat
+  const m = $('#main'), at = m.scrollTop;
+  if (ui.tab === 'chat' && curChat() === c) chatPin = () => requestAnimationFrame(() => { if (follow.on) follow.to($('#chatlog').lastElementChild); else m.scrollTop = at; });
   renderAll(); renderAiAvailability();
+  chatPin = null;
   // Hat es nicht geklappt, liegen die Dateien wieder bereit. Sonst legt Merki sie unter „Dateien“ ab.
   if (files.length) { if (ok) handleFiles(files, p); else if (!chatAtt.length) addAtt(files); }
 }
@@ -2100,32 +2209,42 @@ function renderNotes() {
     return;
   }
   if (!list.length) { $('#cards').innerHTML = `<p class="muted" style="grid-column:1/-1">Nichts gefunden.</p>`; return; }
-  $('#cards').innerHTML = list.map(n => {
+  // Viele Notizen: erst 40 zeichnen, der Rest auf Knopfdruck (die Suche geht trotzdem über alle)
+  const key = ui.pid + '|' + ui.filter + '|' + q;
+  if (noteLimit.key !== key) noteLimit = { key, n: 40 };
+  const shown = list.slice(0, noteLimit.n), more = list.length - shown.length;
+  $('#cards').innerHTML = shown.map(n => {
     const ink = inkOf(n), thumb = ink ? inkThumb(ink) : '';
-    const src = n.source === 'lecture' ? `<span class="tag">${ICON.lecture}Vorlesung${n.secs ? ' · ' + recMin(n.secs) : ''}</span>` : n.source === 'voice' ? `<span class="tag">${ICON.mic}Sprachnotiz</span>` : n.source === 'file' ? `<span class="tag">${ICON.file}${esc((n.fileName || 'Datei').slice(0, 24))}</span>` : ink ? `<span class="tag">${ICON.pen}Handschrift</span>` : '';
+    const src = n.source === 'lecture' ? `<span class="tag">${ICON.lecture}Vorlesung${n.secs ? ' · ' + recMin(n.secs) : ''}</span>` : n.source === 'voice' ? `<span class="tag">${ICON.mic}Sprachnotiz</span>` : n.source === 'file' ? `<span class="tag" title="${esc(n.fileName || 'Datei')}">${ICON.file}${esc(cut(n.fileName || 'Datei', 24))}</span>` : ink ? `<span class="tag">${ICON.pen}Handschrift</span>` : '';
     const spoken = n.source === 'voice' && n.raw && n.raw.trim() !== (n.text || '').trim() ? `<div class="spoken"><b>${ICON.mic}Gesprochen</b><p>${esc(n.raw)}</p></div>` : '';
     const read = !ink ? '' : reading.has(n.id) ? `<p class="inkread"><span class="spin"></span>Merki liest deine Handschrift …</p>`
-      : n.inkText && n.inkRead === ink.v ? `<p class="inkread">Merki liest: ${esc(n.inkText.length > 160 ? n.inkText.slice(0, 160) + ' …' : n.inkText)}</p>` : '';
+      : n.inkText && n.inkRead === ink.v ? `<p class="inkread">Merki liest: ${esc(n.inkText.length > 160 ? n.inkText.slice(0, 160) + ' …' : n.inkText)}</p>`
+      : inkFail.get(n.id) === ink.v && aiReady() ? `<p class="inkread">Merki konnte die Handschrift nicht lesen. <button type="button" class="linkbtn" data-inkretry="${esc(n.id)}">Nochmal versuchen</button></p>` : '';
     return `<article class="card clickable" data-open="${esc(n.id)}"><h3>${esc(n.title)}</h3>${n.text ? cardMd(n.text, n.id) : ''}${thumb ? `<img class="inkthumb" src="${thumb}" alt="Handschrift">` : ''}${read}${spoken}
       <div class="meta"><span>${src} ${new Date(n.createdAt || Date.now()).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}</span>
       <span class="acts">${canRead() && n.text ? noteReadBtn(n) : ''}${aiReady() ? `<button type="button" data-ask="${esc(n.id)}" aria-label="Merki zu dieser Notiz fragen">${ICON.ask}</button>` : ''}<button type="button" data-edit="${esc(n.id)}" aria-label="Bearbeiten">${ICON.edit}</button><button type="button" data-del="${esc(n.id)}" aria-label="Löschen">${ICON.trash}</button></span></div></article>`;
-  }).join('');
-  requestAnimationFrame(fitCards);
+  }).join('') + (more ? `<div class="morenotes"><button type="button" class="btn alt" id="moreNotes">Weitere ${Math.min(40, more)} zeigen</button></div>` : '');
+  const mb = $('#moreNotes'); if (mb) mb.onclick = () => { noteLimit.n += 40; renderNotes(); };
+  fitDirty = true; requestAnimationFrame(fitCards);
 }
+let noteLimit = { key: '', n: 40 };
 // Kleiner Knopf auf jeder Notiz: Die Stimme des Geräts liest sie vor (kostet nichts)
 const noteReadBtn = n => readOut.key === n.text
   ? `<button type="button" class="readbtn icon on" data-nread="${esc(n.id)}" aria-pressed="true" aria-label="Vorlesen stoppen">${ICON.stop}</button>`
   : `<button type="button" class="readbtn icon" data-nread="${esc(n.id)}" aria-pressed="false" aria-label="Vorlesen">${ICON.sound}</button>`;
 // Passt eine „lange“ Notiz doch ganz in die Karte (breiter Bildschirm), braucht sie keinen Knopf.
 // Erst alles messen, dann ändern: so rechnet das iPad das Layout nur einmal aus.
+// Nur nach dem Neuzeichnen messen (jede Messung kostet auf dem alten iPad spürbar Zeit)
+let fitDirty = true;
 function fitCards() {
-  if (!$('#cards').offsetParent) return; // Notizen gerade nicht zu sehen
+  if (!fitDirty || !$('#cards').offsetParent) return; // nichts Neues oder Notizen gerade nicht zu sehen
+  fitDirty = false;
   const els = [...document.querySelectorAll('#cards .ntext.long:not(.open)')];
   const fits = els.map(e => e.scrollHeight <= e.clientHeight + 2);
   els.forEach((e, i) => e.classList.toggle('fits', fits[i]));
 }
 let fitT = 0;
-window.addEventListener('resize', () => { clearTimeout(fitT); fitT = setTimeout(fitCards, 250); }); // iPad gedreht
+window.addEventListener('resize', () => { clearTimeout(fitT); fitT = setTimeout(() => { fitDirty = true; fitCards(); }, 250); }); // iPad gedreht
 
 // ---------- Alle Notizen in einer ----------
 // Merki ordnet alle Notizen eines Projekts nach Themen zu einem Text. Der Text wird gespeichert (notedoc).
@@ -2136,6 +2255,17 @@ const strHash = s => { let h = 5381; for (let i = 0; i < s.length; i++) h = (h *
 const noteHash = n => strHash(n.title + '\n' + noteBody(n));
 const ND_FULL = 30000; // bis so viele Zeichen schreibt Merki alles zu einem Text, bei mehr sortiert Merki die Notizen nur nach Themen
 let ndJob = null, ndErr = null; // gerade laufendes Ordnen und der letzte Fehler, je mit Projekt
+// Ist das Ordnen gescheitert, startet es einen Tag lang nicht mehr von selbst (auch nicht nach einem Neustart der App),
+// sonst würde jedes Öffnen der Ansicht bezahlt neu anfangen. Der Knopf zum Ordnen geht weiter.
+const ND_ERR_KEY = 'merkheft.ndErr';
+function ndErrAt(pid) { try { return +((JSON.parse(localStorage.getItem(ND_ERR_KEY) || '{}') || {})[pid]) || 0; } catch { return 0; } }
+function ndErrMark(pid, on) {
+  try {
+    const m = JSON.parse(localStorage.getItem(ND_ERR_KEY) || '{}') || {};
+    if (on) m[pid] = Date.now(); else delete m[pid];
+    localStorage.setItem(ND_ERR_KEY, JSON.stringify(m));
+  } catch {}
+}
 function ndDiff(doc, notes) {
   if (!doc) return { fresh: [], gone: 0 };
   const h = doc.h || {}, ids = new Set(notes.map(n => n.id));
@@ -2144,7 +2274,7 @@ function ndDiff(doc, notes) {
 // Von selbst ordnen, wenn jemand die Ansicht öffnet und es noch keinen Text gibt
 function ndAuto() {
   const pid = ui.pid;
-  if (pid && ui.tab === 'notes' && ui.noteView === 'all' && !ndOf(pid) && !ndJob && !(ndErr && ndErr.pid === pid) && aiReady() && pNotes(pid).length >= 2) makeNoteDoc(pid);
+  if (pid && ui.tab === 'notes' && ui.noteView === 'all' && !ndOf(pid) && !ndJob && !(ndErr && ndErr.pid === pid) && Date.now() - ndErrAt(pid) > 864e5 && aiReady() && pNotes(pid).length >= 2) makeNoteDoc(pid);
 }
 async function makeNoteDoc(pid) {
   const p = state.projects.find(x => x.id === pid);
@@ -2171,7 +2301,7 @@ ${list}` : `Sortiere alle Lernnotizen unten nach Themen für das Projekt „${p.
 Antworte nur mit JSON: {"abschnitte": [{"titel": "...", "text": "...", "notizen": [1, 2]}]}
 
 Notizen:
-${list}`, { schema: SCHEMA.notedoc, maxTokens: full ? 16000 : 8000, purpose: 'order' });
+${list}`, { schema: SCHEMA.notedoc, maxTokens: full ? 32000 : 8000, purpose: 'order' });
     const raw = Array.isArray(x) ? x : x && x.abschnitte;
     const secs = (Array.isArray(raw) ? raw : []).map(a => ({
       t: String((a && a.titel) || '').trim().slice(0, 120),
@@ -2184,11 +2314,14 @@ ${list}`, { schema: SCHEMA.notedoc, maxTokens: full ? 16000 : 8000, purpose: 'or
     if (rest.length) secs.push({ t: 'Weitere Notizen', x: '', n: rest, more: true });
     const h = {}; for (const n of notes) h[n.id] = noteHash(n);
     put('notedoc', { id: ndIdOf(pid), projectId: pid, full, secs, h, at: Date.now() }, false);
+    ndErrMark(pid, false);
   } catch (e) {
     ndErr = { pid, msg: aiError(e) };
+    if (!(e && ['offline', 'budget', 'cancelled'].includes(e.code))) ndErrMark(pid, true);
   }
   ndJob = null;
   renderNotes();
+  if (ui.tab === 'notes') ndAuto(); // wartete ein anderes Projekt, kommt es jetzt dran
 }
 function renderAllNote() {
   const pid = ui.pid, notes = pNotes(pid).slice().reverse(), doc = ndOf(pid);
@@ -2209,7 +2342,8 @@ function renderAllNote() {
   };
   const when = doc ? new Date(doc.at).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' }) : '';
   const sub = job ? `${notes.length} Notizen` : doc ? `${notes.length} Notizen · von Merki geordnet am ${when}` : `${notes.length} ${notes.length === 1 ? 'Notiz' : 'Notizen'}`;
-  const btn = (canAi && !job ? `<button class="btn alt" type="button" id="ndGen">${ICON.refresh}${doc ? 'Neu ordnen' : 'Von Merki ordnen lassen'}</button>` : '')
+  const other = !!ndJob && !job; // Merki ordnet gerade ein anderes Projekt
+  const btn = (canAi && !job ? `<button class="btn alt" type="button" id="ndGen"${other ? ' disabled title="Merki ordnet gerade ein anderes Projekt"' : ''}>${ICON.refresh}${doc ? 'Neu ordnen' : 'Von Merki ordnen lassen'}</button>` : '')
     + (notes.length && !job && MODE === 'server' ? `<button class="btn alt" type="button" id="ndPdf">${ICON.pdf}PDF-Lernzettel</button>` : '');
   let html = `<div class="ad-head"><div><h2>Alles in einer</h2><p class="muted">${sub}</p></div>${btn ? `<div class="ad-btns">${btn}</div>` : ''}</div>`;
   if (job) html += `<p class="job" role="status"><span class="spin"></span>Merki fasst deine Notizen zu einem Text zusammen …</p>`;
@@ -2418,9 +2552,11 @@ async function inkImages(strokes) {
   return out;
 }
 // Merki liest die Handschrift, damit sie in Chat, Quiz und Suche mitzählt
-async function readInk(noteId) {
+// Ist das Lesen gescheitert, liest Merki dieselbe Handschrift nicht bei jedem Schließen des Blatts bezahlt neu (auto)
+const inkFail = new Map();
+async function readInk(noteId, auto = false) {
   const n = state.notes.find(x => x.id === noteId), ink = n && inkOf(n);
-  if (!n || !ink || reading.has(noteId) || n.inkRead === ink.v || !aiReady()) return;
+  if (!n || !ink || reading.has(noteId) || n.inkRead === ink.v || !aiReady() || (auto && inkFail.get(noteId) === ink.v)) return;
   const caps = await imageCaps().catch(() => null); if (!caps) return;
   reading.add(noteId); renderNotes();
   try {
@@ -2437,7 +2573,10 @@ Antworte nur mit JSON: {"titel": "...", "text": "..."}`, { schema: SCHEMA.ink, p
         put('note', { ...cur, inkText: text, inkRead: ink.v, ...(cur.autoTitle && title ? { title, autoTitle: false } : {}) }, false);
       }
     }
-  } catch (e) { console.warn('Handschrift lesen', e); }
+  } catch (e) {
+    console.warn('Handschrift lesen', e);
+    if (!(e && ['offline', 'budget', 'cancelled'].includes(e.code))) inkFail.set(noteId, ink.v);
+  }
   reading.delete(noteId);
   renderAll(!busy);
 }
@@ -2605,6 +2744,7 @@ function openPad(orig, opts = {}) {
     if (cur) return;
     e.preventDefault();
     if (!touch) { try { cv.setPointerCapture(e.pointerId); } catch {} }
+    cancelAnimationFrame(glide); glide = 0; // gleitet das Blatt noch nach, landet der Strich sonst daneben
     begin(e);
   });
   cv.addEventListener('pointermove', e => {
@@ -2644,17 +2784,23 @@ function openPad(orig, opts = {}) {
         else put('ink', { id: iid, noteId: n.id, projectId: n.projectId, h: Math.round(h), s: enc, v: Date.now() }, false);
       } else if (inkThere) remove('ink', iid, false);
     }
+    // Hat Merki die Handschrift inzwischen gelesen (während das Blatt offen war), das nicht mit dem alten Stand überschreiben
+    const live = state.notes.find(x => x.id === n.id);
+    if (live && live.inkRead && live.inkRead !== n.inkRead) n = { ...n, inkText: live.inkText, inkRead: live.inkRead };
     n = { ...n, title: title || (text ? text.split('\n')[0].slice(0, 60) : n.autoTitle && n.title ? n.title : 'Handschrift'), text, autoTitle: !title, updatedAt: Date.now() };
     if (!has) { delete n.inkText; delete n.inkRead; }
     put('note', n, false);
     return n;
   };
-  const autosave = () => { clearTimeout(saveT); saveT = setTimeout(save, 2500); };
+  // Speichern 2,5 s nach dem letzten Strich, beim Durchschreiben aber spätestens alle 10 s
+  let lastSaved = Date.now();
+  const saveNow = () => { lastSaved = Date.now(); save(); };
+  const autosave = () => { clearTimeout(saveT); if (Date.now() - lastSaved > 10000) saveNow(); else saveT = setTimeout(saveNow, 2500); };
   ta.addEventListener('input', () => { grow(); autosave(); });
   ti.addEventListener('input', autosave);
   ti.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); ta.focus(); } });
 
-  const onVis = () => { if (document.visibilityState === 'hidden') save(); };
+  const onVis = () => { if (document.visibilityState === 'hidden') { clearTimeout(saveT); save(); saveLocal(true); flush(); } };
   const onResize = () => { if (Math.abs((wrap.clientWidth || 0) / INK_W - cssK) > 0.0005) fit(); };
   const onTheme = () => { cols = inkColors(false); redraw(); };
 
@@ -2670,11 +2816,14 @@ function openPad(orig, opts = {}) {
     askBtn.disabled = !asking && !aiReady();
     askIn.placeholder = aiReady() ? 'Frag etwas zu dieser Notiz …' : 'Die KI ist gerade nicht verfügbar';
   };
-  const renderAsk = () => {
+  const renderAsk = pin => {
+    const at = askLog.scrollTop;
     askLog.innerHTML = qa.length ? qa.map((t, i) => chatTurnHtml(t, i)).join('')
       : `<div class="msg ai"><p>Frag mich alles zu dieser Notiz. Ich erkläre es dir einfacher, gebe Beispiele oder frage dich ab.</p></div>`;
     q('#askSug').hidden = qa.length > 0;
-    askLog.scrollTop = askLog.scrollHeight;
+    if (!pin) askLog.scrollTop = askLog.scrollHeight;
+    else if (pin.on) pin.to(askLog.lastElementChild);
+    else askLog.scrollTop = at;
   };
   const setAsk = (open, remember) => {
     panel.hidden = !open; q('#padAsk').setAttribute('aria-pressed', open);
@@ -2709,11 +2858,12 @@ function openPad(orig, opts = {}) {
     const hits = await semHits(p, text + ' ' + title);
     if (dead) return;
     const ctx = projectContext(p, text + ' ' + title + ' ' + body.slice(0, 400), 'n:' + n.id, false, hits);
-    const system = [{ text: ASK_RULES + who() }, { text: ctx.files, cache: '1h' }, { text: `${ctx.notes}\n\nDie Notiz, um die es geht:\nTitel: ${title}\n${body || '(leer)'}` }];
-    const turns = withPassages(windowTurns(qa, 16, 40000), ctx);
+    const system = [{ text: ctx.files, cache: '1h' }, { text: ASK_RULES + who() }, { text: `${ctx.notes}\n\nDie Notiz, um die es geht:\nTitel: ${title}\n${body || '(leer)'}`, cache: '1h' }];
+    const turns = withPassages(windowTurns(qa, 22, 40000, 12, n.qaBase || 0), ctx);
     askCtl = new AbortController();
     let partial = '';
-    const paint = throttled(t => { if (dead || !bubble.isConnected) return; bubble.classList.toggle('thinking', !t); bubble.innerHTML = t ? mdRaw(visible(t)) : 'Merki denkt nach …'; askLog.scrollTop = askLog.scrollHeight; });
+    const follow = follower(askLog);
+    const paint = throttled(t => { if (dead || !bubble.isConnected) return; bubble.classList.toggle('thinking', !t); bubble.innerHTML = t ? mdRaw(visible(t)) : 'Merki denkt nach …'; follow.step(bubble); });
     try {
       const full = await aiChat({ system, turns, signal: askCtl.signal, purpose: 'ask', ttl: '1h', tail: !ctx.passages, onText: t => { partial = t; paint(t); } });
       paint.cancel();
@@ -2729,9 +2879,10 @@ function openPad(orig, opts = {}) {
       } else qa.push({ role: 'assistant', content: (e && e.text ? visible(e.text) + '\n\n' : '') + aiError(e), err: true });
     }
     asking = false; askCtl = null;
+    const before = qa.length;
     qa = qa.slice(-30); while (qa.length > 2 && JSON.stringify(qa).length > 30000) qa = qa.slice(2);
-    n.qa = qa; save();
-    renderAsk(); askState();
+    n.qa = qa; n.qaBase = (n.qaBase || 0) + before - qa.length; save();
+    renderAsk(follow); askState();
   };
   q('#padAsk').hidden = !aiReady();
   q('#padAsk').onclick = () => { const open = panel.hidden; setAsk(open, true); if (open && window.matchMedia('(hover:hover)').matches) askIn.focus(); };
@@ -2771,7 +2922,7 @@ function openPad(orig, opts = {}) {
   padClose = () => {
     const saved = save();
     teardown(); renderAll(!busy);
-    if (saved && strokes.length) readInk(saved.id);
+    if (saved && strokes.length) readInk(saved.id, true);
   };
   q('#padBack').onclick = q('#padDone').onclick = () => padClose();
   q('#padDel').onclick = () => {
@@ -3126,9 +3277,10 @@ function openCall(opts = {}) {
   const name = myName(), quiz = !!opts.quiz;
   Object.assign(call, {
     open: true, pid: p.id, quiz, turn: 0, gen: 0, pending: 0, spoken: 0, streamDone: true, answer: '', ctl: null, rec: null,
-    stopReq: false, misses: 0, inflight: 0, state: '', watch: 0, wake: null, micOff: false, said: '', until: 0, barge: null, bargeTries: 0, sayParts: [], sayDone: 0,
+    stopReq: false, misses: 0, echoes: 0, inflight: 0, state: '', watch: 0, wake: null, micOff: false, said: '', until: 0, barge: null, bargeTries: 0, sayParts: [], sayDone: 0,
     muted: !canSpeak() || pref('callMute', '0') === '1',
-    typing: MODE === 'artifact' || !SR_OF() || call.blocked, // im Claude-Artifact ist das Mikrofon gesperrt
+    // Jedes Gespräch probiert das Mikrofon neu (ein Fehler beim letzten Mal war oft nur vorübergehend)
+    blocked: false, typing: MODE === 'artifact' || !SR_OF(), // im Claude-Artifact ist das Mikrofon gesperrt
     chat: { id: 'c-' + uid8(), projectId: p.id, title: '', turns: [], updatedAt: Date.now() },
     greeting: quiz ? `Hi${name ? ' ' + name : ''}! Ich frag dich jetzt zu „${p.name}“ ab.` : `Hi${name ? ' ' + name : ''}! Worüber willst du reden?`,
   });
@@ -3283,7 +3435,8 @@ function isEcho(heard) {
   return hit / (h.length - 1) >= 0.75;
 }
 // Klingt nach Denkpause mitten im Satz („Das passiert in der …“, „also ähm“): noch kurz weiter zuhören
-const UNFINISHED = /(?:^|\s)(und|oder|aber|also|weil|dass|denn|wenn|ob|der|die|das|den|dem|des|ein|eine|einen|einem|einer|mit|von|vom|zu|zum|zur|in|im|an|am|auf|für|bei|aus|nach|über|unter|vor|durch|ist|sind|war|wird|werden|hat|haben|kann|muss|ähm|äh|ähh|ehm|hm|hmm|mhm|nämlich|quasi|sozusagen)$/i;
+// (Wörter, mit denen ein Satz oft auch endet, wie „das“ oder „ist“, zählen nicht dazu)
+const UNFINISHED = /(?:^|\s)(und|oder|aber|also|weil|dass|denn|wenn|ob|der|die|den|dem|des|ein|eine|einen|einem|einer|mit|von|vom|zu|zum|zur|in|im|an|am|auf|für|bei|aus|nach|über|unter|vor|durch|ähm|äh|ähh|ehm|hm|hmm|mhm|nämlich|quasi|sozusagen)$/i;
 const unfinished = t => UNFINISHED.test(String(t).trim().replace(/[\s.,;:!?…-]+$/, ''));
 function listen(auto, carry = '') {
   if (!call.open) return;
@@ -3292,6 +3445,7 @@ function listen(auto, carry = '') {
     if (auto) { setState('paused', MIC_OFF); return; }
     call.micOff = false; // „Sprechen“ getippt: Mikro wieder an
   }
+  if (!auto) hush(); // sie hat getippt: Merki ist still, sonst hört das Mikro Merkis Stimme
   stopBarge(); stopListening();
   call.stopReq = false;
   const my = ++call.turn;
@@ -3304,9 +3458,13 @@ function listen(auto, carry = '') {
     onDone: t => {
       if (my !== call.turn) return;
       call.rec = null; call.misses = 0;
-      if (!carry && isEcho(t)) { listen(true); return; } // nur Merkis Stimme gehört: weiter zuhören
+      // Nur Merkis Stimme gehört: weiter zuhören. Aber nur einmal (sie wiederholt vielleicht absichtlich eine Liste),
+      // und nicht, wenn sie „Fertig“ getippt hat
+      const done = call.stopReq;
+      if (!carry && !done && call.echoes < 1 && isEcho(t)) { call.echoes++; listen(true); return; }
+      call.echoes = 0;
       const all = join(t);
-      if (!carry && unfinished(all)) { listen(true, all); return; } // sie denkt noch nach
+      if (!carry && !done && unfinished(all)) { listen(true, all); return; } // sie denkt noch nach
       userSaid(all);
     },
     onFail: err => {
@@ -3389,9 +3547,10 @@ async function askAi() {
   if (my !== call.turn || !call.open) return;
   const ctx = projectContext(p, recent, 'v:' + c.id, true, hits);
   // Dateien eine Stunde zwischenspeichern, den Vorrat an Textstellen und den Verlauf 5 Minuten (beim Reden geht es schnell hin und her)
-  const system = [{ text: VOICE_RULES + who(true) + `\n\nDu hast das Gespräch mit diesem Satz eröffnet: „${call.greeting}“ Begrüße nicht noch einmal.` }, { text: ctx.files, cache: '1h' }, { text: ctx.notes },
+  // Dateien zuerst (gemeinsamer Zwischenspeicher mit Chat und „Frag Merki“), die Begrüßung ändert sich bei jedem Anruf
+  const system = [{ text: ctx.files, cache: '1h' }, { text: VOICE_RULES + who(true) + `\n\nDu hast das Gespräch mit diesem Satz eröffnet: „${call.greeting}“ Begrüße nicht noch einmal.` }, { text: ctx.notes },
     ...ctx.pool.map((text, i, a) => ({ text, ...(i === a.length - 1 ? { cache: true } : {}) }))];
-  const turns = windowTurns(c.turns, 24, 40000);
+  const turns = windowTurns(c.turns, 30, 40000, 12, c.base || 0);
   const ctl = call.ctl = new AbortController();
   call.inflight = my; busy = true; renderAiAvailability();
   try {
@@ -3441,7 +3600,10 @@ function answerFailed(e) {
   call.streamDone = true;
   const msg = aiError(e);
   showAi(msg);
-  setState(call.typing ? 'typing' : 'paused', call.typing ? 'Versuch es gleich nochmal.' : 'Tippe aufs Mikrofon für einen neuen Versuch.');
+  call.said = msg; // hört das Mikro die Fehlermeldung, gilt sie nicht als ihre Antwort
+  // Budget aufgebraucht: kein „nochmal versuchen“, das ginge ja doch nicht
+  if (e && e.code === 'budget') setState('paused', 'Deine Karteikarten gehen auch ohne KI.');
+  else setState(call.typing ? 'typing' : 'paused', call.typing ? 'Versuch es gleich nochmal.' : 'Tippe aufs Mikrofon für einen neuen Versuch.');
   if (!call.muted) say(msg);
 }
 // Unterbrechen: Merki hört auf zu reden, was sie schon gesagt hat, bleibt im Gespräch
@@ -3508,7 +3670,7 @@ async function keepAwake(on) {
     }
   } catch {}
 }
-function saveCallChat() { const c = call.chat; c.turns = trimTurns(c.turns); c.updatedAt = Date.now(); put('chat', { ...c, turns: [...c.turns] }, false); }
+function saveCallChat() { const c = call.chat; c.turns = trimChat(c, c.turns); c.updatedAt = Date.now(); put('chat', { ...c, turns: [...c.turns] }, false); }
 function hangUp() {
   if (!call.open) return;
   stopTurn();
@@ -3580,7 +3742,7 @@ async function drawDiagrams() {
       catch { e.dataset.state = 'err'; e.innerHTML = '<span class="muted">Dieses Diagramm konnte Merki nicht zeichnen.</span>'; }
       const junk = document.getElementById('d' + id); if (junk) junk.remove();
     }
-    fitCards();
+    fitDirty = true; fitCards();
   } finally { mmdBusy = false; }
 }
 new MutationObserver(() => { clearTimeout(mmdTimer); mmdTimer = setTimeout(drawDiagrams, 500); }).observe(document.body, { childList: true, subtree: true });
@@ -3588,16 +3750,30 @@ function loadScript(src) {
   return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => { s.remove(); rej(new Error(src)); }; document.head.appendChild(s); });
 }
 async function lib(name) {
+  if (name === 'pdf' && MODE === 'server') return pdfLib();
   if (LIB_OK[name]()) return;
   for (const set of LIBS[name]) { try { for (const u of set) await loadScript(u); if (LIB_OK[name]()) return; } catch {} }
+  throw { code: 'lib' };
+}
+// Auf dem Server liest pdf.js die PDF in einem eigenen Thread: die App bleibt beim Lesen bedienbar (altes iPad).
+// Klappt der Thread nicht, lädt pdf.js den Leser von selbst wie früher in die Seite.
+async function pdfLib() {
+  if (window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions.workerSrc) return;
+  for (const [worker, main] of LIBS.pdf) {
+    try { if (!window.pdfjsLib) await loadScript(main); } catch { continue; }
+    if (window.pdfjsLib) { window.pdfjsLib.GlobalWorkerOptions.workerSrc = worker; return; }
+  }
   throw { code: 'lib' };
 }
 const TEXT_EXT = ['txt', 'md', 'csv', 'json', 'html', 'htm'];
 const MAX_TEXT = 500000; // so viel Text pro Datei liest Merki (etwa 200 Seiten)
 const PART = 100000;     // in Stücken dieser Größe
+let pdfWorker = null; // ein Thread für alle PDFs
 async function pdfDoc(file) {
   await lib('pdf');
-  return window.pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false }).promise;
+  const opts = { data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false };
+  if (MODE === 'server') { if (!pdfWorker || pdfWorker.destroyed) pdfWorker = new window.pdfjsLib.PDFWorker(); opts.worker = pdfWorker; }
+  return window.pdfjsLib.getDocument(opts).promise;
 }
 const PIC_TEXT = 200; // Seiten mit weniger Zeichen und einem Bild darauf liest Merki als Bild
 const MAX_PIC = 80;   // so viele Bildseiten pro Datei höchstens
@@ -3810,18 +3986,29 @@ ${parts.map((x, i) => `Teil ${i + 1}: ${x.ueberblick}\nThemen: ${x.abschnitte.ma
   return out;
 }
 // Zusammenfassung (auch „Neu zusammenfassen“): kurze Texte in einer Anfrage, lange Teil für Teil, jeder Teil ausführlich
-async function fileSummary(name, p, text, step = () => {}) {
+// Klappt ein Teil nicht, bleiben die fertigen Teile (info.err sagt, was fehlt). Nur wenn gar nichts klappt, gibt es einen Fehler.
+async function fileSummary(name, p, text, step = () => {}, info = {}) {
   if (!text) return null;
   const chunks = splitText(text.slice(0, MAX_TEXT), PART), parts = [];
   for (let k = 0; k < chunks.length; k++) {
     if (chunks.length > 1) step(`Teil ${k + 1} von ${chunks.length}`);
-    const x = await aiJson(`Schreib eine ausführliche Lern-Zusammenfassung auf Deutsch für ${chunks.length > 1 ? `Teil ${k + 1} von ${chunks.length} von ` : ''}„${name}“ (Projekt „${p.name}“${p.desc ? ', ' + p.desc : ''}). Lies ${chunks.length > 1 ? 'den Teil' : 'das Dokument'} vollständig.${chunks[k].includes('als Bild gelesen]') ? ' Stellen mit „[Seite …, als Bild gelesen]“ sind abgeschriebene Seiten und Abbildungen, sie gehören genauso dazu.' : ''}${chunks[k].includes(', Texterkennung]') ? OCR_NOTE : ''} ${SUM_RULES}${wishLine()}
+    let x;
+    try {
+    x = await aiJson(`Schreib eine ausführliche Lern-Zusammenfassung auf Deutsch für ${chunks.length > 1 ? `Teil ${k + 1} von ${chunks.length} von ` : ''}„${name}“ (Projekt „${p.name}“${p.desc ? ', ' + p.desc : ''}). Lies ${chunks.length > 1 ? 'den Teil' : 'das Dokument'} vollständig.${chunks[k].includes('als Bild gelesen]') ? ' Stellen mit „[Seite …, als Bild gelesen]“ sind abgeschriebene Seiten und Abbildungen, sie gehören genauso dazu.' : ''}${chunks[k].includes(', Texterkennung]') ? OCR_NOTE : ''} ${SUM_RULES}${wishLine()}
 Antworte nur mit JSON: ${SUM_JSON}
 
 ${chunks.length > 1 ? 'Teil' : 'Dokument'}:
 ${chunks[k]}`, { schema: SCHEMA.fsum, maxTokens: 32000, purpose: 'file' });
+    } catch (e) {
+      if (e && e.code === 'cancelled') throw e;
+      if (!parts.some(Boolean) && chunks.length === 1) throw e;
+      info.err = info.err || e;
+      if (e && (e.code === 'budget' || e.code === 'offline')) break;
+      continue;
+    }
     parts.push(normSum(x));
   }
+  if (!parts.some(Boolean)) throw info.err || { code: 'invalid_json' };
   if (parts.length > 1) step('Überblick über alles');
   return joinSums(parts, name, p);
 }
@@ -3858,12 +4045,22 @@ Antworte nur mit JSON: {"seiten": [{"seite": ${batch[0]}, "text": "..."}]}`, { i
   return { pics: out, err };
 }
 // Seiten mit (fast) keinem Text, aber Bildern darauf
+// Größe des Bildes aus den Angaben von pdf.js: [id, Breite, Höhe] oder ein Bild-Objekt mit width und height. Unbekannt zählt als groß.
+function bigImage(args) {
+  const a = args || [], w = typeof a[1] === 'number' ? a[1] : a[0] && a[0].width, h = typeof a[2] === 'number' ? a[2] : a[0] && a[0].height;
+  if (!(w > 0 && h > 0)) return true;
+  return Math.min(w, h) >= 100 && w * h >= 40000;
+}
 async function picOnlyPages(pdf, texts) {
   const OPS = window.pdfjsLib.OPS || {}, img = new Set([OPS.paintImageXObject, OPS.paintInlineImageXObject, OPS.paintImageMaskXObject, OPS.paintJpegXObject, OPS.paintImageXObjectRepeat].filter(x => x !== undefined));
   const out = [];
   for (let i = 0; i < texts.length; i++) {
     if (texts[i] === null || texts[i].replace(/\s/g, '').length >= PIC_TEXT) continue;
-    try { const ol = await (await pdf.getPage(i + 1)).getOperatorList(); if (ol.fnArray.some(f => img.has(f))) out.push(i + 1); } catch {}
+    // Kleine Bilder (Logo, Symbol) machen aus einer Folie mit wenig Text noch keine Bildseite
+    try {
+      const ol = await (await pdf.getPage(i + 1)).getOperatorList();
+      if (ol.fnArray.some((f, j) => img.has(f) && bigImage(ol.argsArray[j]))) out.push(i + 1);
+    } catch {}
   }
   return out;
 }
@@ -3901,7 +4098,34 @@ function saveFileNotes(p, fileName, notes) {
 let serverRec = false;
 const rec = { items: [], ups: [], timer: 0, busy: false, writing: new Set(), err: {}, tried: new Set(), chain: Promise.resolve(), html: '' };
 const recMin = s => `${Math.max(1, Math.round((s || 0) / 60))} Min.`;
-const recPost = (what, id) => api('/api/rec/' + what, { method: 'POST', body: JSON.stringify(id ? { id } : {}) });
+const recPost = (what, id, extra) => api('/api/rec/' + what, { method: 'POST', body: JSON.stringify(id ? { id, ...extra } : {}) });
+// Fehler beim Schreiben der Notiz bleiben gemerkt (auch nach einem Neustart der App): Bei „zu lang“ oder einer
+// kaputten Antwort fängt Merki nicht bei jedem Öffnen bezahlt von vorn an, sondern wartet auf „Nochmal versuchen“.
+// Verbindungsfehler und ein volles Tageslimit versucht Merki nach einer Weile von selbst nochmal.
+const REC_HARD = new Set(['too_long', 'invalid_json', 'refused', 'bad_request', 'prompt_too_large']);
+const REC_ERR_KEY = 'merkheft.recErr';
+function recErrLoad() {
+  try {
+    for (const [id, e] of Object.entries(JSON.parse(localStorage.getItem(REC_ERR_KEY) || '{}') || {})) {
+      if (e && typeof e.code === 'string') rec.err[id] = { msg: aiError({ code: e.code }), code: e.code, at: +e.at || 0 };
+    }
+  } catch {}
+}
+function recErrSave() {
+  try {
+    const keep = {};
+    for (const [id, e] of Object.entries(rec.err)) if (e.code) keep[id] = { code: e.code, at: e.at };
+    localStorage.setItem(REC_ERR_KEY, JSON.stringify(keep));
+  } catch {}
+}
+function recDue(it) {
+  const err = rec.err[it.id];
+  if (!err) return !rec.tried.has(it.id);
+  if (err.busy) return Date.now() - err.at > 60000;
+  if (REC_HARD.has(err.code)) return false;
+  return Date.now() - (err.at || 0) > (err.code === 'budget' ? 30 : 10) * 60e3;
+}
+recErrLoad();
 async function recSweep() {
   clearTimeout(rec.timer);
   if (MODE !== 'server' || !code || !serverRec || rec.busy) return;
@@ -3909,13 +4133,20 @@ async function recSweep() {
   try {
     const { items } = await (await recPost('list')).json();
     rec.items = Array.isArray(items) ? items : [];
+    // Gemerkte Fehler zu Aufnahmen, die es nicht mehr gibt, vergessen
+    for (const id of Object.keys(rec.err)) if (!rec.items.some(x => x.id === id)) delete rec.err[id];
+    for (const it of rec.items) {
+      // Auf einem anderen Gerät ging das Schreiben schief (zum Beispiel zu lang): hier nicht von selbst nochmal bezahlen
+      const remote = it.state === 'text' && typeof it.err === 'string' && it.err.startsWith('note:') ? it.err.slice(5) : '';
+      if (remote && !rec.err[it.id] && !rec.writing.has(it.id)) rec.err[it.id] = { msg: aiError({ code: remote }), code: remote, at: 0 };
+    }
+    recErrSave();
   } catch (e) { if (e && e.code !== 'offline') console.warn('Aufnahmen', e); }
   rec.busy = false;
   renderRecs();
   // Mitschrift fertig: Notiz schreiben (schreibt gerade ein anderes Gerät, nach einer Minute nochmal schauen)
   for (const it of rec.items) {
-    const err = rec.err[it.id];
-    if (it.state === 'text' && aiReady() && !rec.writing.has(it.id) && (!rec.tried.has(it.id) || (err && err.busy && Date.now() - err.at > 60000))) lectureQueue(it);
+    if (it.state === 'text' && aiReady() && !rec.writing.has(it.id) && recDue(it)) lectureQueue(it);
   }
   recPlan();
 }
@@ -3986,7 +4217,8 @@ async function lectureWrite(it) {
     if (t.state === 'busy') { rec.err[it.id] = { busy: true, at: Date.now() }; return; }
     if (t.state !== 'ready') return;
     const known = state.projects.find(p => p.id === t.pid) || null, list = sortedProjects();
-    const x = await aiJson(lecturePrompt(t, known, list), { schema: SCHEMA.lecture, maxTokens: 16000, purpose: 'lecture' });
+    // Viel Platz: eine ausführliche Notiz zu 90 Minuten ist lang, und abgerechnet wird nur, was Merki wirklich schreibt
+    const x = await aiJson(lecturePrompt(t, known, list), { schema: SCHEMA.lecture, maxTokens: 32000, purpose: 'lecture' });
     const text = String((x && x.notiz) || '').trim();
     if (!text) throw { code: 'invalid_json' };
     // Fach: beim Hochladen in der App das offene Projekt, beim Teilen aus Sprachmemos das, das Merki passend findet
@@ -3997,9 +4229,11 @@ async function lectureWrite(it) {
     await recPost('done', it.id).catch(() => {});
     toast(`Die Notiz zur Vorlesung „${n.title}“ ist fertig${p.id !== ui.pid ? ` (im Projekt ${p.name})` : ''}`, 6000);
   } catch (e) {
-    rec.err[it.id] = { msg: aiError(e) };
-    recPost('free', it.id).catch(() => {});
+    const c = (e && typeof e.code === 'string' && e.code) || 'server';
+    rec.err[it.id] = { msg: aiError(e), code: c, at: Date.now() };
+    recPost('free', it.id, REC_HARD.has(c) ? { code: c } : {}).catch(() => {});
   } finally {
+    recErrSave();
     rec.writing.delete(it.id);
     renderAll(!busy);
     recSweep();
@@ -4046,13 +4280,17 @@ function lectureSave(p, t, title, text) {
   put('note', n, false);
   return n;
 }
-function lectureView(n) {
-  const f = state.files.find(x => x.id === n.fileId);
+// Notiz zum Lesen (mit Tabellen und Formatierung). Bearbeiten öffnet das Blatt.
+function noteView(n) {
+  const f = state.files.find(x => x.id === n.fileId), lec = n.source === 'lecture';
   const when = new Date(n.createdAt || Date.now()).toLocaleDateString('de-DE', { day: 'numeric', month: 'long' });
+  const sub = lec ? `Vorlesung vom ${when}${n.secs ? ' · ' + recMin(n.secs) : ''}` : n.source === 'voice' ? `Sprachnotiz vom ${when}`
+    : n.source === 'file' && n.fileName ? `Aus „${esc(n.fileName)}“ · ${when}` : n.source === 'chat' ? `Aus dem Chat · ${when}` : when;
+  const spoken = n.source === 'voice' && n.raw && n.raw.trim() !== (n.text || '').trim() ? `<div class="spoken"><b>${ICON.mic}Gesprochen</b><p>${esc(n.raw)}</p></div>` : '';
   openSheet(`<h2>${esc(n.title)}</h2>
-    <p class="muted">Vorlesung vom ${when}${n.secs ? ' · ' + recMin(n.secs) : ''}</p>
-    <div class="row">${canRead() ? `<button class="btn readbtn" type="button" id="lRead" aria-pressed="false">${ICON.sound}Vorlesen</button>` : ''}${aiReady() ? `<button class="btn alt" type="button" id="lAsk">${ICON.ask}Frag Merki</button>` : ''}${f ? `<button class="btn alt" type="button" id="lText">${ICON.file}Ganze Mitschrift</button>` : ''}</div>
-    <div class="ntext lec">${md(n.text || '')}</div>
+    <p class="muted">${sub}</p>
+    <div class="row">${canRead() ? `<button class="btn readbtn" type="button" id="lRead" aria-pressed="false">${ICON.sound}Vorlesen</button>` : ''}${aiReady() ? `<button class="btn alt" type="button" id="lAsk">${ICON.ask}Frag Merki</button>` : ''}${f ? `<button class="btn alt" type="button" id="lText">${ICON.file}${lec ? 'Ganze Mitschrift' : 'Datei ansehen'}</button>` : ''}</div>
+    <div class="ntext lec">${md(n.text || '')}</div>${spoken}
     <div class="row"><button class="btn alt" type="button" id="lEdit">${ICON.edit}Bearbeiten</button><button class="btn alt" type="button" id="lClose">Schließen</button></div>`, el => {
     const q = s => el.querySelector(s);
     q('#lClose').onclick = closeSheet;
@@ -4072,7 +4310,7 @@ function lectureSheet() {
     <p class="muted">Nimm die Vorlesung mit Sprachmemos auf dem iPhone auf. Merki schreibt alles mit und macht daraus eine Notiz, die du lesen und dir vorlesen lassen kannst. Die ganze Mitschrift mit Zeitangaben kommt unter Dateien.</p>
     <div class="row"><button class="btn" type="button" id="lPick">${ICON.lecture}Aufnahme wählen</button></div>
     <p class="notice tip">Direkt aus Sprachmemos teilen geht mit dem Kurzbefehl „An Merki“. <button type="button" class="linkbtn" id="lHow">So richtest du ihn ein</button></p>
-    <p class="muted">Das Mitschreiben kostet nichts, bis etwa 3 Stunden Aufnahme am Tag. Die Notiz kostet etwa 5 bis 10 Cent pro 90 Minuten. Frag vorher, ob du die Vorlesung aufnehmen darfst, und leg das Handy möglichst nah nach vorne.</p>
+    <p class="muted">Das Mitschreiben kostet nichts, bis etwa 3 Stunden Aufnahme am Tag. Die Notiz kostet etwa 10 bis 20 Cent pro 90 Minuten. Frag vorher, ob du die Vorlesung aufnehmen darfst, und leg das Handy möglichst nah nach vorne.</p>
     <button class="btn alt" type="button" id="lNo">Schließen</button>`, el => {
     el.querySelector('#lNo').onclick = closeSheet;
     el.querySelector('#lPick').onclick = () => { closeSheet(); $('#recIn').click(); };
@@ -4133,6 +4371,7 @@ function batchPlan(ms = 60000) {
   clearTimeout(batchTimer);
   if (MODE === 'server' && state.files.some(f => f.batch)) batchTimer = setTimeout(batchSweep, ms);
 }
+const batchDoneAt = new Map();
 async function batchSweep() {
   clearTimeout(batchTimer);
   const pend = state.files.filter(f => f.batch && f.batch.id);
@@ -4148,7 +4387,12 @@ async function batchSweep() {
       // Fertig: verarbeiten. Gescheitert oder unbekannt: alles sofort zusammenfassen. Schon erledigt (anderes Gerät): kommt per Abgleich
       if (it.state === 'ready') await batchFinish(f, it.results || []);
       else if (it.state === 'failed' || it.state === 'gone') await batchFinish(f, []);
-      else if (it.state === 'done') pull();
+      else if (it.state === 'done') {
+        // Erledigt, aber hier hängt die Datei noch: meist kommt das Ergebnis gleich per Abgleich (anderes Gerät).
+        // Bleibt es länger aus (zum Beispiel „Sofort“ ging offline schief), jetzt fertig machen.
+        const seen = batchDoneAt.get(it.id) || Date.now(); batchDoneAt.set(it.id, seen);
+        if (Date.now() - seen > 6e5) { batchDoneAt.delete(it.id); await batchFinish(f, []); } else pull();
+      }
     }
   } catch (e) { console.warn('Sammelauftrag', e); }
   finally { batchBusy = false; batchPlan(); }
@@ -4166,7 +4410,8 @@ async function batchFinish(f, results, step = () => {}) {
     if (r && r.ok && r.stop !== 'max_tokens' && r.stop !== 'refusal') { try { x = JSON.parse(r.text); } catch {} }
     if (!x) {
       step(n > 1 ? `Teil ${k + 1} von ${n}` : '');
-      try { x = await aiJson(docsumPrompt(chunks, k, f.name, p, f, known()), { schema: SCHEMA.docsum, maxTokens: 32000, purpose: 'file' }); }
+      // Im Sammelauftrag zu lang geworden: mit mehr Platz, sonst bricht es genauso wieder ab
+      try { x = await aiJson(docsumPrompt(chunks, k, f.name, p, f, known()), { schema: SCHEMA.docsum, maxTokens: r && r.stop === 'max_tokens' ? 64000 : 32000, purpose: 'file' }); }
       catch (e) {
         // Ohne Verbindung: später nochmal (die Ergebnisse bleiben auf dem Server)
         if (e && (e.code === 'offline' || e.code === 'cancelled')) throw e;
@@ -4196,7 +4441,15 @@ async function batchNow(f, step) {
   const cur = state.files.find(x => x.id === f.id);
   if (!cur || !cur.batch) return;
   batchBusy = true;
-  try { await batchPost('cancel', cur.batch.id); await batchFinish(cur, [], step); }
+  try {
+    // Vielleicht ist der Sammelauftrag schon fertig (dann ist er bezahlt): die Ergebnisse nehmen statt neu zu schreiben
+    let it = null;
+    try { it = ((await (await api('/api/batch/check', { method: 'POST', body: JSON.stringify({ ids: [cur.batch.id] }) })).json()).items || [])[0] || null; } catch {}
+    if (it && it.state === 'busy') { toast('Die Zusammenfassung wird gerade auf einem anderen Gerät fertig.', 4000); return; }
+    if (it && it.state === 'done') { pull(); return; }
+    if (it && it.state === 'ready') { await batchFinish(cur, it.results || [], step); return; }
+    await batchPost('cancel', cur.batch.id); await batchFinish(cur, [], step);
+  }
   finally { batchBusy = false; batchPlan(); }
 }
 async function readOne(file, p, step) {
@@ -4209,6 +4462,7 @@ async function readOne(file, p, step) {
   if (isImg) images = [file];
   else if (ext === 'pdf') {
     const pdf = await pdfDoc(file);
+    try {
     const pt = await pdfPageTexts(pdf, (i, n) => step(`Seite ${i} von ${n}`));
     pg = { all: pdf.numPages, read: pt.filter(t => t !== null).length, pics: 0, ocr: 0, scan: false };
     if (pt.join('').replace(/\s/g, '').length < 80) {
@@ -4242,6 +4496,7 @@ async function readOne(file, p, step) {
       }
       text = pt.filter(Boolean).join('\n\n');
     }
+    } finally { pdf.destroy().catch(() => {}); } // Speicher freigeben (altes iPad)
   } else if (ext === 'docx') {
     await lib('docx');
     text = (await window.mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })).value.trim();
@@ -4274,24 +4529,30 @@ Schon vorhandene Notizen (nicht doppelt): ${known()}`, { images, schema: SCHEMA.
       // Jeder Teil (bis 100.000 Zeichen) bekommt seine eigene ausführliche Zusammenfassung und Notizen, in einer Anfrage
       const chunks = splitText(text.slice(0, MAX_TEXT), PART), parts = [];
       const flags = { picPages: pg ? pg.pics : 0, ocrPages: pg ? pg.ocr : 0 };
+      let dayFull = false; // Tageslimit voll
       // Große Datei: als Sammelauftrag (halber Preis), die Zusammenfassung kommt nach ein paar Minuten.
       // Klappt das nicht (außer Tageslimit), fasst Merki wie bisher sofort zusammen.
       if (MODE === 'server' && text.length >= BATCH_MIN) {
         step('Auftrag an Merki');
-        batch = await batchStart(fid, file.name, chunks.map((c, k) => docsumPrompt(chunks, k, file.name, p, flags, known()))).catch(e => { if (e && e.code === 'budget') throw e; console.warn('Sammelauftrag', e); return null; });
+        // Tageslimit voll: die Datei trotzdem speichern (gelesene Seiten sind schon bezahlt), „Neu zusammenfassen“ holt es nach
+        batch = await batchStart(fid, file.name, chunks.map((c, k) => docsumPrompt(chunks, k, file.name, p, flags, known()))).catch(e => { if (e && e.code === 'budget') { dayFull = true; err = err || e; } else console.warn('Sammelauftrag', e); return null; });
       }
-      for (let k = 0; !batch && k < chunks.length; k++) {
+      for (let k = 0; !batch && !dayFull && k < chunks.length; k++) {
         const many = chunks.length > 1;
         step(many ? `Teil ${k + 1} von ${chunks.length} zusammenfassen` : 'Zusammenfassung und Notizen');
-        let x;
+        let x = null;
         try {
           x = await aiJson(docsumPrompt(chunks, k, file.name, p, flags, known()), { schema: SCHEMA.docsum, maxTokens: 32000, purpose: 'file' });
         } catch (e) {
-          // Der erste Teil klappt nicht: Fehler zeigen. Ein späterer: das Fertige behalten, „Neu zusammenfassen“ holt den Rest
-          if (!parts.some(Boolean) || (e && e.code === 'cancelled')) throw e;
-          err = err || e;
-          if (e && (e.code === 'budget' || e.code === 'offline')) break;
-          continue;
+          if (e && e.code === 'cancelled') throw e;
+          // Zu lang geworden: einmal mit mehr Platz, sonst bricht es genauso wieder ab
+          if (e && e.code === 'too_long') { try { x = await aiJson(docsumPrompt(chunks, k, file.name, p, flags, known()), { schema: SCHEMA.docsum, maxTokens: 64000, purpose: 'file' }); } catch (e2) { if (e2 && e2.code === 'cancelled') throw e2; e = e2; } }
+          if (!x) {
+            // Das Gelesene behalten (Seiten als Bild sind schon bezahlt), „Neu zusammenfassen“ holt den Rest
+            err = err || e;
+            if (e && (e.code === 'budget' || e.code === 'offline')) break;
+            continue;
+          }
         }
         parts.push(normSum(x && x.zusammenfassung));
         if (x && Array.isArray(x.notizen)) notes.push(...x.notizen);
@@ -4325,10 +4586,31 @@ function pagesText(f) {
 }
 let jobs = 0;
 function job(text) { $('#job').hidden = !text; $('#jobText').textContent = text || ''; }
+// Dateien nacheinander lesen (zwei gleichzeitig stören sich bei der Texterkennung und überfordern das alte iPad).
+// Solange gelesen wird, bleibt der Bildschirm an: sonst bricht das iPad beim Sperren ab und Bezahltes geht verloren.
+let fileQ = Promise.resolve(), fileLock = null;
+async function fileWake(on) {
+  try {
+    if (!on) { const w = fileLock; fileLock = null; if (w) await w.release(); return; }
+    if ('wakeLock' in navigator && document.visibilityState === 'visible' && !fileLock) {
+      const w = await navigator.wakeLock.request('screen');
+      if (!jobs) { w.release(); return; }
+      fileLock = w; w.addEventListener('release', () => { if (fileLock === w) fileLock = null; });
+    }
+  } catch {}
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && jobs) fileWake(true); });
 async function handleFiles(list, p = proj()) {
   const files = [...list]; if (!files.length || !p) return;
-  jobs++;
+  jobs++; fileWake(true);
+  const prev = fileQ; let done; fileQ = new Promise(r => { done = r; });
+  await prev;
+  try { await readFiles(files, p); } finally { done(); jobs--; if (!jobs) { job(''); fileWake(false); } }
+}
+async function readFiles(files, p) {
   for (const file of files) {
+    // Dieselbe Datei gibt es schon (zum Beispiel noch einmal im Chat angehängt): nicht nochmal bezahlt lesen
+    if (pFiles(p.id).some(x => x.name === file.name.slice(0, 120) && x.size === file.size)) { toast(`„${file.name}“ liegt schon unter Dateien.`, 3500); continue; }
     const base = `Merki liest „${file.name}“ …`;
     job(base);
     try {
@@ -4338,12 +4620,11 @@ async function handleFiles(list, p = proj()) {
       else toast((saved.length ? `„${f.name}“ gelesen · ${saved.length} neue Notizen` : `„${f.name}“ gespeichert`) + part, part ? 6000 : 2800);
     } catch (e) {
       console.warn(e);
-      const m = e && e.msg ? e.msg : e && e.code === 'lib' ? 'Das Lese-Werkzeug für diese Datei lädt gerade nicht. Versuch es später nochmal.' : e && e.code ? aiError(e) : 'Die Datei konnte nicht gelesen werden.';
+      const m = e && e.msg ? e.msg : e && e.code === 'lib' ? 'Das Lese-Werkzeug für diese Datei lädt gerade nicht. Versuch es später nochmal.' : e && (typeof e.code === 'string' || e.name === 'PasswordException') ? aiError(e) : 'Die Datei konnte nicht gelesen werden.';
       toast(`„${file.name}“: ${m}`, 6000);
     }
     renderAll(!busy);
   }
-  jobs--; if (!jobs) job('');
 }
 function fmtSize(b) { return b > 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'; }
 function renderFiles() {
@@ -4364,14 +4645,26 @@ function renderFiles() {
 const inl = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 // Ausführliche Zusammenfassung: Überblick, Themen (bei vielen mit Inhaltsverzeichnis), je Erklärung, Stichpunkte, Tabelle und Diagramm,
 // dann Begriffe, Merksätze und typische Klausurfragen. Ältere Zusammenfassungen haben nur Stichpunkte.
-function sumHtml(sum) {
+function sumHtml(sum, ask) {
   const secs = sum.abschnitte, fragen = sum.fragen || [];
   const toc = secs.length >= 3 ? `<nav class="fs-toc" aria-label="Themen"><b>Themen</b><ol>${secs.map((a, i) => `<li><button type="button" class="linkbtn" data-jump="${i}">${esc(a.titel)}</button></li>`).join('')}</ol></nav>` : '';
   return `<div class="fsum">${sum.ueberblick ? `<p class="fs-intro">${inl(sum.ueberblick)}</p>` : ''}${toc}
     ${secs.map((a, i) => `<section data-sec="${i}"><h3>${esc(a.titel)}</h3>${a.text ? `<div class="fs-text">${md(a.text)}</div>` : ''}${a.punkte.length ? `<ul>${a.punkte.map(t => `<li>${inl(t)}</li>`).join('')}</ul>` : ''}${a.tabelle ? md(a.tabelle) : ''}${a.diagramm ? `<div class="mmd" data-src="${esc(a.diagramm)}"></div>` : ''}</section>`).join('')}
     ${sum.begriffe.length ? `<section><h3>Wichtige Begriffe</h3><dl>${sum.begriffe.map(b => `<div><dt>${esc(b.begriff)}</dt><dd>${inl(b.erklaerung)}</dd></div>`).join('')}</dl></section>` : ''}
     ${sum.merke.length ? `<section class="fs-merke"><h3>${ICON.star}Das solltest du dir merken</h3><ul>${sum.merke.map(t => `<li>${inl(t)}</li>`).join('')}</ul></section>` : ''}
-    ${fragen.length ? `<section class="fs-fragen"><h3>Typische Klausurfragen</h3><ol>${fragen.map(t => `<li>${inl(t)}</li>`).join('')}</ol><p class="muted">Antworte selbst und frag Merki im Chat, ob es stimmt.</p></section>` : ''}</div>`;
+    ${fragen.length ? `<section class="fs-fragen"><h3>Typische Klausurfragen</h3><ol>${fragen.map((t, i) => `<li>${ask ? `<button type="button" class="qask" data-qi="${i}">${inl(t)}</button>` : inl(t)}</li>`).join('')}</ol><p class="muted">${ask ? 'Tippe auf eine Frage und schreib deine Antwort. Merki sagt dir dann im Chat, ob sie stimmt.' : 'Antworte selbst und frag Merki im Chat, ob es stimmt.'}</p></section>` : ''}</div>`;
+}
+// Grobe Schätzung für eine Zusammenfassung in Cent (US): Text lesen plus ausführlich schreiben, je 100.000 Zeichen eine Anfrage
+function sumCents(len) {
+  const parts = Math.max(1, Math.ceil(len / 100000));
+  const usd = (len / 3.5) * 2e-6 + parts * 0.1 + (parts > 1 ? 0.05 : 0);
+  return Math.max(5, Math.round(usd * 20) * 5);
+}
+// Text in den Chat legen (nicht abschicken), damit sie ihn ergänzen kann
+function askInChat(text) {
+  closeSheet(); tab('chat');
+  const c = $('#chatin'); c.value = text; autoGrow();
+  requestAnimationFrame(() => { c.focus(); c.setSelectionRange(c.value.length, c.value.length); });
 }
 function viewFile(f) {
   if (!f) return;
@@ -4381,22 +4674,35 @@ function viewFile(f) {
     <div class="seg fs-tabs" role="group" aria-label="Was möchtest du sehen?" id="fsTabs"><button type="button" data-tab="sum" aria-pressed="true">Zusammenfassung</button><button type="button" data-tab="text" aria-pressed="false">Ganzer Text</button></div>
     <div class="fs-pane" id="fsPane" aria-live="polite"></div>
     <div class="fs-pane" id="ftPane" hidden><div class="textview">${esc(show || '(kein Text)')}</div>${t.length > show.length ? `<p class="muted">Hier siehst du den Anfang. Merki kennt die ganze Datei (${Math.round(t.length / 1000)}.000 Zeichen).</p>` : ''}${f.truncated ? '<p class="muted">Die Datei ist sehr lang. Merki hat die ersten 500.000 Zeichen gelesen.</p>' : ''}</div>
-    <div class="row"><button class="btn alt" type="button" id="fClose">Schließen</button></div>`, el => {
+    <div class="row"><button class="btn alt" type="button" id="fClose">Schließen</button>${aiReady() && t ? '<button class="btn alt" type="button" id="fAsk">Frag Merki dazu</button>' : ''}</div>`, el => {
     const q = sel => el.querySelector(sel);
     q('#fClose').onclick = closeSheet;
+    const fa = q('#fAsk'); if (fa) fa.onclick = () => askInChat(`Zu „${f.name}“: `);
+    // Klausurfrage antippen: sie steht im Chat, darunter schreibt sie ihre eigene Antwort
+    q('#fsPane').addEventListener('click', e => {
+      const b = e.target.closest('[data-qi]'); if (!b) return;
+      const cur = state.files.find(x => x.id === f.id) || f, frage = cur.sum && (cur.sum.fragen || [])[+b.dataset.qi];
+      if (frage) askInChat(`Klausurfrage zu „${f.name}“: ${frage}\nMeine Antwort: `);
+    });
     const paint = (msg = '') => {
-      const cur = state.files.find(x => x.id === f.id) || f, can = aiReady() && !!t;
+      const cur = state.files.find(x => x.id === f.id) || f;
+      // Mitschrift einer Vorlesung: Merki hat daraus schon die Notiz geschrieben, kein Grund für eine bezahlte Zusammenfassung
+      const lecNote = cur.secs && !cur.sum ? state.notes.find(n => n.fileId === cur.id) : null;
+      const can = aiReady() && !!t && !lecNote;
       const old = cur.sum && !cur.sum.abschnitte.some(a => a.text) && !(cur.sum.fragen || []).length;
       q('#fsPane').innerHTML = (cur.batch ? `<p class="notice tip">Merki fasst diese Datei gerade im Sammelauftrag zusammen, zum halben Preis. Das dauert meist ein paar Minuten, dann kommen Zusammenfassung und Notizen von selbst.</p>` : '')
-        + (cur.partial ? `<p class="notice">Ein Teil dieser Datei hat beim Hochladen nicht geklappt. Lösch sie und lade sie nochmal hoch, dann liest Merki alles.</p>` : '')
-        + (cur.sum ? sumHtml(cur.sum) + (old && can ? '<p class="notice tip">Diese Zusammenfassung ist noch die kürzere Fassung. Mit „Neu zusammenfassen“ schreibt Merki sie ausführlich, mit Erklärungen, Tabellen, Diagrammen und Klausurfragen.</p>' : '')
+        + (cur.partial ? (cur.pages && cur.readPages < cur.pages ? `<p class="notice">Ein Teil dieser Datei hat beim Hochladen nicht geklappt. Lösch sie und lade sie nochmal hoch, dann liest Merki alles.</p>`
+          : `<p class="notice">Die Zusammenfassung ist beim Hochladen nicht ganz fertig geworden (${esc(cur.partial)}). Tippe auf „Neu zusammenfassen“, nochmal hochladen musst du die Datei nicht.</p>`) : '')
+        + (cur.sum ? sumHtml(cur.sum, can) + (old && can ? '<p class="notice tip">Diese Zusammenfassung ist noch die kürzere Fassung. Mit „Neu zusammenfassen“ schreibt Merki sie ausführlich, mit Erklärungen, Tabellen, Diagrammen und Klausurfragen.</p>' : '')
+        : lecNote ? `<p class="muted">Die Notiz zu dieser Vorlesung hat Merki schon geschrieben.</p><button class="btn alt" type="button" id="fsLec">${ICON.lecture}Notiz „${esc(cut(lecNote.title, 40))}“ öffnen</button>`
         : cur.summary ? `<div class="fsum"><p class="fs-intro">${inl(cur.summary)}</p></div>${can ? '<p class="notice tip">Das ist noch die alte, kurze Zusammenfassung. Merki kann sie jetzt ausführlich schreiben, auf Uni-Niveau mit Erklärungen, Tabellen, Diagrammen und typischen Klausurfragen.</p>' : ''}`
         : `<p class="muted">Zu dieser Datei gibt es noch keine Zusammenfassung.</p>`)
         + (msg ? `<p class="notice err">${esc(msg)}</p>` : '')
         + (cur.sum && MODE === 'server' ? `<button class="btn alt" type="button" id="fsPdf"${working ? ' disabled' : ''}>${ICON.pdf}PDF-Lernzettel</button>` : '')
         + (can && cur.batch ? `<button class="btn alt" type="button" id="fsNow"${working ? ' disabled' : ''}>${working ? `<span class="spin"></span>${esc(working === true ? 'Merki fasst zusammen …' : working)}` : ICON.refresh + 'Sofort zusammenfassen (voller Preis)'}</button>` : '')
-        + (can && !cur.batch ? `<button class="btn${cur.sum && !old ? ' alt' : ''}" type="button" id="fsGen"${working ? ' disabled' : ''}>${working ? `<span class="spin"></span>${esc(working === true ? 'Merki fasst zusammen …' : working)}` : ICON.refresh + (cur.sum ? 'Neu zusammenfassen' : 'Besser zusammenfassen')}</button>` : '');
+        + (can && !cur.batch ? `<button class="btn${cur.sum && !old ? ' alt' : ''}" type="button" id="fsGen"${working ? ' disabled' : ''}>${working ? `<span class="spin"></span>${esc(working === true ? 'Merki fasst zusammen …' : working)}` : ICON.refresh + (cur.sum || cur.partial ? 'Neu zusammenfassen' : cur.summary ? 'Besser zusammenfassen' : 'Zusammenfassen')}</button>${working ? '' : `<p class="muted" style="font-size:13.5px">Kostet etwa ${sumCents(t.length)} Cent.</p>`}` : '');
       const b = q('#fsGen'); if (b) b.onclick = regen;
+      const ln = q('#fsLec'); if (ln) ln.onclick = () => noteView(lecNote);
       const nw = q('#fsNow'); if (nw) nw.onclick = now;
       const z = q('#fsPdf'); if (z) z.onclick = () => lernzettel(z, () => sumPdf(cur, cur.sum, state.projects.find(x => x.id === cur.projectId)));
     };
@@ -4406,10 +4712,12 @@ function viewFile(f) {
       working = true; paint();
       let msg = '';
       try {
-        const sum = await fileSummary(f.name, p, t, s => { working = `Merki fasst zusammen: ${s} …`; const b = q('#fsGen'); if (b) b.innerHTML = '<span class="spin"></span>' + esc(working); });
+        const info = {};
+        const sum = await fileSummary(f.name, p, t, s => { working = `Merki fasst zusammen: ${s} …`; const b = q('#fsGen'); if (b) b.innerHTML = '<span class="spin"></span>' + esc(working); }, info);
         if (!sum) throw { code: 'invalid_json' };
         const cur = state.files.find(x => x.id === f.id);
-        if (cur) put('file', { ...cur, sum, summary: sum.ueberblick || cur.summary }, false);
+        // Fertig: der Hinweis „nicht ganz fertig“ gilt nicht mehr (fehlen Seiten, bleibt er). Fehlt ein Teil, steht das da.
+        if (cur) { const { partial, ...rest } = cur; const keep = partial && cur.pages && cur.readPages < cur.pages ? partial : info.err ? aiError(info.err) : ''; put('file', { ...rest, ...(keep ? { partial: keep } : {}), sum, summary: sum.ueberblick || cur.summary }, false); }
         renderFiles();
       } catch (e) { msg = aiError(e); }
       working = false;
@@ -4716,6 +5024,7 @@ function playMaterial(focus) {
 }
 function playMsg(t) { const m = $('#playMsg'); m.hidden = !t; m.textContent = t || ''; }
 function showArea(html) { $('#playHome').hidden = true; const a = $('#playArea'); a.hidden = false; a.innerHTML = html; $('#main').scrollTop = 0; return a; }
+let playDict = null;
 function backHome() { $('#playArea').hidden = true; $('#playHome').hidden = false; renderLearnHome(); }
 const normTopic = s => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
 function noteTopic(pid, topic, fields) {
@@ -4752,21 +5061,28 @@ function startQuiz(want) {
   pick('#qMode', v => { mode = v; setPref('quizMode', v); });
   a.querySelector('#qGo').onclick = () => makeQuiz({ n, focus: mode === 'weak' ? weak : null });
 }
+// Warten auf Merki beim Lernen: ruhig laufender Balken und „Abbrechen“
+function playWait(text, hint) {
+  const ctl = new AbortController();
+  const a = showArea(`<div class="q"><p class="muted">${text}</p><div class="progress wait"><i></i></div>${hint ? `<p class="muted" style="font-size:13.5px">${hint}</p>` : ''}<div class="row"><button class="btn alt" type="button" id="waitStop">Abbrechen</button></div></div>`);
+  a.querySelector('#waitStop').onclick = () => ctl.abort();
+  return ctl;
+}
 async function makeQuiz(o) {
   const mat = playMaterial(o.focus);
   if (!mat) { backHome(); return playMsg('Gib zuerst ein Thema ein.'); }
-  showArea(`<div class="q"><p class="muted">Merki schreibt ${o.n} Fragen zu „${esc(o.focus ? o.focus.slice(0, 3).join(', ') : mat.label)}“ …</p><div class="progress"><i style="width:15%"></i></div></div>`);
+  const ctl = playWait(`Merki schreibt ${o.n} Fragen zu „${esc(o.focus ? o.focus.slice(0, 3).join(', ') : mat.label)}“ …`, 'Das dauert meist 20 bis 40 Sekunden.');
   try {
     const res = await aiJson(`Erstelle ein Lern-Quiz auf Deutsch mit genau ${o.n} Multiple-Choice-Fragen. Jede Frage hat genau 4 Antworten, genau eine ist richtig ("richtig" ist ihre Position 0 bis 3). Falsche Antworten sollen plausibel sein. Mische die Position der richtigen Antwort. Fragen sollen Verständnis prüfen, nicht nur Wortlaut, auch Anwendung und Zusammenhänge. Keine Frage doppelt. "thema" ist das Unterthema der Frage in 1 bis 3 Wörtern.${o.focus ? `
 Alle Fragen drehen sich um diese Themen, bei denen die Person noch unsicher ist: ${o.focus.join(', ')}. Frag sie aus verschiedenen Richtungen ab. "thema" ist jeweils das passende Thema aus dieser Liste.` : ''}${wishLine()}
 Antworte nur mit JSON: {"fragen": [{"frage": "...", "antworten": ["A","B","C","D"], "richtig": 0, "erklaerung": "ein bis zwei Sätze warum", "thema": "..."}]}
 
-${mat.text}`, { schema: SCHEMA.quiz, maxTokens: 2000 + o.n * 500, purpose: 'learn' });
+${mat.text}`, { schema: SCHEMA.quiz, maxTokens: 4000 + o.n * 500, purpose: 'learn', signal: ctl.signal });
     const list = Array.isArray(res) ? res : res && res.fragen;
     const qs = (Array.isArray(list) ? list : []).filter(q => q && q.frage && Array.isArray(q.antworten) && q.antworten.length >= 2 && Number.isInteger(+q.richtig) && +q.richtig >= 0 && +q.richtig < q.antworten.length).slice(0, o.n);
     if (!qs.length) throw { code: 'invalid_json' };
     runQuiz(qs, o.focus ? 'Schwache Themen' : mat.label, $('#playSource').value === '__all' ? null : ui.pid, o);
-  } catch (e) { backHome(); playMsg(aiError(e)); }
+  } catch (e) { backHome(); if (!(e && e.code === 'cancelled')) playMsg(aiError(e)); }
 }
 // Falsche Antworten werden zu Karteikarten, die bald wiederkommen
 function cardFromMistake(pid, q) {
@@ -4826,16 +5142,16 @@ async function startMemory() {
     pairs = shuffle(mat.notes).slice(0, 6).map(n => ({ begriff: n.title, partner: noteBody(n).split(/[.!?\n]/)[0].split(' ').slice(0, 8).join(' ') }));
   } else {
     const btn = $('#startMemory'); btn.disabled = true;
-    showArea(`<div class="q"><p class="muted">Merki mischt die Karten zu „${esc(mat.label)}“ …</p><div class="progress"><i style="width:15%"></i></div></div>`);
+    const ctl = playWait(`Merki mischt die Karten zu „${esc(mat.label)}“ …`);
     try {
       const res = await aiJson(`Erstelle 6 Memory-Paare auf Deutsch zum Lernen. Jedes Paar: ein Begriff (1 bis 3 Wörter) und sein Partner (Erklärung, Übersetzung oder Antwort, höchstens 7 Wörter). Alle Partner müssen eindeutig zu genau einem Begriff passen.${wishLine()}
 Antworte nur mit JSON: {"paare": [{"begriff": "...", "partner": "..."}]}
 
-${mat.text}`, { schema: SCHEMA.memory, tier: 'quick', purpose: 'learn' });
+${mat.text}`, { schema: SCHEMA.memory, tier: 'quick', purpose: 'learn', signal: ctl.signal });
       const list = Array.isArray(res) ? res : res && res.paare;
       pairs = (Array.isArray(list) ? list : []).filter(p => p && p.begriff && p.partner).slice(0, 6);
       if (pairs.length < 3) throw { code: 'invalid_json' };
-    } catch (e) { btn.disabled = false; backHome(); return playMsg(aiError(e)); }
+    } catch (e) { btn.disabled = false; backHome(); return e && e.code === 'cancelled' ? undefined : playMsg(aiError(e)); }
     btn.disabled = false;
   }
   runMemory(pairs, mat.label);
@@ -4875,7 +5191,8 @@ function runMemory(pairs, label) {
 // Kiste 0 = neu, danach wächst der Abstand: 1, 2, 4, 7, 15, 30, 60 Tage
 const BOX_DAYS = [0, 1, 2, 4, 7, 15, 30, 60];
 function newCard(pid, front, back, topic, source) {
-  return { id: 'k-' + uid8(), projectId: pid, front, back, topic: String(topic || '').trim().slice(0, 60), source, box: 0, due: today(), reviews: 0, lapses: 0, createdAt: Date.now() };
+  // Aus einer falschen Quiz-Antwort: die Erklärung hat sie gerade gelesen, die Karte kommt morgen
+  return { id: 'k-' + uid8(), projectId: pid, front, back, topic: String(topic || '').trim().slice(0, 60), source, box: 0, due: source === 'quiz' ? addDays(today(), 1) : today(), reviews: 0, lapses: 0, createdAt: Date.now() };
 }
 function dueCards(pid = ui.pid) {
   const t = today();
@@ -4993,7 +5310,7 @@ function reviewCards(queue) {
       const left = dueCards(pid).length;
       const a = showArea(`<div class="q result"><span class="big">${reviewed}</span><b>${reviewed === 1 ? 'Karte' : 'Karten'} wiederholt</b>
         <span class="muted">${known} gewusst · +${xp} XP${left ? ` · noch ${left} für heute` : ' · morgen geht es weiter'}</span>
-        <div class="row" style="justify-content:center">${left ? '<button class="btn" type="button" id="more">Weiter lernen</button>' : ''}<button class="btn alt" type="button" id="home">Zurück</button></div></div>`);
+        <div class="row" style="justify-content:center">${left ? '<button class="btn" type="button" id="more">Weiter lernen</button>' : ''}<button class="btn alt" type="button" id="home">Alle Karten</button></div></div>`);
       const m = a.querySelector('#more'); if (m) m.onclick = () => reviewCards(dueCards(pid).slice(0, 20));
       a.querySelector('#home').onclick = () => cardsHome();
       renderBadges();
@@ -5004,7 +5321,7 @@ function reviewCards(queue) {
       <div class="progress"><i style="width:${(i / queue.length) * 100}%"></i></div>
       <button class="flash" type="button" id="flash" aria-label="Karte umdrehen"><span class="in">
         <span class="fs f"><span class="ftop">${c.topic ? esc(c.topic) : 'Frage'}</span>${esc(c.front)}<small>Antwort im Kopf überlegen, dann umdrehen</small></span>
-        <span class="fs b"><span class="ftop">Antwort</span>${esc(c.back)}</span></span></button>
+        <span class="fs b"><small>${esc(cut(c.front, 160))}</small><span class="ftop">Antwort</span>${esc(c.back)}</span></span></button>
       <button class="btn" type="button" id="flip">Umdrehen</button>
       <div class="grade" id="grade" hidden><button class="btn alt bad" type="button" data-g="0">Nicht gewusst</button><button class="btn alt" type="button" data-g="1">Unsicher</button><button class="btn good" type="button" data-g="2">Gewusst</button></div>
     </div><div class="row" style="margin-top:12px"><button class="btn alt" type="button" id="quit">Beenden</button><button class="linkbtn" type="button" id="cEdit">${ICON.edit}Karte bearbeiten</button></div>`);
@@ -5047,7 +5364,7 @@ function startExplain(prefill) {
       <div class="row"><button class="btn alt" type="button" id="eRec">${ICON.mic}<span>Aufnehmen</span></button><button class="btn" type="button" id="eCheck">Merki prüfen lassen</button></div>
       <p class="notice err" id="eMsg" hidden></p>
     </div>`);
-  dict = dictation(a.querySelector('#eText'), a.querySelector('#eRec'), a.querySelector('#eHint'));
+  dict = playDict = dictation(a.querySelector('#eText'), a.querySelector('#eRec'), a.querySelector('#eHint'));
   if (!dict.supported) a.querySelector('#eHint').innerHTML = 'Tipp: Mit dem <b>Mikrofon in deiner Tastatur</b> kannst du auch sprechen statt tippen.';
   a.querySelector('#eBack').onclick = () => { dict.abort(); backHome(); };
   const r = a.querySelector('#eRandom'); if (r) r.onclick = () => { a.querySelector('#eTopic').value = shuffle(topics)[0]; a.querySelector('#eText').focus(); };
@@ -5193,8 +5510,8 @@ ${stoff}`, { schema: SCHEMA.plan, purpose: 'learn' });
   }
 }
 function todayTask(p) {
-  const plan = planOf(p.id), t = today();
-  if (!plan || plan.examDate !== p.examDate) return null;
+  const plan = planOf(p.id), t = today(), n = examDays(p);
+  if (!plan || plan.examDate !== p.examDate || n === null || n <= 0) return null; // ab dem Prüfungstag kein Lernplan mehr
   const d = [...plan.days].reverse().find(x => x.date <= t);
   return d && d.tasks.some(x => !x.done) ? d : null;
 }
@@ -5223,12 +5540,13 @@ function renderProgress() {
   $('#hero').innerHTML = [
     [ICON.flame, streak, streak === 1 ? 'Tag in Folge' : 'Tage in Folge'], [ICON.star, st.xp || 0, 'XP gesamt'], [ICON.cards, due, due === 1 ? 'Karte heute dran' : 'Karten heute dran'],
   ].map(([i, v, l]) => `<div>${i}<b>${esc(v)}</b><span>${esc(l)}</span></div>`).join('');
-  $('#cardPanel').innerHTML = `<h3 class="sub">Karteikarten</h3>${cards.length ? stackBar(s) + `<p class="muted">${due ? `${due} ${due === 1 ? 'Karte ist' : 'Karten sind'} heute dran.` : 'Für heute alles wiederholt.'}</p>` : '<p class="muted">Noch keine Karten. Unter „Lernen“ macht Merki dir welche.</p>'}`;
+  $('#cardPanel').innerHTML = `<h3 class="sub">Karteikarten</h3>${cards.length ? stackBar(s) + `<p class="muted">${due ? `${due} ${due === 1 ? 'Karte ist' : 'Karten sind'} heute dran.` : 'Für heute alles wiederholt.'}</p>${due ? '<button class="btn alt" type="button" id="progLearn">Jetzt lernen</button>' : ''}` : '<p class="muted">Noch keine Karten. Unter „Lernen“ macht Merki dir welche.</p>'}`;
+  const pl = $('#progLearn'); if (pl) pl.onclick = () => { tab('learn'); reviewCards(dueCards().slice(0, 20)); };
   const t = today(), days = Array.from({ length: 14 }, (_, i) => addDays(t, i - 13)), vals = days.map(d => pr.days[d] || 0), max = Math.max(10, ...vals);
   const active = vals.filter(Boolean).length;
   $('#activity').innerHTML = `<h3 class="sub">Letzte 14 Tage</h3><p class="muted">${active ? `An ${active} von 14 Tagen gelernt, ${vals.reduce((a, b) => a + b, 0)} XP.` : 'Noch keine Lernpunkte in diesem Projekt.'}</p>
     <div class="bars" role="img" aria-label="Lernpunkte pro Tag">${vals.map((v, i) => `<i class="${v ? '' : 'zero'}${days[i] === t ? ' now' : ''}" style="height:${v ? Math.max(8, v / max * 100) : 4}%" title="${esc(fmtDay(days[i]))}: ${v} XP"></i>`).join('')}</div>
-    <div class="barlabels">${days.map(d => `<span>${pdate(d).toLocaleDateString('de-DE', { weekday: 'narrow' })}</span>`).join('')}</div>`;
+    <div class="barlabels">${days.map(d => `<span>${pdate(d).toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '')}</span>`).join('')}</div>`;
   const list = topicMastery(p.id), strong = list.filter(x => x.m >= 0.7).slice(0, 5), weak = list.filter(x => x.m < 0.6).reverse().slice(0, 5);
   const topicHtml = (x, cls) => `<div class="topic ${cls}"><div><span>${esc(x.name)}</span><span class="muted">${Math.round(x.m * 100)} %</span></div><div class="progress"><i style="width:${Math.round(x.m * 100)}%"></i></div></div>`;
   $('#topics').innerHTML = `<div class="panel"><h3 class="sub">Kannst du schon gut</h3>${strong.length ? strong.map(x => topicHtml(x, '')).join('') : '<p class="muted">Mach ein paar Quiz oder Karten, dann zeigt Merki hier deine starken Themen.</p>'}</div>
@@ -5289,7 +5607,7 @@ function renderView() {
   $('#v-welcome').hidden = !!p;
   const n = examDays(p), chip = $('#examChip');
   chip.hidden = !(n !== null && n >= 0);
-  if (!chip.hidden) { chip.innerHTML = `${ICON.clock}${n === 0 ? 'Heute' : n === 1 ? 'Morgen' : n + ' Tage'}`; chip.title = examLabel(n) + ' bis zur Prüfung'; chip.setAttribute('aria-label', examLabel(n)); }
+  if (!chip.hidden) { chip.innerHTML = `${ICON.clock}${n === 0 ? 'Heute' : n === 1 ? 'Morgen' : n + ' Tage'}`; chip.title = n >= 2 ? examLabel(n) + ' bis zur Prüfung' : examLabel(n); chip.setAttribute('aria-label', examLabel(n)); }
   ['chat', 'notes', 'files', 'learn', 'progress'].forEach(v => { $('#v-' + v).hidden = !p || ui.tab !== v; });
   document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === ui.tab));
   const mw = document.querySelector('.mainwrap'), dt = p ? ui.tab : 'home';
@@ -5318,20 +5636,24 @@ function renderAll(withChat = true) {
 let toastT;
 function toast(t, ms = 2800) {
   let el = document.getElementById('toast');
-  if (!el) { el = document.createElement('div'); el.id = 'toast'; el.setAttribute('role', 'status'); el.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--sheet);padding:8px 16px;border-radius:16px;font-size:14px;z-index:30;max-width:calc(100% - 32px);text-align:center'; document.body.appendChild(el); }
+  if (!el) { el = document.createElement('div'); el.id = 'toast'; el.setAttribute('role', 'status'); el.style.cssText = 'position:fixed;left:calc(50% + var(--side-w,0px) / 2);transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--sheet);padding:8px 16px;border-radius:16px;font-size:14px;z-index:30;max-width:calc(100% - 32px);text-align:center'; document.body.appendChild(el); }
   el.textContent = t; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { el.hidden = true; }, ms);
 }
 function tab(name) {
+  const was = ui.tab;
   ui.tab = name; saveUi(); renderView();
   if (name === 'progress') stale.add(name); // Fortschritt immer frisch
   renderTab(name);
-  backHome();
+  // Eine laufende Übung bleibt, wenn sie kurz in einen anderen Bereich schaut. Nochmal „Lernen“ tippen (oder eine
+  // fertige Runde) führt zur Übersicht. Das Diktat im Erklär-Modus hört beim Wechseln auf.
+  if (name === 'learn' && (was === 'learn' || $('#playArea .result'))) backHome();
+  if (name !== 'learn' && playDict) { playDict.stop(); playDict = null; }
   if (name === 'notes') { ndAuto(); fitCards(); }
-  if (name === 'chat') scrollDown(); else $('#main').scrollTop = 0;
+  if (name === 'chat') scrollDown(true); else $('#main').scrollTop = 0;
 }
 
 // Wofür die KI heute Geld gebraucht hat (Einstellungen)
-const KIND_LABEL = { chat: 'Chat', ask: 'Frag Merki', voice: 'Gespräch', file: 'Dateien', order: 'Alles in einer', learn: 'Lernen', ink: 'Handschrift', vnote: 'Sprachnotizen', note: 'Notiz per Knopf', lecture: 'Vorlesungen' };
+const KIND_LABEL = { chat: 'Chat', ask: 'Frag Merki', voice: 'Gespräch', file: 'Dateien', order: 'Alles in einer', learn: 'Lernen', ink: 'Handschrift', vnote: 'Sprachnotizen', note: 'Als-Notiz-Knopf', lecture: 'Vorlesungen' };
 // Einstellungen: Name und Stimme überall, Installieren, Verbrauch und Abmelden nur auf dem eigenen Server
 let installEvt = null;
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
@@ -5428,7 +5750,7 @@ function settingsSheet() {
   const setHelp = (k, v) => { const h = helpOf(); if (h[k] === v) return; h[k] = v; state.stats.help = h; saveStats(); };
   const saveWish = el => { const x = el && el.querySelector('#sWish'); if (x) setHelp('wish', x.value.trim().slice(0, 600)); };
   let sheetEl = null;
-  openSheet(`<h2>Einstellungen</h2>
+  openSheet(`<div class="sheet-head"><h2>Einstellungen</h2><button class="iconbtn plain" type="button" id="sX" aria-label="Schließen">${ICON.close}</button></div>
     <div class="field"><label for="sName">Dein Name (so spricht Merki dich an)</label><input id="sName" maxlength="40" autocomplete="given-name" enterkeyhint="done" placeholder="z. B. Lena" value="${esc(myName())}"></div>
     <div class="field"><span class="label" id="sThemeL">Hell oder dunkel</span><div class="seg look" role="group" aria-labelledby="sThemeL" id="sTheme">${THEMES.map(([v, t, svg]) => `<button type="button" data-v="${v}" aria-pressed="${look.theme === v}">${svg}${t}</button>`).join('')}</div></div>
     <div class="field"><span class="label" id="sDesignL">Design</span><div class="seg look" role="group" aria-labelledby="sDesignL" id="sDesign">${DESIGNS.map(([v, t, svg]) => `<button type="button" data-v="${v}" aria-pressed="${look.design === v}">${svg}${t}</button>`).join('')}</div></div>
@@ -5442,7 +5764,7 @@ function settingsSheet() {
     ${TTS_OK || serverTts ? `<div class="field"><label for="sVoice">Merkis Stimme</label><select id="sVoice"></select></div>
     <div class="field"><label for="sRate">Sprechtempo: <span id="sRateV">${Math.round(rate * 100)} %</span></label><input type="range" id="sRate" min="0.8" max="1.3" step="0.05" value="${rate}"></div>
     <button class="btn alt" type="button" id="sTest">${ICON.sound}Probe hören</button>
-    ${SR_OF() && MODE !== 'artifact' ? `<div class="field"><div class="htog"><button type="button" id="sBarge" aria-pressed="${pref('bargeIn', '0') === '1'}">${ICON.check}Reinreden unterbricht Merki (zum Ausprobieren)</button></div>
+    ${SR_OF() && MODE !== 'artifact' ? `<div class="field"><div class="htog"><button type="button" id="sBarge" aria-pressed="${pref('bargeIn', '0') === '1'}">${ICON.check}Reinreden unterbricht Merki (zum Ausprobieren): <span>${pref('bargeIn', '0') === '1' ? 'an' : 'aus'}</span></button></div>
     <p class="muted">Im Gespräch hört Merki dann schon zu, während es spricht, und hört auf, sobald du etwas sagst. Mit Kopfhörern klappt das am besten. Wird Merkis Stimme dabei leiser oder stockt sie, schalte es wieder aus.</p></div>` : ''}
     ${ios && !serverTts ? '<p class="notice tip">Schönere Stimme: Auf dem iPhone oder iPad unter Einstellungen › Bedienungshilfen › Gesprochene Inhalte › Stimmen › Deutsch eine Stimme mit „Erweitert“ oder „Premium“ laden. Danach hier auswählen.</p>' : ''}` : ''}
     ${server ? remindHtml() : ''}
@@ -5454,7 +5776,7 @@ function settingsSheet() {
     <button class="btn alt" type="button" id="sNo">Schließen</button>`, el => {
     sheetEl = el;
     const q = sel => el.querySelector(sel);
-    q('#sNo').onclick = closeSheet;
+    q('#sNo').onclick = closeSheet; q('#sX').onclick = closeSheet;
     q('#sName').addEventListener('change', () => saveName(el));
     q('#sName').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } });
     // Farbe und Hell/Dunkel wirken sofort, das Blatt bleibt offen
@@ -5497,7 +5819,7 @@ function settingsSheet() {
       sr.oninput = () => { q('#sRateV').textContent = Math.round(+sr.value * 100) + ' %'; };
       sr.onchange = () => setPref('rate', sr.value);
       const sb = q('#sBarge');
-      if (sb) sb.onclick = () => { const on = sb.getAttribute('aria-pressed') !== 'true'; sb.setAttribute('aria-pressed', on); setPref('bargeIn', on ? '1' : '0'); };
+      if (sb) sb.onclick = () => { const on = sb.getAttribute('aria-pressed') !== 'true'; sb.setAttribute('aria-pressed', on); sb.querySelector('span').textContent = on ? 'an' : 'aus'; setPref('bargeIn', on ? '1' : '0'); };
       q('#sTest').onclick = () => {
         saveName(el); setPref('rate', sr.value); voice.stop(); voice.unlock();
         voice.say(`Hallo${myName() ? ' ' + myName() : ''}, ich bin Merki. So klinge ich, wenn wir zusammen lernen.`);
@@ -5508,7 +5830,14 @@ function settingsSheet() {
     const ib = q('#sInstall'); if (ib) ib.onclick = async () => { installEvt.prompt(); await installEvt.userChoice.catch(() => null); installEvt = null; closeSheet(); };
     const out = q('#sOut');
     if (out) out.onclick = () => confirmSheet('Abmelden?', 'Deine Notizen bleiben auf dem Server. Auf diesem Gerät brauchst du danach wieder den Zugangscode.', 'Abmelden', async () => {
-      await flush().catch(() => {});
+      // Erst alles speichern. Klappt das nicht (offline), nicht abmelden, sonst wären die Änderungen weg.
+      for (let i = 0; i < 30 && (SYNC.flushing || Object.keys(SYNC.outbox).length); i++) {
+        if (SYNC.flushing) { await new Promise(r => setTimeout(r, 300)); continue; }
+        const before = Object.keys(SYNC.outbox).length;
+        await flush().catch(() => {});
+        if (Object.keys(SYNC.outbox).length >= before) break; // kommt nicht weiter
+      }
+      if (Object.keys(SYNC.outbox).length) { toast('Noch nicht alles gespeichert. Bitte mit Internet nochmal abmelden.', 5000); return; }
       await kv.del(CACHE_KEY);
       Object.assign(SYNC, { rev: 0, outbox: {} });
       for (const k of Object.values(LISTS)) state[k] = [];
@@ -5518,17 +5847,17 @@ function settingsSheet() {
     let usage = '', voicesNote = '';
     const showStatus = () => { const x = q('#sStatus'); if (x) x.textContent = [usage, ttsNote, voicesNote].filter(Boolean).join(' '); };
     const showUsage = s => {
-      const eur = v => (v || 0).toFixed(2).replace('.', ',');
+      const usd = v => (v || 0).toFixed(2).replace('.', ',');
       // Nach dem Zurücksetzen zählt alles ab diesem Tag, auch das Monatslimit
       const span = s.since ? `KI seit ${new Date(s.since).toLocaleDateString('de-DE', { day: 'numeric', month: 'numeric' })}` : 'KI diesen Monat';
       // Mit Monatsbudget: was heute höchstens geht, ist der faire Anteil am Rest des Monats
-      usage = !s.monthBudgetUsd ? `KI heute: ${eur(s.spentUsd)} $ von ${eur(s.budgetUsd)} $ Tageslimit (${s.calls} ${s.calls === 1 ? 'Anfrage' : 'Anfragen'}).`
-        : (s.monthUsd || 0) >= s.monthBudgetUsd ? `${span}: ${eur(s.monthUsd)} $ von ${eur(s.monthBudgetUsd)} $, aufgebraucht. Am 1. geht es weiter.`
-        : `${span}: ${eur(s.monthUsd)} $ von ${eur(s.monthBudgetUsd)} $. Heute: ${eur(s.spentUsd)} $ von ${eur(s.budgetUsd)} $ (${s.calls} ${s.calls === 1 ? 'Anfrage' : 'Anfragen'}). Ungenutzte Tage bleiben für später übrig.`;
+      usage = !s.monthBudgetUsd ? `KI heute: ${usd(s.spentUsd)} $ von ${usd(s.budgetUsd)} $ Tageslimit (${s.calls} ${s.calls === 1 ? 'Anfrage' : 'Anfragen'}).`
+        : (s.monthUsd || 0) >= s.monthBudgetUsd ? `${span}: ${usd(s.monthUsd)} $ von ${usd(s.monthBudgetUsd)} $, aufgebraucht. Am 1. geht es weiter.`
+        : `${span}: ${usd(s.monthUsd)} $ von ${usd(s.monthBudgetUsd)} $. Heute: ${usd(s.spentUsd)} $ von ${usd(s.budgetUsd)} $ (${s.calls} ${s.calls === 1 ? 'Anfrage' : 'Anfragen'}). Was du an einem Tag nicht brauchst, kommt später dazu.`;
       // Wofür das Geld ging: mit Monatsbudget über den ganzen Monat, sonst heute
       const all = s.monthBudgetUsd && Array.isArray(s.monthByKind) ? s.monthByKind : s.byKind;
       const kinds = (Array.isArray(all) ? all : []).filter(k => k.usd >= 0.005);
-      if (kinds.length) usage += ` Davon: ${kinds.map(k => `${KIND_LABEL[k.kind] || 'Sonstiges'} ${eur(k.usd)} $`).join(', ')}.`;
+      if (kinds.length) usage += ` Davon: ${kinds.map(k => `${KIND_LABEL[k.kind] || 'Sonstiges'} ${usd(k.usd)} $`).join(', ')}.`;
       if (s.tts) usage += ` Echte Stimme heute: ${s.tts.chars.toLocaleString('de-DE')} von ${s.tts.limit.toLocaleString('de-DE')} Zeichen.`;
       // Bei Google zählt die kostenlose Menge pro Monat
       if (s.tts && s.tts.provider === 'google' && s.tts.monthLimit) usage += ` Diesen Monat: ${(s.tts.month || 0).toLocaleString('de-DE')} von ${s.tts.monthLimit.toLocaleString('de-DE')}.`;
@@ -5602,14 +5931,21 @@ const cform = $('#chatform');
 cform.addEventListener('dragover', e => { if ([...e.dataTransfer.types].includes('Files')) { e.preventDefault(); cform.classList.add('over'); } });
 cform.addEventListener('dragleave', () => cform.classList.remove('over'));
 cform.addEventListener('drop', e => { if (!e.dataTransfer.files.length) return; e.preventDefault(); cform.classList.remove('over'); addAtt(e.dataTransfer.files); });
-const autoGrow = () => { const t = $('#chatin'); t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 140) + 'px'; };
+// Beim Schreiben wird „Reden“ zum kleinen Symbol, damit das Textfeld Platz hat
+const autoGrow = () => { const t = $('#chatin'); t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 140) + 'px'; $('#chatform').classList.toggle('typing', !!t.value); };
 $('#chatin').addEventListener('input', autoGrow);
 $('#chatin').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && window.matchMedia('(hover:hover)').matches) { e.preventDefault(); if (!busy) $('#chatform').requestSubmit(); } });
 $('#chatlog').addEventListener('click', e => {
   const r = e.target.closest('[data-tread]'), cr = curChat();
   if (r && cr) { readAloud(cr.turns[+r.dataset.tread], r); return; }
   const b = e.target.closest('[data-tnote]'), c = curChat(); if (!b || !c) return;
-  noteFromTurn(c.turns, +b.dataset.tnote, c.projectId, () => saveChat(c), b);
+  // Beim Speichern den aktuellen Chat nehmen: inzwischen kann eine neuere Fassung da sein (neue Nachrichten)
+  noteFromTurn(c.turns, +b.dataset.tnote, c.projectId, (title, t) => {
+    const cur = state.chats.find(x => x.id === c.id); if (!cur) return;
+    const m = cur.turns.includes(t) ? t : cur.turns.find(x => x.role === 'assistant' && x.content === t.content && !x.noted);
+    if (m) m.noted = title;
+    saveChat(cur);
+  }, b);
 });
 $('#suggest').addEventListener('click', e => { const s = e.target.closest('button'); if (!s) return; if (s.dataset.call) openCall(); else send(s.dataset.s, takeAtt()); });
 $('#voiceBtn').onclick = () => openCall(); $('#voiceBtn2').onclick = () => voiceNote(false);
@@ -5633,7 +5969,7 @@ $('#recs').addEventListener('click', e => {
   const d = e.target.closest('[data-rdel]');
   if (d) { recDiscard(d.dataset.rdel); return; }
   const r = e.target.closest('[data-rretry]');
-  if (r) { const it = rec.items.find(x => x.id === r.dataset.rretry); if (it) { delete rec.err[it.id]; lectureQueue(it); } }
+  if (r) { const it = rec.items.find(x => x.id === r.dataset.rretry); if (it) { delete rec.err[it.id]; recErrSave(); lectureQueue(it); } }
 });
 // Beim Tippen erst kurz warten, sonst zeichnet das alte iPad bei jedem Buchstaben alle Notizen neu
 let searchT = 0;
@@ -5645,7 +5981,7 @@ $('#noteView').addEventListener('click', e => {
 });
 $('#allNote').addEventListener('click', e => {
   const o = e.target.closest('[data-open]');
-  if (o) { const n = state.notes.find(x => x.id === o.dataset.open); if (n) openPad(n); return; }
+  if (o) { const n = state.notes.find(x => x.id === o.dataset.open); if (n) { if (!inkOf(n) && (n.text || '').trim()) noteView(n); else openPad(n); } return; }
   const j = e.target.closest('[data-jump]');
   if (j) { const t = document.getElementById('ad-' + j.dataset.jump); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
   if (e.target.closest('#ndGen')) makeNoteDoc(ui.pid);
@@ -5669,17 +6005,20 @@ $('#cards').addEventListener('click', e => {
   }
   const ask = e.target.closest('[data-ask]');
   if (ask) { const n = state.notes.find(x => x.id === ask.dataset.ask); if (n) openPad(n, { ask: true }); return; }
+  const ir = e.target.closest('[data-inkretry]');
+  if (ir) { inkFail.delete(ir.dataset.inkretry); readInk(ir.dataset.inkretry); return; }
   const rd = e.target.closest('[data-nread]');
   if (rd) { const n = state.notes.find(x => x.id === rd.dataset.nread); if (n) readAloud({ content: n.text }, rd); return; }
   const op = e.target.closest('[data-edit],[data-open]');
   const n = op && state.notes.find(x => x.id === (op.dataset.edit || op.dataset.open));
-  // Vorlesungen öffnen zum Lesen (lang, mit Tabellen), „Bearbeiten“ wie jede Notiz
-  if (n && n.source === 'lecture' && op.dataset.open) lectureView(n);
+  // Antippen öffnet die Notiz zum Lesen. Handschrift und leere Notizen öffnen gleich das Blatt, „Bearbeiten“ auch.
+  if (n && op.dataset.open && !inkOf(n) && (n.text || '').trim()) noteView(n);
   else if (n) openPad(n);
 });
 $('#playSource').addEventListener('change', () => { playPicked = true; $('#topicWrap').hidden = $('#playSource').value !== '__topic'; playMsg(''); });
 $('#startQuiz').onclick = () => startQuiz(); $('#startMemory').onclick = startMemory;
-$('#startCards').onclick = () => { playMsg(''); cardsHome(); };
+// Sind Karten dran, geht es gleich los. Alle Karten, neue Karten und Bearbeiten gibt es nach der Runde.
+$('#startCards').onclick = () => { playMsg(''); const due = dueCards(); if (due.length) reviewCards(due.slice(0, 20)); else cardsHome(); };
 $('#startExplain').onclick = () => startExplain('');
 $('#startTalk').onclick = () => openCall({ quiz: true });
 $('#todayPlan').onclick = () => tab('progress');

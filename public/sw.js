@@ -31,7 +31,7 @@ self.addEventListener('fetch', (e) => {
     }
     return res;
   });
-  const slow = new Promise((resolve) => setTimeout(() => resolve(null), 4000));
+  const slow = new Promise((resolve) => setTimeout(() => resolve(null), 2000)); // schwaches WLAN: nach 2 s die gespeicherte Version
   e.waitUntil(fromNet.then(() => saved, () => {}).catch(() => {})); // auch wenn die gespeicherte Version schneller war: Speicher auffrischen
   e.respondWith(
     Promise.race([fromNet.catch(() => null), slow])
