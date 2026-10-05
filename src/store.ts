@@ -87,6 +87,8 @@ type BatchRow = {
 
 /** Ein Gerät hat so lange Zeit, die Ergebnisse zu verarbeiten, dann darf ein anderes */
 const BATCH_LEASE_MS = 10 * 60_000;
+/** „Sofort zusammenfassen“ bei einer langen Datei dauert länger: so lange gehört sie dem Gerät, das es angestoßen hat */
+const BATCH_SOFORT_MS = 30 * 60_000;
 /** Claude braucht höchstens 24 Stunden, danach gilt der Auftrag als gescheitert */
 const BATCH_MAX_MS = 26 * 3600_000;
 /** Nicht abgeholte Ergebnisse so lange aufheben */
@@ -241,6 +243,8 @@ export class Store extends DurableObject<StoreEnv> {
       CREATE TABLE IF NOT EXISTS rec_bytes (id TEXT NOT NULL, i INTEGER NOT NULL, data BLOB NOT NULL, PRIMARY KEY (id, i));
       CREATE TABLE IF NOT EXISTS rec_pieces (id TEXT NOT NULL, i INTEGER NOT NULL, start REAL NOT NULL, secs REAL NOT NULL, data BLOB, text TEXT, PRIMARY KEY (id, i));
     `);
+    // Reste eines Uploads, der mittendrin abgebrochen ist (Neustart des Speichers): hier kann noch keiner laufen
+    this.sql.exec(`DELETE FROM rec_bytes WHERE id NOT IN (SELECT id FROM recs)`);
   }
 
   private currentRev(): number {
@@ -607,13 +611,17 @@ export class Store extends DurableObject<StoreEnv> {
     if (r.state !== 'text') return { state: 'listen' };
     const now = Date.now();
     if (r.lease > now) return { state: 'busy' };
-    this.sql.exec(`UPDATE recs SET lease = ? WHERE id = ?`, now + BATCH_LEASE_MS, id);
+    // Ein neuer Versuch: ein früherer Fehler beim Schreiben der Notiz gilt nicht mehr
+    this.sql.exec(`UPDATE recs SET lease = ?, err = CASE WHEN err LIKE 'note:%' THEN '' ELSE err END WHERE id = ?`, now + BATCH_LEASE_MS, id);
     return { state: 'ready', text: r.text, name: r.name, pid: r.pid, secs: Math.round(r.secs), created: r.created };
   }
 
-  /** Das Schreiben der Notiz hat nicht geklappt: gleich wieder freigeben, damit es nochmal versucht werden kann. */
-  recFree(id: string): void {
-    this.sql.exec(`UPDATE recs SET lease = 0 WHERE id = ?`, id);
+  /**
+   * Das Schreiben der Notiz hat nicht geklappt: gleich wieder freigeben, damit es nochmal versucht werden kann.
+   * code: woran es lag (z. B. too_long). Die anderen Geräte sehen das und versuchen es dann nicht von selbst nochmal.
+   */
+  recFree(id: string, code = ''): void {
+    this.sql.exec(`UPDATE recs SET lease = 0, err = CASE WHEN ? != '' AND state = 'text' THEN ? ELSE err END WHERE id = ?`, code, 'note:' + code, id);
   }
 
   /** Die Notiz ist gespeichert (oder sie will die Aufnahme nicht mehr): alles dazu löschen. */
@@ -749,13 +757,14 @@ export class Store extends DurableObject<StoreEnv> {
         await this.batchPoll(row);
         row = this.sql.exec<BatchRow>(`SELECT * FROM batches WHERE id = ?`, id).toArray()[0];
       }
-      if (row.state === 'ready') {
+      // Fertig oder gescheitert: immer nur ein Gerät verarbeitet es (sonst fassen iPad und iPhone dieselbe Datei doppelt zusammen)
+      if (row.state === 'ready' || row.state === 'failed') {
         if (row.lease > now) out.push({ id, state: 'busy' });
         else {
           this.sql.exec(`UPDATE batches SET lease = ? WHERE id = ?`, now + BATCH_LEASE_MS, id);
-          out.push({ id, state: 'ready', results: JSON.parse(row.results || '[]') as BatchResult[] });
+          out.push(row.state === 'ready' ? { id, state: 'ready', results: JSON.parse(row.results || '[]') as BatchResult[] } : { id, state: 'failed' });
         }
-      } else out.push({ id, state: row.state === 'failed' ? 'failed' : row.state === 'done' ? 'done' : 'running' });
+      } else out.push({ id, state: row.state === 'done' ? 'done' : 'running' });
     }
     await this.schedule();
     return out;
@@ -767,10 +776,14 @@ export class Store extends DurableObject<StoreEnv> {
     await this.schedule();
   }
 
-  /** Die App will nicht mehr warten (sofort zusammenfassen) oder die Datei ist gelöscht: bei Claude abbrechen. Gilt als erledigt. */
+  /**
+   * Die App will nicht mehr warten (sofort zusammenfassen) oder die Datei ist gelöscht: bei Claude abbrechen.
+   * Das Gerät fasst jetzt selbst zusammen und meldet danach „erledigt“. Bis dahin sehen andere Geräte „busy“.
+   * Bricht es dabei ab (offline), darf nach 30 Minuten ein anderes Gerät übernehmen.
+   */
   async batchCancel(id: string): Promise<void> {
     const row = this.sql.exec<BatchRow>(`SELECT * FROM batches WHERE id = ?`, id).toArray()[0];
-    this.sql.exec(`UPDATE batches SET state = 'done', results = NULL WHERE id = ?`, id);
+    this.sql.exec(`UPDATE batches SET state = 'failed', results = NULL, lease = ? WHERE id = ? AND state != 'done'`, Date.now() + BATCH_SOFORT_MS, id);
     if (row && row.state === 'running' && this.env.ANTHROPIC_API_KEY) {
       try {
         await this.claude().beta.messages.batches.cancel(id);
@@ -789,12 +802,17 @@ export class Store extends DurableObject<StoreEnv> {
   private async batchPoll(row: BatchRow): Promise<void> {
     const now = Date.now();
     this.sql.exec(`UPDATE batches SET checked = ? WHERE id = ?`, now, row.id);
-    if (!this.env.ANTHROPIC_API_KEY) return;
+    // Zu lange ohne Ergebnis (auch wenn das Nachfragen dauernd scheitert): aufgeben, die App fasst dann sofort zusammen
+    const tooOld = now - row.created > BATCH_MAX_MS;
+    if (!this.env.ANTHROPIC_API_KEY) {
+      if (tooOld) this.sql.exec(`UPDATE batches SET state = 'failed' WHERE id = ?`, row.id);
+      return;
+    }
     const client = this.claude();
     try {
       const b = await client.beta.messages.batches.retrieve(row.id);
       if (b.processing_status !== 'ended') {
-        if (now - row.created > BATCH_MAX_MS) this.sql.exec(`UPDATE batches SET state = 'failed' WHERE id = ?`, row.id);
+        if (tooOld) this.sql.exec(`UPDATE batches SET state = 'failed' WHERE id = ?`, row.id);
         return;
       }
       const results: BatchResult[] = [];
@@ -823,7 +841,7 @@ export class Store extends DurableObject<StoreEnv> {
       });
     } catch (e) {
       // Auftrag unbekannt: gescheitert. Sonst (Netz, Überlastung) beim nächsten Mal nochmal
-      if (e instanceof Anthropic.NotFoundError) this.sql.exec(`UPDATE batches SET state = 'failed' WHERE id = ?`, row.id);
+      if (e instanceof Anthropic.NotFoundError || tooOld) this.sql.exec(`UPDATE batches SET state = 'failed' WHERE id = ? AND state = 'running'`, row.id);
       console.warn('batch poll failed', e instanceof Error ? e.message : e);
     }
   }

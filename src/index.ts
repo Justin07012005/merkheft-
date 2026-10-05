@@ -137,12 +137,25 @@ async function sameCode(given: string, expected: string): Promise<boolean> {
   return crypto.subtle.timingSafeEqual(a, b);
 }
 
+/**
+ * Wofür die Sperre nach falschen Codes zählt: IPv4 die Adresse, IPv6 der ganze /64-Block.
+ * Ein IPv6-Anschluss hat meist so einen Block, sonst ließe sich die Sperre durch Adresswechsel umgehen.
+ */
+function lockKey(ip: string): string {
+  if (!ip.includes(':')) return ip;
+  const [head, tail] = ip.split('::');
+  const h = head ? head.split(':') : [];
+  const t = tail ? tail.split(':') : [];
+  const groups = ip.includes('::') ? [...h, ...Array<string>(Math.max(0, 8 - h.length - t.length)).fill('0'), ...t] : ip.split(':');
+  return groups.slice(0, 4).map((g) => (g || '0').toLowerCase().replace(/^0+(?=.)/, '')).join(':') + '::/64';
+}
+
 /** Prüft den Zugangscode. Gibt eine Fehlerantwort zurück oder null, wenn alles passt. */
 async function checkAccess(request: Request, env: Env): Promise<Response | null> {
   if (!env.APP_CODE || env.APP_CODE.length < MIN_CODE_LENGTH) {
     return fail(503, 'no_code', `Auf dem Server fehlt der Zugangscode (Secret APP_CODE, mindestens ${MIN_CODE_LENGTH} Zeichen).`);
   }
-  const ip = request.headers.get('cf-connecting-ip') || 'unbekannt';
+  const ip = lockKey(request.headers.get('cf-connecting-ip') || 'unbekannt');
   const hour = Math.floor(Date.now() / 3_600_000);
   const s = store(env);
   if (await s.isBlocked(ip, hour)) {
@@ -227,6 +240,12 @@ interface AiRequest {
 }
 
 const PURPOSES = new Set(['chat', 'ask', 'voice', 'file', 'order', 'learn', 'ink', 'vnote', 'note', 'lecture']);
+/**
+ * Hier denkt Merki nicht erst unsichtbar nach (das wird wie Antworttext bezahlt und zählt zur Obergrenze):
+ * kurze gesprochene Antworten und reines Abschreiben oder Umformulieren (Notiz per Knopf, Sprachnotiz, Handschrift).
+ * Erklärungen im Chat, Quiz, Karten, Zusammenfassungen und Vorlesungsnotizen denken weiter nach.
+ */
+const NO_THINK = new Set(['voice', 'note', 'vnote', 'ink']);
 
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
@@ -254,6 +273,16 @@ function apiFailure(e: unknown): { status: number; code: string; msg: string } {
   if (e instanceof Anthropic.RateLimitError) {
     return { status: 429, code: 'rate_limited', msg: 'Gerade zu viele Anfragen. Bitte kurz warten.' };
   }
+  // Guthaben aufgebraucht kommt als 400 (oder 402) und sah bisher aus wie „zu viel Text“
+  if (e instanceof Anthropic.APIError && (e.status === 402 || (e.status === 400 && /credit balance/i.test(e.message)))) {
+    return { status: 402, code: 'no_credit', msg: 'Das Guthaben im Claude-Konto ist aufgebraucht.' };
+  }
+  if (e instanceof Anthropic.NotFoundError) {
+    return { status: 502, code: 'bad_model', msg: 'Das eingestellte Modell gibt es nicht.' };
+  }
+  if (e instanceof Anthropic.APIError && e.status === 413) {
+    return { status: 413, code: 'prompt_too_large', msg: 'Die Anfrage war zu groß.' };
+  }
   if (e instanceof Anthropic.BadRequestError) {
     return { status: 400, code: 'bad_request', msg: 'Die Anfrage war zu groß oder ungültig.' };
   }
@@ -270,6 +299,8 @@ function apiFailure(e: unknown): { status: number; code: string; msg: string } {
  * Liest im durchgereichten Stream nur die Zeilen mit dem Verbrauch mit (für das Tageslimit).
  * Alles andere wird nicht ausgewertet, das spart Rechenzeit.
  */
+const DELTA_MARK = '"type":"content_block_delta"';
+
 class UsageMeter {
   private dec = new TextDecoder();
   private carry = '';
@@ -299,7 +330,8 @@ class UsageMeter {
     }
     this.carry = s.slice(cut + 1);
     const done = s.slice(0, cut);
-    for (let i = done.indexOf('content_block_delta'); i >= 0; i = done.indexOf('content_block_delta', i + 19)) this.deltas++;
+    // Nur die Daten-Zeile zählen (die event:-Zeile davor trägt denselben Namen)
+    for (let i = done.indexOf(DELTA_MARK); i >= 0; i = done.indexOf(DELTA_MARK, i + DELTA_MARK.length)) this.deltas++;
     if (!done.includes('"usage"') && !done.includes('"fallback"')) return;
     for (const line of done.split('\n')) {
       if (!line.startsWith('data:') || !(line.includes('"usage"') || line.includes('"fallback"'))) continue;
@@ -401,8 +433,9 @@ function buildParams(input: AiRequest | null, env: Env, forBatch = false): Built
   const purpose = typeof input.purpose === 'string' && PURPOSES.has(input.purpose) ? input.purpose : 'other';
   const smart = !/haiku/.test(model); // Die kleinen Modelle kennen weder effort noch fallbacks
   const effort = kind === 'chat' || input.tier === 'quick' ? 'low' : 'medium';
-  // Ausführliche Zusammenfassungen langer Dateien brauchen viel Platz, darum bis 32.000
-  const maxTokens = Math.min(Math.max(Number(input.maxTokens) || (kind === 'chat' ? 6000 : 8000), 300), 32000);
+  // Ausführliche Zusammenfassungen langer Dateien brauchen viel Platz, darum bis 32.000 (beim zweiten Versuch mehr)
+  // Wird eine sehr lange Zusammenfassung abgeschnitten, versucht die App es einmal mit bis zu 64.000
+  const maxTokens = Math.min(Math.max(Number(input.maxTokens) || (kind === 'chat' ? 6000 : 8000), 300), 64000);
 
   const params: Anthropic.Beta.MessageCreateParamsNonStreaming = {
     model,
@@ -410,6 +443,8 @@ function buildParams(input: AiRequest | null, env: Env, forBatch = false): Built
     messages,
     ...(system.length ? { system } : {}),
     ...(tail.cache_control ? { cache_control: tail.cache_control } : {}),
+    // Sonnet 5.5 denkt sonst von sich aus nach; between_tools schaltet das ab (geht nur bis Aufwand high)
+    ...(NO_THINK.has(purpose) && /sonnet-5-5/.test(model) ? { thinking: { type: 'between_tools' as const } } : {}),
     ...(smart || kind === 'json'
       ? {
           output_config: {
@@ -433,8 +468,11 @@ async function postAi(request: Request, env: Env, ctx: ExecutionContext): Promis
 
   const day = berlinDay();
   const s = store(env);
-  const over = budgetFail(await budget(s, env, day));
+  const plan = await budget(s, env, day);
+  const over = budgetFail(plan);
   if (over) return over;
+  // Wie viel vom heutigen Anteil noch frei ist (0 bis 1), damit die App rechtzeitig leise Bescheid sagen kann
+  const left = plan.limit > 0 ? Math.max(0, Math.min(1, (plan.limit - plan.today.usd) / plan.limit)) : 1;
 
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, baseURL: env.ANTHROPIC_BASE_URL || undefined, maxRetries: 2 });
   const aborter = new AbortController();
@@ -508,6 +546,7 @@ async function postAi(request: Request, env: Env, ctx: ExecutionContext): Promis
       'content-type': 'text/event-stream; charset=utf-8',
       'cache-control': 'no-store, no-transform',
       'x-content-type-options': 'nosniff',
+      'x-merkheft-left': left.toFixed(2),
     },
   });
 }
@@ -616,11 +655,11 @@ async function postRec(request: Request, url: URL, env: Env): Promise<Response> 
 async function postRecAction(action: string, request: Request, env: Env): Promise<Response> {
   const s = store(env);
   if (action === 'list') return json({ items: await s.recList() });
-  const input = await readJson<{ id?: unknown }>(request);
+  const input = await readJson<{ id?: unknown; code?: unknown }>(request);
   const id = typeof input?.id === 'string' && REC_ID_RE.test(input.id) ? input.id : '';
   if (!id) return fail(400, 'bad_request', 'Ungültige Anfrage.');
   if (action === 'take') return json(await s.recTake(id));
-  if (action === 'free') await s.recFree(id);
+  if (action === 'free') await s.recFree(id, typeof input?.code === 'string' && /^[a-z_]{1,24}$/.test(input.code) ? input.code : '');
   else await s.recDrop(id);
   return json({ ok: true });
 }
