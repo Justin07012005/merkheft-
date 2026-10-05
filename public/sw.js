@@ -1,6 +1,6 @@
 // Merkheft Service Worker: Die App öffnet sich auch ohne Internet.
 // Zuerst aus dem Netz (damit Updates sofort ankommen). Ohne Netz, oder wenn es länger als
-// 4 Sekunden dauert, kommt die gespeicherte Version.
+// 2 Sekunden dauert, kommt die gespeicherte Version.
 // Daten (/api) laufen nie hierüber, die speichert die App selbst auf dem Gerät.
 const CACHE = 'merkheft-v2';
 const CORE = ['/', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png'];
