@@ -669,7 +669,7 @@ async function getStatus(env: Env): Promise<Response> {
   const s = store(env);
   const b = await budget(s, env, day);
   const spent = b.today;
-  const byKind = await s.spentByKind(day);
+  const [byKind, monthByKind, since] = await Promise.all([s.spentByKind(day), s.spentByKind(day, true), s.spendSince(day)]);
   const p = ttsProvider(env);
   const tts = p
     ? { provider: p, chars: (await s.ttsOn(day)).chars, limit: ttsLimit(env), month: await s.ttsMonth(day), monthLimit: ttsMonthLimit(env) }
@@ -684,6 +684,8 @@ async function getStatus(env: Env): Promise<Response> {
     monthUsd: r3(b.month),
     monthBudgetUsd: b.monthLimit,
     byKind,
+    monthByKind,
+    since,
     tts,
   });
 }
@@ -1027,6 +1029,10 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
   try {
     if (url.pathname === '/api/login' && request.method === 'POST') return json({ ok: true });
     if (url.pathname === '/api/status' && request.method === 'GET') return await getStatus(env);
+    if (url.pathname === '/api/status/reset' && request.method === 'POST') {
+      await store(env).resetSpend(berlinDay());
+      return await getStatus(env);
+    }
     if (url.pathname === '/api/data' && request.method === 'GET') return await getData(url, env);
     if (url.pathname === '/api/data' && request.method === 'POST') return await postData(request, env);
     if (url.pathname === '/api/ai' && request.method === 'POST') return await postAi(request, env, ctx);

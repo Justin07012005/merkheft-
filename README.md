@@ -64,7 +64,7 @@ Klappt die echte Stimme einmal nicht, liest die Gerätestimme den Satz. Den Grun
 ## Kosten
 
 - `TAGES_BUDGET_USD` in `wrangler.toml` (Standard 3 Dollar): Mehr gibt Merki pro Tag nicht aus, danach ist Pause bis zum nächsten Tag.
-- `MONATS_BUDGET_USD` in `wrangler.toml` (eingestellt 5,50 Dollar, etwa 5 Euro): Mehr gibt Merki im Monat nicht aus. Ein Tag darf bis zum Dreifachen seines fairen Anteils nutzen (was übrig ist, geteilt durch die restlichen Tage), ungenutzte Tage bleiben für später übrig. Löschen = kein Monatslimit.
+- `MONATS_BUDGET_USD` in `wrangler.toml` (eingestellt 5,50 Dollar, etwa 5 Euro): Mehr gibt Merki im Monat nicht aus. Ein Tag darf bis zum Dreifachen seines fairen Anteils nutzen (was übrig ist, geteilt durch die restlichen Tage), ungenutzte Tage bleiben für später übrig. Löschen = kein Monatslimit. In den Einstellungen zeigt die App, wie viel diesen Monat schon ausgegeben wurde und wofür (Gespräch, Chat, Dateien …). „Kostenzähler auf null setzen“ (zweimal tippen) fängt neu an zu zählen, auch fürs Monatslimit.
 - `MODEL` in `wrangler.toml`: welches Claude-Modell Merki nutzt. Voreingestellt ist ein günstiges Modell, ein Opus-Modell ist noch stärker, kostet aber etwa das Doppelte.
 - `TTS_TAGES_ZEICHEN` in `wrangler.toml` (Standard 5000, etwa 5 Minuten): So viel spricht Merki pro Tag mit der echten Stimme, danach bis zum nächsten Tag mit der Gerätestimme.
 - `TTS_MONATS_ZEICHEN` in `wrangler.toml` (Standard 900.000): So viel spricht Merki pro Monat mit der echten Stimme. Das bleibt unter Googles kostenloser Menge.

@@ -5450,7 +5450,7 @@ function settingsSheet() {
     ${server && !inApp ? `<div class="notice"><b>Als App auf den Startbildschirm</b><br>${installEvt ? 'Tippe auf „Installieren“.' : ios ? 'Tippe in Safari unten auf das Teilen-Symbol und dann auf „Zum Home-Bildschirm“.' : 'Öffne das Browser-Menü (⋮) und tippe auf „App installieren“ oder „Zum Startbildschirm hinzufügen“.'}</div>` : ''}
     ${server && installEvt && !inApp ? '<button class="btn" type="button" id="sInstall">Installieren</button>' : ''}
     ${server ? `<p class="notice" id="sStatus">KI-Verbrauch heute wird geladen …</p>
-    <div class="menu"><button type="button" class="danger" id="sOut">${ICON.trash}Auf diesem Gerät abmelden</button></div>` : ''}
+    <div class="menu"><button type="button" id="sReset">${ICON.refresh}Kostenzähler auf null setzen</button><button type="button" class="danger" id="sOut">${ICON.trash}Auf diesem Gerät abmelden</button></div>` : ''}
     <button class="btn alt" type="button" id="sNo">Schließen</button>`, el => {
     sheetEl = el;
     const q = sel => el.querySelector(sel);
@@ -5517,19 +5517,45 @@ function settingsSheet() {
     });
     let usage = '', voicesNote = '';
     const showStatus = () => { const x = q('#sStatus'); if (x) x.textContent = [usage, ttsNote, voicesNote].filter(Boolean).join(' '); };
-    if (server) api('/api/status').then(r => r.json()).then(s => {
-      const eur = v => v.toFixed(2).replace('.', ',');
+    const showUsage = s => {
+      const eur = v => (v || 0).toFixed(2).replace('.', ',');
+      // Nach dem Zurücksetzen zählt alles ab diesem Tag, auch das Monatslimit
+      const span = s.since ? `KI seit ${new Date(s.since).toLocaleDateString('de-DE', { day: 'numeric', month: 'numeric' })}` : 'KI diesen Monat';
       // Mit Monatsbudget: was heute höchstens geht, ist der faire Anteil am Rest des Monats
-      usage = !s.monthBudgetUsd ? `KI heute: ${eur(s.spentUsd)} $ von ${eur(s.budgetUsd)} $ Tageslimit (${s.calls} Anfragen).`
-        : (s.monthUsd || 0) >= s.monthBudgetUsd ? `KI diesen Monat: ${eur(s.monthUsd)} $ von ${eur(s.monthBudgetUsd)} $, aufgebraucht. Am 1. geht es weiter.`
-        : `KI diesen Monat: ${eur(s.monthUsd || 0)} $ von ${eur(s.monthBudgetUsd)} $. Heute: ${eur(s.spentUsd)} $ von ${eur(s.budgetUsd)} $ (${s.calls} Anfragen). Ungenutzte Tage bleiben für später übrig.`;
-      const kinds = (Array.isArray(s.byKind) ? s.byKind : []).filter(k => k.usd >= 0.005);
+      usage = !s.monthBudgetUsd ? `KI heute: ${eur(s.spentUsd)} $ von ${eur(s.budgetUsd)} $ Tageslimit (${s.calls} ${s.calls === 1 ? 'Anfrage' : 'Anfragen'}).`
+        : (s.monthUsd || 0) >= s.monthBudgetUsd ? `${span}: ${eur(s.monthUsd)} $ von ${eur(s.monthBudgetUsd)} $, aufgebraucht. Am 1. geht es weiter.`
+        : `${span}: ${eur(s.monthUsd)} $ von ${eur(s.monthBudgetUsd)} $. Heute: ${eur(s.spentUsd)} $ von ${eur(s.budgetUsd)} $ (${s.calls} ${s.calls === 1 ? 'Anfrage' : 'Anfragen'}). Ungenutzte Tage bleiben für später übrig.`;
+      // Wofür das Geld ging: mit Monatsbudget über den ganzen Monat, sonst heute
+      const all = s.monthBudgetUsd && Array.isArray(s.monthByKind) ? s.monthByKind : s.byKind;
+      const kinds = (Array.isArray(all) ? all : []).filter(k => k.usd >= 0.005);
       if (kinds.length) usage += ` Davon: ${kinds.map(k => `${KIND_LABEL[k.kind] || 'Sonstiges'} ${eur(k.usd)} $`).join(', ')}.`;
       if (s.tts) usage += ` Echte Stimme heute: ${s.tts.chars.toLocaleString('de-DE')} von ${s.tts.limit.toLocaleString('de-DE')} Zeichen.`;
       // Bei Google zählt die kostenlose Menge pro Monat
       if (s.tts && s.tts.provider === 'google' && s.tts.monthLimit) usage += ` Diesen Monat: ${(s.tts.month || 0).toLocaleString('de-DE')} von ${s.tts.monthLimit.toLocaleString('de-DE')}.`;
       showStatus();
-    }).catch(() => { usage = 'KI-Verbrauch gerade nicht abrufbar.'; showStatus(); });
+    };
+    if (server) api('/api/status').then(r => r.json()).then(showUsage).catch(() => { usage = 'KI-Verbrauch gerade nicht abrufbar.'; showStatus(); });
+    // Zähler auf null: zweimal tippen, damit es nicht aus Versehen passiert
+    const rs = q('#sReset');
+    if (rs) {
+      let armed = 0;
+      rs.onclick = async () => {
+        if (Date.now() - armed > 5000) {
+          armed = Date.now();
+          rs.lastChild.textContent = 'Nochmal tippen: Zähler und Monatslimit fangen bei null an';
+          setTimeout(() => { if (rs.isConnected && Date.now() - armed >= 5000) rs.lastChild.textContent = 'Kostenzähler auf null setzen'; }, 5100);
+          return;
+        }
+        armed = 0; rs.disabled = true;
+        try {
+          showUsage(await (await api('/api/status/reset', { method: 'POST' })).json());
+          rs.lastChild.textContent = 'Zähler steht wieder auf null';
+        } catch (e) {
+          rs.disabled = false; rs.lastChild.textContent = 'Kostenzähler auf null setzen';
+          toast(e && e.code === 'offline' ? 'Keine Verbindung. Bist du online?' : 'Das hat nicht geklappt. Versuch es bitte nochmal.');
+        }
+      };
+    }
   }, () => {
     saveName(sheetEl); saveWish(sheetEl);
     if (fill) { try { speechSynthesis.removeEventListener('voiceschanged', fill); } catch {} }

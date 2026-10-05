@@ -99,6 +99,15 @@ function batchEvery(age: number): number {
 // ---------- Vorlesungen ----------
 
 /** Was die App über eine Aufnahme wissen will */
+/** Stand beim Zurücksetzen des Kostenzählers: was an diesem Tag schon ausgegeben war, zählt nicht mehr. */
+interface SpendReset {
+  day: string;
+  usd: number;
+  calls: number;
+  kinds: Record<string, { usd: number; calls: number }>;
+  at: string;
+}
+
 export interface RecItem {
   id: string;
   name: string;
@@ -284,15 +293,50 @@ export class Store extends DurableObject<StoreEnv> {
   /** Wie viel heute schon für die KI ausgegeben wurde. */
   spentOn(day: string): { usd: number; calls: number } {
     const row = this.sql.exec<{ usd: number; calls: number }>(`SELECT usd, calls FROM spend WHERE day = ?`, day).toArray()[0];
-    return row ? { usd: row.usd, calls: row.calls } : { usd: 0, calls: 0 };
+    const r = this.spendReset(day);
+    const base = r && r.day === day ? r : { usd: 0, calls: 0 };
+    return row ? { usd: Math.max(0, row.usd - base.usd), calls: Math.max(0, row.calls - base.calls) } : { usd: 0, calls: 0 };
   }
 
-  /** Wie viel in diesem Monat vor heute schon für die KI ausgegeben wurde. */
+  /** Wie viel in diesem Monat vor heute schon für die KI ausgegeben wurde (seit dem Zurücksetzen). */
   spentMonthBefore(day: string): number {
-    const row = this.sql
-      .exec<{ usd: number }>(`SELECT COALESCE(SUM(usd), 0) AS usd FROM spend WHERE substr(day, 1, 7) = substr(?, 1, 7) AND day < ?`, day, day)
-      .toArray()[0];
-    return row ? row.usd : 0;
+    const r = this.spendReset(day);
+    const rows = this.sql
+      .exec<{ day: string; usd: number }>(`SELECT day, usd FROM spend WHERE substr(day, 1, 7) = substr(?, 1, 7) AND day < ?`, day, day)
+      .toArray();
+    let sum = 0;
+    for (const row of rows) {
+      if (r && row.day < r.day) continue;
+      sum += r && row.day === r.day ? Math.max(0, row.usd - r.usd) : row.usd;
+    }
+    return sum;
+  }
+
+  /** Zähler auf null (Einstellungen): Was bis jetzt in diesem Monat ausgegeben wurde, zählt nicht mehr, auch nicht fürs Monatslimit. */
+  resetSpend(day: string): void {
+    const today = this.sql.exec<{ usd: number; calls: number }>(`SELECT usd, calls FROM spend WHERE day = ?`, day).toArray()[0];
+    const kinds: Record<string, { usd: number; calls: number }> = {};
+    for (const k of this.sql.exec<{ kind: string; usd: number; calls: number }>(`SELECT kind, usd, calls FROM spend_kind WHERE day = ?`, day)) {
+      kinds[k.kind] = { usd: k.usd, calls: k.calls };
+    }
+    const r: SpendReset = { day, usd: today?.usd ?? 0, calls: today?.calls ?? 0, kinds, at: new Date().toISOString() };
+    this.sql.exec(`INSERT OR REPLACE INTO kv (k, v) VALUES ('spend_reset', ?)`, JSON.stringify(r));
+  }
+
+  /** Wann der Zähler in diesem Monat zuletzt auf null gesetzt wurde, sonst null. */
+  spendSince(day: string): string | null {
+    return this.spendReset(day)?.at ?? null;
+  }
+
+  private spendReset(day: string): SpendReset | null {
+    const row = this.sql.exec<{ v: string }>(`SELECT v FROM kv WHERE k = 'spend_reset'`).toArray()[0];
+    if (!row) return null;
+    try {
+      const r = JSON.parse(row.v) as SpendReset;
+      return typeof r.day === 'string' && r.day.slice(0, 7) === day.slice(0, 7) && r.day <= day ? r : null;
+    } catch {
+      return null;
+    }
   }
 
   addSpend(day: string, usd: number, kind = 'other'): void {
@@ -315,12 +359,29 @@ export class Store extends DurableObject<StoreEnv> {
     this.sql.exec(`DELETE FROM spend_kind WHERE day < date(?, '-60 days')`, day);
   }
 
-  /** Heutige Kosten nach Zweck, teuerster zuerst. */
-  spentByKind(day: string): { kind: string; usd: number; calls: number }[] {
-    return this.sql
-      .exec<{ kind: string; usd: number; calls: number }>(`SELECT kind, usd, calls FROM spend_kind WHERE day = ? ORDER BY usd DESC`, day)
-      .toArray()
-      .map((r) => ({ kind: r.kind, usd: Math.round(r.usd * 1000) / 1000, calls: r.calls }));
+  /** Kosten nach Zweck, teuerster zuerst: heute oder (month) im ganzen Monat bis heute, jeweils seit dem Zurücksetzen. */
+  spentByKind(day: string, month = false): { kind: string; usd: number; calls: number }[] {
+    const r = this.spendReset(day);
+    const rows = this.sql
+      .exec<{ day: string; kind: string; usd: number; calls: number }>(
+        month ? `SELECT day, kind, usd, calls FROM spend_kind WHERE substr(day, 1, 7) = substr(?, 1, 7) AND day <= ?` : `SELECT day, kind, usd, calls FROM spend_kind WHERE day = ? AND day <= ?`,
+        day,
+        day,
+      )
+      .toArray();
+    const sum = new Map<string, { usd: number; calls: number }>();
+    for (const row of rows) {
+      if (r && row.day < r.day) continue;
+      const base = r && row.day === r.day ? r.kinds[row.kind] : undefined;
+      const s = sum.get(row.kind) ?? { usd: 0, calls: 0 };
+      s.usd += Math.max(0, row.usd - (base?.usd ?? 0));
+      s.calls += Math.max(0, row.calls - (base?.calls ?? 0));
+      sum.set(row.kind, s);
+    }
+    return [...sum]
+      .map(([kind, s]) => ({ kind, usd: Math.round(s.usd * 1000) / 1000, calls: s.calls }))
+      .filter((k) => k.calls > 0)
+      .sort((a, b) => b.usd - a.usd);
   }
 
   // ---------- Suche nach Bedeutung ----------
