@@ -87,6 +87,8 @@ type BatchRow = {
 
 /** Ein Gerät hat so lange Zeit, die Ergebnisse zu verarbeiten, dann darf ein anderes */
 const BATCH_LEASE_MS = 10 * 60_000;
+/** „Sofort zusammenfassen“ bei einer langen Datei dauert länger: so lange gehört sie dem Gerät, das es angestoßen hat */
+const BATCH_SOFORT_MS = 30 * 60_000;
 /** Claude braucht höchstens 24 Stunden, danach gilt der Auftrag als gescheitert */
 const BATCH_MAX_MS = 26 * 3600_000;
 /** Nicht abgeholte Ergebnisse so lange aufheben */
@@ -774,10 +776,14 @@ export class Store extends DurableObject<StoreEnv> {
     await this.schedule();
   }
 
-  /** Die App will nicht mehr warten (sofort zusammenfassen) oder die Datei ist gelöscht: bei Claude abbrechen. Gilt als erledigt. */
+  /**
+   * Die App will nicht mehr warten (sofort zusammenfassen) oder die Datei ist gelöscht: bei Claude abbrechen.
+   * Das Gerät fasst jetzt selbst zusammen und meldet danach „erledigt“. Bis dahin sehen andere Geräte „busy“.
+   * Bricht es dabei ab (offline), darf nach 30 Minuten ein anderes Gerät übernehmen.
+   */
   async batchCancel(id: string): Promise<void> {
     const row = this.sql.exec<BatchRow>(`SELECT * FROM batches WHERE id = ?`, id).toArray()[0];
-    this.sql.exec(`UPDATE batches SET state = 'done', results = NULL WHERE id = ?`, id);
+    this.sql.exec(`UPDATE batches SET state = 'failed', results = NULL, lease = ? WHERE id = ? AND state != 'done'`, Date.now() + BATCH_SOFORT_MS, id);
     if (row && row.state === 'running' && this.env.ANTHROPIC_API_KEY) {
       try {
         await this.claude().beta.messages.batches.cancel(id);

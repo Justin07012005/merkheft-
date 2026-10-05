@@ -557,7 +557,7 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .call-top b{font:800 22px/1.2 var(--f-display);letter-spacing:-.01em}
 .call-top span{font-size:13px;color:var(--c-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .call-mid{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;width:100%}
-.orb{position:relative;width:min(42vw,176px);aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;gap:8px;
+.orb{position:relative;width:min(42vw,176px,24vh);aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;gap:8px;
   background:radial-gradient(circle at 38% 32%,var(--call-orb-hi),var(--c-glow) 48%,var(--call-orb-lo) 100%);box-shadow:0 0 70px var(--call-halo);transition:transform .35s,opacity .35s}
 .orb::before,.orb::after{content:"";position:absolute;inset:-14px;border-radius:50%;border:2px solid var(--call-ring);opacity:0}
 .orb i{width:12px;height:12px;border-radius:50%;background:var(--c-glow-ink);opacity:0}
@@ -572,8 +572,8 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 @keyframes orbRing{0%{opacity:.9;transform:scale(.94)}100%{opacity:0;transform:scale(1.28)}}
 @keyframes orbDot{50%{transform:translateY(-9px)}}
 @keyframes orbTalk{to{transform:scale(1.05)}}
-.call-status{margin:0;font-weight:700;font-size:17px;text-align:center;min-height:1.5em;max-width:520px}
-.call-log{width:100%;max-width:560px;max-height:40vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;text-align:center;-webkit-overflow-scrolling:touch}
+.call-status{margin:0;font-weight:700;font-size:17px;text-align:center;min-height:1.5em;max-width:520px;flex:none}
+.call-log{width:100%;max-width:560px;max-height:30vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;text-align:center;-webkit-overflow-scrolling:touch}
 .cap{margin:0;overflow-wrap:anywhere;white-space:pre-line}
 .cap.me{color:var(--c-soft);font-size:15px;font-style:italic}
 .cap.ai{font-size:19px;line-height:1.45}
@@ -595,7 +595,7 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .cbtn[aria-pressed="true"] i{background:var(--c-text);color:var(--c-bg)}
 .cbtn:disabled{opacity:.4}
 @media (max-width:380px){.cbtn{min-width:54px;font-size:12px}.cbtn i{width:50px;height:50px}.cbtn.big i{width:66px;height:66px}}
-.call .linkbtn{color:var(--c-soft);padding:12px}
+.call .linkbtn{color:var(--c-soft);padding:8px 12px}
 .call .saved span{color:var(--c-soft)}
 .call :focus-visible{outline-color:var(--c-glow)}
 input[type=range]{accent-color:var(--ink);width:100%}
@@ -1908,10 +1908,12 @@ function renderChat() {
     log.innerHTML = `<div class="msg ai"><p>Hi, ich bin <b>Merki</b>. Frag mich alles zu „${esc(p.name)}“. Was du behalten willst, speicherst du mit <b>Als Notiz</b> unter meiner Antwort.</p><p>${nf || nn ? `Ich kenne hier schon ${nf} ${nf === 1 ? 'Datei' : 'Dateien'} und ${nn} ${nn === 1 ? 'Notiz' : 'Notizen'}.` : 'Mit der Büroklammer hängst du eine Datei oder ein Foto an, zum Beispiel ein Skript oder deine Mitschrift. Schreib dazu, was ich damit machen soll.'}</p></div>`;
   } else {
     // Lange Chats: nur die letzten 40 Nachrichten zeichnen (das alte iPad dankt), ältere auf Knopfdruck
-    const from = chatAll.has(c.id) ? 0 : Math.max(0, c.turns.length - 40);
+    const from = chatAll.has(c.id) ? 0 : chatKeepFrom !== null ? Math.min(chatKeepFrom, c.turns.length) : Math.max(0, c.turns.length - 40);
+    chatFrom = from;
     log.innerHTML = (from ? `<div class="older"><button type="button" class="btn alt" id="olderMsgs">Ältere Nachrichten zeigen (${from})</button></div>` : '')
       + c.turns.slice(from).map((t, k) => chatTurnHtml(t, from + k)).join('');
-    const ob = $('#olderMsgs'); if (ob) ob.onclick = () => { const m = $('#main'), h = m.scrollHeight; chatAll.add(c.id); chatPin = () => { m.scrollTop += m.scrollHeight - h; }; renderChat(); };
+    // Schreibt Merki gerade, bleibt die laufende Antwort beim Neuzeichnen stehen
+    const ob = $('#olderMsgs'); if (ob) ob.onclick = () => { const m = $('#main'), h = m.scrollHeight, live = busy ? $('#chatlog .msg.live') : null; chatAll.add(c.id); chatPin = () => { if (live && !live.isConnected) $('#chatlog').appendChild(live); m.scrollTop += m.scrollHeight - h; }; renderChat(); };
   }
   if (readOut.key !== null && !document.querySelector('.readbtn.on')) readStop(); // anderer Chat: Vorlesen hört auf
   $('#suggest').hidden = chatAtt.length > 0 || !!(c && c.turns.length);
@@ -1926,7 +1928,7 @@ function scrollDown(force) {
 }
 // Während Merki schreibt: mitlaufen, bis der Anfang der Antwort oben steht. So liest sie von vorn
 // und muss bei langen Antworten nicht zurückscrollen. Scrollt sie selbst nach oben, bleibt alles stehen.
-let chatPin = null;
+let chatPin = null, chatFrom = 0, chatKeepFrom = null; // chatKeepFrom: beim Neuzeichnen nach einer Antwort dieselben Nachrichten zeigen
 const chatAll = new Set();
 function follower(box, active = () => true) {
   let set = null, on = true;
@@ -2145,7 +2147,7 @@ async function send(text, files = []) {
   renderChat();
   const thinking = files.length ? 'Merki schaut sich das an …' : 'Merki denkt nach …';
   const bubble = document.createElement('div');
-  bubble.className = 'msg ai thinking'; bubble.textContent = thinking;
+  bubble.className = 'msg ai thinking live'; bubble.textContent = thinking;
   $('#chatlog').appendChild(bubble); scrollDown(true);
   let partial = '', ok = false;
   const follow = follower($('#main'), () => ui.tab === 'chat');
@@ -2182,9 +2184,10 @@ async function send(text, files = []) {
   // Nach dem Neuzeichnen dort bleiben, wo sie liest: am Anfang der Antwort oder wo sie hingescrollt hat
   const m = $('#main'), at = m.scrollTop;
   // saveChat legt eine Kopie ab, darum nach der id vergleichen
+  if (ui.tab === 'chat' && (curChat() || {}).id === c.id) chatKeepFrom = chatFrom;
   if (ui.tab === 'chat' && (curChat() || {}).id === c.id) chatPin = () => requestAnimationFrame(() => { if (follow.on) follow.to($('#chatlog').lastElementChild); else m.scrollTop = at; });
   renderAll(); renderAiAvailability();
-  chatPin = null;
+  chatPin = null; chatKeepFrom = null;
   // Hat es nicht geklappt, liegen die Dateien wieder bereit. Sonst legt Merki sie unter „Dateien“ ab.
   if (files.length) { if (ok) handleFiles(files, p); else if (!chatAtt.length) addAtt(files); }
 }
@@ -4372,7 +4375,13 @@ function batchPlan(ms = 60000) {
   clearTimeout(batchTimer);
   if (MODE === 'server' && state.files.some(f => f.batch)) batchTimer = setTimeout(batchSweep, ms);
 }
-const batchDoneAt = new Map();
+// Sammelaufträge, bei denen dieses Gerät „Sofort zusammenfassen“ angestoßen hat (bleibt über einen Neustart der App)
+const BATCH_MINE_KEY = 'merkheft.batchMine';
+const batchMine = {
+  all() { try { return JSON.parse(localStorage.getItem(BATCH_MINE_KEY) || '[]'); } catch { return []; } },
+  has(id) { return this.all().includes(id); },
+  set(id, on) { try { const a = this.all().filter(x => x !== id); if (on) a.push(id); localStorage.setItem(BATCH_MINE_KEY, JSON.stringify(a.slice(-20))); } catch {} },
+};
 async function batchSweep() {
   clearTimeout(batchTimer);
   const pend = state.files.filter(f => f.batch && f.batch.id);
@@ -4386,14 +4395,10 @@ async function batchSweep() {
       const f = state.files.find(x => x.batch && x.batch.id === it.id);
       if (!f) continue;
       // Fertig: verarbeiten. Gescheitert oder unbekannt: alles sofort zusammenfassen. Schon erledigt (anderes Gerät): kommt per Abgleich
+      // „busy“ bei einem eigenen „Sofort“, das vorhin offline abgebrochen ist: hier weitermachen
       if (it.state === 'ready') await batchFinish(f, it.results || []);
-      else if (it.state === 'failed' || it.state === 'gone') await batchFinish(f, []);
-      else if (it.state === 'done') {
-        // Erledigt, aber hier hängt die Datei noch: meist kommt das Ergebnis gleich per Abgleich (anderes Gerät).
-        // Bleibt es länger aus (zum Beispiel „Sofort“ ging offline schief), jetzt fertig machen.
-        const seen = batchDoneAt.get(it.id) || Date.now(); batchDoneAt.set(it.id, seen);
-        if (Date.now() - seen > 6e5) { batchDoneAt.delete(it.id); await batchFinish(f, []); } else pull();
-      }
+      else if (it.state === 'failed' || it.state === 'gone' || (it.state === 'busy' && batchMine.has(it.id))) await batchFinish(f, []);
+      else if (it.state === 'done') pull();
     }
   } catch (e) { console.warn('Sammelauftrag', e); }
   finally { batchBusy = false; batchPlan(); }
@@ -4401,7 +4406,7 @@ async function batchSweep() {
 // Ergebnisse eines Sammelauftrags in die Datei übernehmen. Teile ohne Ergebnis fasst Merki jetzt sofort zusammen.
 async function batchFinish(f, results, step = () => {}) {
   const p = state.projects.find(x => x.id === f.projectId);
-  if (!p || !state.files.some(x => x.id === f.id)) { await batchPost('done', f.batch.id); return; }
+  if (!p || !state.files.some(x => x.id === f.id)) { await batchPost('done', f.batch.id); batchMine.set(f.batch.id, false); return; }
   const chunks = splitText(fileText(f), PART), n = Math.min(f.batch.n || chunks.length, chunks.length), parts = [], notes = [];
   const known = () => pNotes(p.id).map(x => x.title).concat(notes.map(x => x && x.titel)).join('; ').slice(0, 2000) || 'keine';
   let err = null;
@@ -4433,6 +4438,7 @@ async function batchFinish(f, results, step = () => {}) {
   }
   const saved = cur ? saveFileNotes(p, cur.name, notes) : [];
   await batchPost('done', f.batch.id);
+  batchMine.set(f.batch.id, false);
   renderAll(!busy);
   if (cur) toast(sum ? `Die Zusammenfassung von „${cur.name}“ ist fertig${saved.length ? ` · ${saved.length} neue Notizen` : ''}` : `„${cur.name}“: ${aiError(err)}`, 5000);
 }
@@ -4446,9 +4452,13 @@ async function batchNow(f, step) {
     // Vielleicht ist der Sammelauftrag schon fertig (dann ist er bezahlt): die Ergebnisse nehmen statt neu zu schreiben
     let it = null;
     try { it = ((await (await api('/api/batch/check', { method: 'POST', body: JSON.stringify({ ids: [cur.batch.id] }) })).json()).items || [])[0] || null; } catch {}
+    const mine = batchMine.has(cur.batch.id);
+    // Ein eigenes „Sofort“ ist vorhin abgebrochen (zum Beispiel offline): einfach nochmal
+    if (it && it.state === 'busy' && mine) { await batchFinish(cur, [], step); return; }
     if (it && it.state === 'busy') { toast('Die Zusammenfassung wird gerade auf einem anderen Gerät fertig.', 4000); return; }
-    if (it && it.state === 'done') { pull(); return; }
+    if (it && it.state === 'done') { await pull(); if ((state.files.find(x => x.id === f.id) || {}).batch) toast('Die Zusammenfassung ist schon fertig und kommt gleich.', 4000); return; }
     if (it && it.state === 'ready') { await batchFinish(cur, it.results || [], step); return; }
+    batchMine.set(cur.batch.id, true);
     await batchPost('cancel', cur.batch.id); await batchFinish(cur, [], step);
   }
   finally { batchBusy = false; batchPlan(); }
