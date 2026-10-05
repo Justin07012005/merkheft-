@@ -2181,7 +2181,8 @@ async function send(text, files = []) {
   if (c.turns.length) saveChat(c); else remove('chat', c.id, false);
   // Nach dem Neuzeichnen dort bleiben, wo sie liest: am Anfang der Antwort oder wo sie hingescrollt hat
   const m = $('#main'), at = m.scrollTop;
-  if (ui.tab === 'chat' && curChat() === c) chatPin = () => requestAnimationFrame(() => { if (follow.on) follow.to($('#chatlog').lastElementChild); else m.scrollTop = at; });
+  // saveChat legt eine Kopie ab, darum nach der id vergleichen
+  if (ui.tab === 'chat' && (curChat() || {}).id === c.id) chatPin = () => requestAnimationFrame(() => { if (follow.on) follow.to($('#chatlog').lastElementChild); else m.scrollTop = at; });
   renderAll(); renderAiAvailability();
   chatPin = null;
   // Hat es nicht geklappt, liegen die Dateien wieder bereit. Sonst legt Merki sie unter „Dateien“ ab.
