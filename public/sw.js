@@ -3,7 +3,8 @@
 // 2 Sekunden dauert, kommt die gespeicherte Version.
 // Daten (/api) laufen nie hierüber, die speichert die App selbst auf dem Gerät.
 const CACHE = 'merkheft-v2';
-const CORE = ['/', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png'];
+const CORE = ['/', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png',
+  '/fonts/atkinson-400.woff2', '/fonts/atkinson-700.woff2', '/fonts/outfit.woff2'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()));
@@ -22,6 +23,14 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
+  // Schriften ändern sich nie: gleich aus dem Speicher, nur beim ersten Mal aus dem Netz
+  if (url.pathname.startsWith('/fonts/')) {
+    e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((res) => {
+      if (res.ok) { const copy = res.clone(); e.waitUntil(caches.open(CACHE).then((c) => c.put(req, copy))); }
+      return res;
+    })));
+    return;
+  }
   const key = req.mode === 'navigate' ? '/' : req;
   let saved = Promise.resolve();
   const fromNet = fetch(req).then((res) => {

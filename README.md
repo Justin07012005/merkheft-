@@ -75,6 +75,7 @@ Klappt die echte Stimme einmal nicht, liest die Gerätestimme den Satz. Den Grun
 
 - `public/index.html`: die ganze App (läuft auch als Claude-Artifact)
 - `public/sw.js`, `public/manifest.webmanifest`: damit sie sich wie eine App installieren und offline öffnen lässt
+- `public/fonts/`: die Schriften Atkinson Hyperlegible, Outfit und Bricolage Grotesque (nur lateinische Zeichen), vom eigenen Server statt von Google. Alle drei stehen unter der SIL Open Font License 1.1.
 - `src/index.ts`: Server mit Zugangscode, KI, echter Stimme, Tages- und Monatslimit und dem App-Symbol für den Home-Bildschirm
 - `src/sem.ts`: Suche nach Bedeutung (Vektoren von Workers AI)
 - `src/audio.ts`: Aufnahmen in Stücke teilen (m4a ohne Umwandeln als AAC-Frames, mp3) und mitschreiben (Whisper von Workers AI)
