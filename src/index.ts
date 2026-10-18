@@ -9,6 +9,7 @@
  * - /api/batch Zusammenfassungen großer Dateien als Sammelauftrag (halber Preis, kommt später)
  * - /api/rec   nimmt Vorlesungs-Aufnahmen an (App oder Kurzbefehl aus Sprachmemos) und schreibt sie
  *              mit Workers AI mit (kostenlose Tagesmenge). /api/rec/list|take|free|done|delete für die App.
+ * - /api/stt   schreibt eine Aufnahme aus dem Chat sofort mit (bis 30 Minuten), damit Merki sie zusammen mit Bildern bekommt.
  * - /api/tts   macht aus einem Satz echte Sprache (Google oder ElevenLabs), wenn dafür
  *              ein Schlüssel hinterlegt ist. Sonst spricht Merki mit der Gerätestimme.
  *
@@ -453,10 +454,15 @@ function buildParams(input: AiRequest | null, env: Env, forBatch = false): Built
   const model = env.MODEL || DEFAULT_MODEL;
   const purpose = typeof input.purpose === 'string' && PURPOSES.has(input.purpose) ? input.purpose : 'other';
   const smart = !/haiku/.test(model); // Die kleinen Modelle kennen weder effort noch fallbacks
-  const effort = kind === 'chat' || input.tier === 'quick' ? 'low' : 'medium';
+  // Chat und „Frag Merki“ mit mittlerem Aufwand: Bei low überspringt Sonnet 5.5 das Nachdenken bei den meisten Fragen,
+  // dann prüft Merki Antworten flüchtig und verbindet Bild, Aufnahme und Notizen schlecht. Nur das Gespräch (wird
+  // vorgelesen, jede Sekunde zählt) und kurze Aufträge bleiben bei low. Je Zweck immer derselbe Aufwand, sonst verfällt
+  // bei jedem Wechsel der zwischengespeicherte Verlauf.
+  const effort = input.tier === 'quick' || purpose === 'voice' ? 'low' : 'medium';
   // Lange Aufträge (Zusammenfassungen, Vorlesungen, Scans) schickt die App gleich mit 64.000: Bezahlt wird nur, was wirklich
-  // geschrieben wird, ein abgeschnittener Versuch wäre dagegen bezahlt und trotzdem verloren
-  const maxTokens = Math.min(Math.max(Number(input.maxTokens) || (kind === 'chat' ? 6000 : 8000), 300), 64000);
+  // geschrieben wird, ein abgeschnittener Versuch wäre dagegen bezahlt und trotzdem verloren.
+  // Im Chat zählt das Nachdenken mit zur Obergrenze: bei 6.000 waren ausführliche Antworten oft abgeschnitten
+  const maxTokens = Math.min(Math.max(Number(input.maxTokens) || (kind === 'chat' ? 16000 : 8000), 300), 64000);
 
   const params: Anthropic.Beta.MessageCreateParamsNonStreaming = {
     model,
@@ -691,6 +697,25 @@ async function postRecAction(action: string, request: Request, env: Env): Promis
   if (action === 'free') await s.recFree(id, typeof input?.code === 'string' && /^[a-z_]{1,24}$/.test(input.code) ? input.code : '');
   else await s.recDrop(id);
   return json({ ok: true });
+}
+
+const MAX_STT_BYTES = 40 * 1024 * 1024;
+
+/**
+ * Aufnahme aus dem Chat gleich mitschreiben (Sprachmemo zusammen mit einem Foto oder einer Frage). Anders als bei
+ * Vorlesungen wartet die App auf die Mitschrift und schickt sie mit den Bildern in derselben Anfrage an Merki.
+ * Der Speicher (Durable Object) teilt die Aufnahme, der Worker selbst hat zu wenig Rechenzeit dafür. Gespeichert wird nichts.
+ */
+async function postStt(request: Request, url: URL, env: Env): Promise<Response> {
+  if (!recOn(env)) return fail(503, 'stt_off', 'Aufnahmen kann Merki gerade nicht anhören.');
+  if (Number(request.headers.get('content-length') || 0) > MAX_STT_BYTES) {
+    return fail(413, 'stt_big', 'Die Aufnahme ist zu groß für den Chat. Lade sie unter Notizen mit „Vorlesung“ hoch, dann schreibt Merki sie in Ruhe mit.');
+  }
+  if (!request.body) return fail(400, 'stt_empty', 'Es kam keine Aufnahme an.');
+  const q = new URLSearchParams();
+  const pid = url.searchParams.get('pid');
+  if (pid) q.set('pid', pid.slice(0, 100));
+  return await store(env).fetch(new Request('https://store/stt?' + q.toString(), { method: 'POST', body: request.body }));
 }
 
 /** Der Kurzbefehl zeigt die Antwort als Mitteilung: darum nur der Satz, kein JSON. */
@@ -1120,6 +1145,7 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     if (url.pathname === '/api/rec' && request.method === 'POST') return await postRec(request, url, env);
     const rec = /^\/api\/rec\/(list|take|free|done|delete)$/.exec(url.pathname);
     if (rec && request.method === 'POST') return await postRecAction(rec[1], request, env);
+    if (url.pathname === '/api/stt' && request.method === 'POST') return await postStt(request, url, env);
     if (url.pathname === '/api/tts' && request.method === 'POST') return await postTts(request, env);
     if (url.pathname === '/api/tts/voices' && request.method === 'GET') return await getVoices(env);
     if (url.pathname === '/api/push/key' && request.method === 'GET') return json({ key: await store(env).pushKey() });

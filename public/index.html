@@ -28,7 +28,7 @@
 /* Layout: Projekte links (Seitenleiste wie bei Claude, auf dem Handy als Schublade), rechts das Projekt mit Chat, Notizen, Dateien, Lernen, Fortschritt; Tabs unten für den Daumen */
 :root{
   --paper:#F6F7FB; --sheet:#FFFFFF; --side:#EEF0F7; --line:#DCE1EE; --ink:#1F2A6B; --ink-soft:#5A6390;
-  --text:#1B1E2E; --marker:#F7E463; --marker-ink:#3A3300; --red:#D9434F; --good:#1E8A5A; --good-bg:#E2F4EA; --bad-bg:#FBE4E6; --warn:#B26A00; --on-accent:#fff;
+  --text:#1B1E2E; --marker:#F7E463; --marker-ink:#3A3300; --red:#C33541; --good:#18774C; --good-bg:#E2F4EA; --bad-bg:#FBE4E6; --warn:#B26A00; --on-accent:#fff;
   --pen-ink:#1B1E2E; --pen-blue:#1F4FD8; --pen-red:#D9434F; --pen-hl:#FFF07A; --pen-hl-op:darken; --rule:#D3DBF0;
   --shadow:0 1px 0 rgba(31,42,107,.06),0 6px 18px -10px rgba(31,42,107,.25);
   --call-bg:#141B47; --call-bg2:#2B3590; --call-soft:#C1C6EC; --call-glow:#F7E463; --call-glow-ink:#3A3300; --call-orb-hi:#FFF8C2; --call-orb-lo:#DDB43A; --call-halo:rgba(247,228,99,.32); --call-ring:rgba(247,228,99,.5);
@@ -236,6 +236,7 @@ sub,sup{line-height:0}
 .composer{position:sticky;bottom:-16px;display:flex;flex-wrap:wrap;gap:6px;align-items:flex-end;background:var(--paper);padding:8px 0 16px;margin-bottom:-16px}
 .composer.over textarea{border-color:var(--ink);border-style:dashed}
 .attbar{flex:1 0 100%;display:flex;flex-direction:column;gap:6px;min-width:0}
+.chatback{flex:1 0 100%;display:flex}
 .attchips,.attquick{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:1px}
 .attchips::-webkit-scrollbar,.attquick::-webkit-scrollbar{display:none}
 .attchip{display:inline-flex;flex:none;align-items:center;gap:6px;background:var(--sheet);border:1px solid var(--line);border-radius:14px;padding:4px 2px 4px 6px;font-size:14px;color:var(--text)}
@@ -281,6 +282,12 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .muted{color:var(--ink-soft);font-size:14px;margin:0}
 .notice{background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px;color:var(--ink-soft);margin:0}
 .notice.err{border-color:var(--red);color:var(--red)}
+/* Farbmarker im Text (nur wenn sie Merki darum bittet): wie ein Textmarker, dunkle Schrift auf Pastell, hell und dunkel gut lesbar */
+mark.hl{color:var(--pc-ink);border-radius:4px;padding:0 .18em;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+mark.hl-gelb{background:var(--pc-gelb)} mark.hl-gruen{background:var(--pc-gruen)} mark.hl-blau{background:var(--pc-blau)} mark.hl-rosa{background:var(--pc-rosa)}
+mark.hl-lila{background:var(--pc-lila)} mark.hl-orange{background:var(--pc-orange)} mark.hl-tuerkis{background:var(--pc-tuerkis)} mark.hl-pink{background:var(--pc-pink)}
+mark.hl strong{color:inherit}
+mark.hl .mdc{background:rgba(255,255,255,.4)} /* sonst dunkler Kasten mit dunkler Schrift im dunklen Design */
 .budget{background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:10px 12px;gap:8px}
 .meter-row{display:flex;flex-direction:column;gap:4px}
 .meter-top{display:flex;justify-content:space-between;gap:8px;font-size:14px;color:var(--text)}
@@ -293,7 +300,7 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 /* Notizen: Karteikarten mit rotem Rand */
 .toolbar{display:flex;gap:8px;flex-wrap:wrap}
 .toolbar input{flex:1 1 180px;min-width:0;border:1px solid var(--line);background:var(--sheet);border-radius:12px;padding:10px 12px}
-.filters{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.filters{display:flex;gap:6px;overflow-x:auto;overflow-y:hidden;padding:4px 0;margin:-4px 0 -2px} /* Innenabstand für die größeren Tippflächen, Höhe bleibt gleich */
 .filters button{flex:none;border:1px solid var(--line);background:var(--sheet);border-radius:999px;padding:7px 14px;font-size:14px;color:var(--ink-soft)}
 .filters button[aria-pressed="true"]{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;align-items:start}
@@ -320,7 +327,7 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .card .meta .acts{margin-left:auto}
 .card .tag{display:inline-flex;align-items:center;gap:3px;background:var(--marker);color:var(--marker-ink);padding:1px 7px;border-radius:5px;font-weight:700}
 .card .tag svg{width:11px;height:11px}
-.acts{display:flex;gap:2px}
+.acts{display:flex;gap:8px}
 .acts button{border:0;background:none;color:var(--ink-soft);padding:10px;margin:-6px 0;border-radius:8px;display:grid;place-items:center}
 .acts svg{width:16px;height:16px}
 .empty{text-align:center;padding:28px 12px;color:var(--ink-soft);display:flex;flex-direction:column;align-items:center;gap:10px}
@@ -335,6 +342,13 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .ad-head h2{font:800 20px/1.2 var(--f-display);color:var(--ink);margin:0}
 .ad-head .btn{padding:8px 12px;font-size:14px;min-height:44px}
 .ad-head .btn svg{width:16px;height:16px}
+.pm-list{display:flex;flex-direction:column;gap:6px}
+.pm-item{display:flex;align-items:center;gap:12px;padding:8px 6px 8px 12px;border:1px solid var(--line);border-radius:10px;cursor:pointer;min-height:52px}
+.pm-item input{width:22px;height:22px;flex:none;margin:0;accent-color:var(--ink)}
+.pm-t{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.pm-t b{font-weight:700;color:var(--ink);overflow-wrap:anywhere}
+.pm-t small{color:var(--ink-soft);font-size:13px}
+.pm-acts{display:flex;gap:8px;flex-wrap:wrap}
 .ad-btns{display:flex;gap:8px;flex-wrap:wrap}
 #fsPdf svg,#ndPdf svg{width:18px;height:18px}
 .ad-toc{display:flex;flex-wrap:wrap;gap:8px}
@@ -342,6 +356,21 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .ad-toc button span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* Unsichtbar größer zum Antippen (44 px hoch), ohne dass die Knöpfe größer aussehen */
 .ad-toc button::after{content:'';position:absolute;inset:-5px -1px}
+/* Tippflächen mindestens 44 px, ohne dass die Knöpfe größer aussehen (wie bei .ad-toc). Nur nach oben und unten,
+   damit sich nebeneinander liegende Knöpfe nicht überdecken */
+:is(.notebtn,.filters button,.seg button,.card .more,.attchip button,.rec .iconbtn.plain,.askbtn){position:relative}
+.examchip{position:relative}
+:is(.notebtn,.filters button,.card .more,.askbtn)::after{content:'';position:absolute;inset:-4px 0}
+.seg button::after{content:'';position:absolute;inset:-2px 0}
+:is(.attchip button,.rec .iconbtn.plain)::after{content:'';position:absolute;inset:-6px}
+.examchip::after{content:'';position:absolute;inset:-8px 0}
+.card .more::after{bottom:0} /* nur nach oben größer, darunter liegen die Knöpfe der Karte */
+/* Rückmeldung beim Antippen auf Touch-Geräten (der graue iOS-Tipp-Effekt ist aus). Nur Deckkraft, damit nichts verrutscht.
+   Karteikarte und Memory nicht, die drehen sich ohnehin sichtbar; Karten in Listen nur ganz leicht, sonst flackert das Wischen */
+@media (hover:none){
+  button:not(:disabled):not(.flash):not(.mcard):not(.plist button):not(.qask):not(.filters button):not(.attquick button):active{opacity:.7}
+  :is(.card.clickable,.plist button,.qask,.filters button,.attquick button):active{filter:brightness(.97)}
+}
 .ad-sec{scroll-margin-top:12px;min-width:0}
 .ad-sec h3{font:700 17px/1.3 var(--f-body);color:var(--ink);margin:4px 0 6px;padding-bottom:3px;border-bottom:2px solid var(--marker)}
 .ad-sec p{margin:0 0 .5em}
@@ -378,7 +407,9 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .file .acts{flex-direction:column}
 .file .acts svg{width:18px;height:18px}
 /* Zusammenfassung einer Datei */
-.fs-open{margin-top:6px;text-align:left}
+/* Kompakt, auch gegen die größeren Knöpfe im Pastell-Design: passt so neben dem Datei-Symbol in eine Zeile */
+:root .file .btn.fs-open{margin-top:8px;min-height:44px;padding:8px 14px;font-size:14px;text-align:left;white-space:nowrap;max-width:100%}
+.fs-open svg{width:16px;height:16px;flex:none}
 .seg.fs-tabs{margin:0;align-self:flex-start}
 .fs-pane{display:flex;flex-direction:column;gap:10px;min-width:0}
 .fsum{display:flex;flex-direction:column;gap:14px;background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:14px 16px;line-height:1.55;overflow-wrap:anywhere}
@@ -403,7 +434,7 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .fs-toc{background:var(--paper);border-radius:10px;padding:8px 12px 10px}
 .fs-toc b{display:block;color:var(--ink);margin-bottom:2px}
 .fs-toc li{margin:.15em 0}
-.fs-toc .linkbtn{text-align:left;padding:6px 0;min-height:0}
+.fs-toc .linkbtn{text-align:left;padding:6px 0;min-height:44px}
 .fs-fragen ol li{margin:.35em 0}
 /* Klausurfragen sehen antippbar aus: leichter Rahmen und ein Pfeil rechts */
 .fs-fragen .qask{border:1.5px solid var(--line);border-radius:14px;background:none;padding:10px 34px 10px 12px;margin:0;font:inherit;color:inherit;text-align:left;cursor:pointer;display:block;width:100%;min-height:44px;position:relative}
@@ -411,6 +442,10 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .fs-fragen .muted{margin:8px 0 0;font-size:13.5px}
 #fsGen .spin,#fsNow .spin{width:14px;height:14px}
 .textview{white-space:pre-wrap;background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:14px;max-height:50vh;overflow-y:auto;overflow-wrap:anywhere}
+/* Datei ansehen: der ganze Text scrollt mit dem Blatt (nicht als zweite Scrollfläche darin), Schließen und „Frag Merki dazu“ bleiben unten stehen
+   (wie beim Chat-Eingabefeld: der untere Rand des Blatts wird mit überdeckt) */
+#ftPane .textview{max-height:none;overflow-y:visible}
+.fs-actions{position:sticky;z-index:1;bottom:calc(-18px - env(safe-area-inset-bottom,0px));margin-bottom:calc(-18px - env(safe-area-inset-bottom,0px));padding:8px 0 calc(18px + env(safe-area-inset-bottom,0px));background:var(--paper)}
 
 /* Sheet (Dialog) */
 .sheet-bg{position:fixed;inset:0;background:rgba(10,12,30,.45);display:flex;align-items:flex-end;justify-content:center;z-index:26}
@@ -544,7 +579,8 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .plan{display:flex;flex-direction:column;gap:8px}
 .pday{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--paper)}
 .pday.now{border-color:var(--ink);box-shadow:inset 4px 0 0 var(--marker);background:var(--sheet);scroll-margin-top:12px}
-.pday.past{opacity:.6}
+.pday.past{border-style:dashed}
+.pday.past header b{color:var(--ink-soft)}
 .pday header{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--ink-soft)}
 .pday header b{color:var(--text);font-size:15px}
 .pday label{display:flex;gap:8px;align-items:flex-start;padding:3px 0;font-size:15px;cursor:pointer}
@@ -584,7 +620,7 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 @media (max-width:560px){.seg button svg{display:none}}
 /* Schmales Handy: "Fertig" macht dasselbe wie der Zurück-Pfeil, der Pfeil macht Platz für "Frag Merki" */
 @media (max-width:480px){#padBack{display:none}.pad-bar{gap:4px;padding-left:6px;padding-right:6px}.pad-bar .iconbtn.plain{width:36px}.seg button{padding:6px 9px}.pad-bar .btn{padding:8px 11px}}
-@media (max-width:360px){.pad-bar{gap:3px}.pad-bar .seg button{padding:6px 7px;font-size:14px}.pad-bar .btn{padding:8px 9px;font-size:14px}.pad-bar .iconbtn.plain,.pad-bar .askbtn{width:32px;height:32px}}
+@media (max-width:360px){.pad-bar{gap:3px}.pad-bar .seg button{padding:6px 7px;font-size:14px}.pad-bar .btn{padding:8px 9px;font-size:14px}.pad-bar .iconbtn.plain,.pad-bar .askbtn{width:32px;height:32px}.pad-bar .iconbtn.plain{position:relative}.pad-bar :is(.iconbtn.plain,.askbtn)::after{content:'';position:absolute;inset:-6px 0}}
 .pad-tools{display:flex;align-items:center;gap:2px;padding:4px 8px;border-bottom:1px solid var(--line);background:var(--sheet);overflow-x:auto}
 .pad-tools button{flex:none;width:40px;height:40px;border-radius:10px;border:0;background:none;color:var(--ink);display:grid;place-items:center;padding:0}
 .pad-tools button svg{width:22px;height:22px}
@@ -598,7 +634,7 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .paper{max-width:860px;margin:0 auto;background:var(--sheet);box-shadow:var(--shadow);border-radius:6px;padding:12px 0 6px}
 @media (max-width:640px){.pad-scroll{padding:0 0 calc(24px + env(safe-area-inset-bottom,0px))}.paper{border-radius:0;box-shadow:none;min-height:100%}}
 .pad-title{display:block;width:100%;border:0;background:none;font:800 24px/1.25 var(--f-display);color:var(--ink);padding:6px 16px 8px 34px;outline:none;letter-spacing:-.01em;resize:none;overflow:hidden}
-.pad-title::placeholder,.pad-text::placeholder{color:var(--ink-soft);opacity:.7}
+.pad-title::placeholder,.pad-text::placeholder{color:var(--ink-soft);opacity:1}
 .pad-text{display:block;width:100%;border:0;resize:none;outline:none;font:17px/32px var(--f-body);color:var(--text);padding:0 16px 0 34px;min-height:256px;overflow:hidden;
   background:linear-gradient(to right,transparent 21px,var(--red) 21px,var(--red) 22px,transparent 22px),repeating-linear-gradient(to bottom,transparent 0,transparent 31px,var(--rule) 31px,var(--rule) 32px);background-attachment:local}
 .pad.write .pad-text{min-height:64px}
@@ -617,7 +653,7 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .askbtn svg{width:18px;height:18px}
 .askbtn[aria-pressed="true"]{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
 @media (max-width:560px){.askbtn span{display:none}.askbtn{width:40px;height:40px;padding:0;justify-content:center}}
-@media (max-width:480px){.askbtn{width:36px;height:36px}}
+@media (max-width:480px){.askbtn{width:36px;height:36px}:root .askbtn::after{inset:-4px}}
 .pad-body{flex:1;min-height:0;display:flex;position:relative}
 .pad-body .pad-scroll{flex:1;min-width:0}
 .pad-ask{position:absolute;z-index:3;left:0;right:0;bottom:0;height:min(76%,620px);display:flex;flex-direction:column;background:var(--paper);border-top:1px solid var(--line);border-radius:18px 18px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.18)}
@@ -741,7 +777,7 @@ input[type=range]{accent-color:var(--ink);width:100%}
 :root[data-design="pastell"] .ptitle h1,:root[data-design="pastell"] .ptitle p{color:var(--sec-ink)}
 :root[data-design="pastell"] .ptitle h1{font-size:24px}
 @media (max-width:480px){.ptitle h1,:root[data-design="pastell"] .ptitle h1{font-size:20px}.examchip{padding-left:8px;padding-right:8px}.examchip svg{display:none}}
-:root[data-design="pastell"] header.top .iconbtn.plain{width:40px;height:40px;background:var(--marker);color:var(--marker-ink);border:1.5px solid var(--edge)}
+:root[data-design="pastell"] header.top .iconbtn.plain{width:44px;height:44px;background:var(--marker);color:var(--marker-ink);border:1.5px solid var(--edge)}
 :root[data-design="pastell"] header.top .chip{border:1.5px solid var(--edge)}
 :root[data-design="pastell"] main{position:relative;z-index:1;margin-top:-20px;background:var(--paper);border-top:1.5px solid var(--edge);border-radius:24px 24px 0 0;padding-top:16px}
 /* Leiste unten: gelb, rund, mit Namen unter den Symbolen; die gewählte Ansicht im dunklen Kreis */
@@ -837,6 +873,7 @@ input[type=range]{accent-color:var(--ink);width:100%}
 :root[data-design="pastell"] .bars i.zero{background:transparent;border-color:var(--line)}
 :root[data-design="pastell"] .bars i.now{background:var(--marker)}
 :root[data-design="pastell"] .pday.now{box-shadow:inset 6px 0 0 var(--marker)}
+:root[data-design="pastell"] .pday.past{border-style:dashed}
 /* Dateien */
 :root[data-design="pastell"] .drop{border:2px dashed var(--edge);border-radius:22px}
 :root[data-design="pastell"] .drop svg{color:var(--text)}
@@ -869,6 +906,24 @@ input[type=range]{accent-color:var(--ink);width:100%}
 .card,.file{content-visibility:auto;contain-intrinsic-size:auto 220px}
 @media (prefers-reduced-motion:reduce){.call *,.call *::before,.call *::after{animation:none!important;transition:none!important}}
 @media (prefers-reduced-motion:reduce){.mcard .in,.flash .in,.progress i,.side{transition:none}.spin,.progress.wait i{animation:none}}
+/* iPhone quer: Notch und runde Ecken seitlich frei lassen (die Seite reicht wegen viewport-fit=cover bis an den Rand).
+   Nur bei Handy-Höhe, damit iPad und Rechner ihre Abstände behalten */
+@media (orientation:landscape) and (max-height:500px){
+  header.top,main,.call,.sheet{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  nav.tabs{padding-left:max(4px,env(safe-area-inset-left,0px));padding-right:max(4px,env(safe-area-inset-right,0px))}
+  .pad-bar{padding-left:max(10px,env(safe-area-inset-left,0px));padding-right:max(10px,env(safe-area-inset-right,0px))}
+  .pad-tools{padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
+  .side{padding-left:max(12px,env(safe-area-inset-left,0px))}
+  :root[data-design="pastell"] nav.tabs{width:calc(100% - 20px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px))}
+  .pad-body{padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+}
+/* Ab 760 px steht links die Seitenleiste (sie bekommt den Abstand), und das Blatt ist schmal und mittig: dort links normale Abstände */
+@media (orientation:landscape) and (max-height:500px) and (min-width:760px){
+  header.top,main{padding-left:16px}
+  nav.tabs{padding-left:4px}
+  .sheet{padding-left:16px;padding-right:16px}
+  :root[data-design="pastell"] nav.tabs{width:calc(100% - 20px - env(safe-area-inset-right,0px));margin-left:10px}
+}
 </style>
 <script>var r=document.documentElement;r.setAttribute('data-design','pastell');r.setAttribute('data-palette','sonne');try{var l=JSON.parse(localStorage.getItem('merkheft.look')||'null');if(l){if(l.theme==='light'||l.theme==='dark')r.setAttribute('data-theme',l.theme);var p=/^[a-z]{2,20}$/.test(l.palette||'')&&l.palette!=='pastell'?l.palette:'';if(l.design==='klassisch'){r.removeAttribute('data-design');if(!p||p==='mitternacht')r.removeAttribute('data-palette');else r.setAttribute('data-palette',p)}else if(p)r.setAttribute('data-palette',p)}}catch(e){}</script>
 </head>
@@ -932,6 +987,7 @@ input[type=range]{accent-color:var(--ink);width:100%}
           <button type="button" data-s="Was sind die wichtigsten Begriffe, die ich können muss?">Wichtigste Begriffe</button>
         </div>
         <form class="composer" id="chatform">
+          <div class="chatback" id="chatBackRow" hidden><button type="button" class="notebtn" id="chatBack"></button></div>
           <div class="attbar" id="attbar" hidden></div>
           <button type="button" class="iconbtn ghost" id="attachBtn" aria-label="Datei anhängen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m20 11-8.5 8.5a5 5 0 0 1-7-7L13 4a3.3 3.3 0 0 1 4.7 4.7L9.2 17.2a1.7 1.7 0 0 1-2.4-2.4L14.5 7"/></svg></button>
           <button type="button" class="iconbtn ghost talk" id="voiceBtn" aria-label="Mit Merki reden" title="Mit Merki reden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/></svg><span aria-hidden="true">Reden</span></button>
@@ -952,6 +1008,7 @@ input[type=range]{accent-color:var(--ink);width:100%}
           <div class="seg nv" role="group" aria-label="Ansicht der Notizen" id="noteView">
             <button type="button" data-v="cards" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>Einzeln</button>
             <button type="button" data-v="all" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 10h7M9 14h7M9 18h4"/></svg>Zusammen</button>
+            <button type="button" data-v="pdf" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>PDF-Mappe</button>
           </div>
           <span class="rec-btns">
             <button class="btn alt" type="button" id="voiceBtn2" aria-label="Sprachnotiz aufnehmen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>Sprachnotiz</span></button>
@@ -961,6 +1018,7 @@ input[type=range]{accent-color:var(--ink);width:100%}
         <div class="filters" id="filters"></div>
         <div class="cards" id="cards"></div>
         <div class="allnote" id="allNote" hidden></div>
+        <div class="allnote" id="pdfNote" hidden></div>
       </section>
 
       <!-- DATEIEN -->
@@ -968,7 +1026,7 @@ input[type=range]{accent-color:var(--ink);width:100%}
         <div class="drop" id="drop">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg>
           <b>Datei hochladen</b>
-          <span>PDF, Word, Text oder Fotos (zum Beispiel Buchseite, Mitschrift, Tafelbild). Merki liest alles, auch lange Skripte, und schreibt dir die wichtigsten Notizen.</span>
+          <span>PDF, Word, Text, Fotos (zum Beispiel Buchseite, Mitschrift, Tafelbild) oder Aufnahmen (m4a, mp3). Merki liest alles, auch lange Skripte, und schreibt dir die wichtigsten Notizen.</span>
           <button class="btn" type="button" id="uploadBtn">Datei auswählen</button>
         </div>
         <div class="flist" id="flist"></div>
@@ -1055,7 +1113,7 @@ input[type=range]{accent-color:var(--ink);width:100%}
   </form>
 </div>
 
-<input type="file" id="fileIn" multiple hidden accept=".pdf,.docx,.txt,.md,.csv,.json,.html,.htm,image/*">
+<input type="file" id="fileIn" multiple hidden accept=".pdf,.docx,.txt,.md,.csv,.json,.html,.htm,image/*,audio/*,.m4a,.mp3,.aac">
 <input type="file" id="recIn" hidden accept="audio/*,.m4a,.mp3,.aac">
 <div id="sheetRoot"></div>
 
@@ -1229,12 +1287,16 @@ function saveUi() { try { localStorage.setItem('merkheft.ui', JSON.stringify(ui)
 function pref(k, d) { try { const v = localStorage.getItem('merkheft.' + k); return v === null ? d : v; } catch { return d; } }
 function setPref(k, v) { try { localStorage.setItem('merkheft.' + k, String(v)); } catch {} }
 // Auf dem iPhone schiebt die Tastatur die Seite hoch: Vollbild-Fenster an den sichtbaren Bereich anpassen
-function fitViewport(el) {
+// reveal: das Feld, in dem sie gerade tippt, nach dem Öffnen der Tastatur in den sichtbaren Bereich holen (Blätter)
+function fitViewport(el, reveal = false) {
   const vv = window.visualViewport; if (!vv) return () => {};
   const f = () => {
     el.style.top = vv.offsetTop + 'px'; el.style.height = vv.height + 'px'; el.style.bottom = 'auto';
     // Viel weniger Platz als sonst: Die Tastatur ist offen (ein Attribut, keine Klasse, das Gespräch schreibt className neu)
-    if (vv.height < innerHeight - 150) el.dataset.kbd = '1'; else delete el.dataset.kbd;
+    const kbd = vv.height < innerHeight - 150, was = el.dataset.kbd === '1';
+    if (kbd) el.dataset.kbd = '1'; else delete el.dataset.kbd;
+    const a = document.activeElement;
+    if (reveal && kbd && !was && a && el.contains(a) && a.scrollIntoView) requestAnimationFrame(() => a.scrollIntoView({ block: 'nearest' }));
   };
   vv.addEventListener('resize', f); vv.addEventListener('scroll', f); f();
   return () => { vv.removeEventListener('resize', f); vv.removeEventListener('scroll', f); };
@@ -1724,17 +1786,41 @@ async function streamAi(body, signal, onText) {
   if (stop === 'max_tokens') throw { code: 'too_long' };
   try { return JSON.parse(text); } catch { throw { code: 'invalid_json' }; }
 }
-async function aiChat({ system, turns, signal, onText, maxTokens, purpose, images, ttl, tail }) {
+// Bilder aus dem Chat bleiben im Speicher, solange die App offen ist (Schlüssel der Nachricht -> Bilder mit Beschriftung).
+// So sieht Merki das Foto auch bei Rückfragen und beim Reden noch. Vorher stand im Verlauf nur der Dateiname, und Merki
+// wusste bei der nächsten Frage nicht mehr, was auf dem Bild war. Aus dem Zwischenspeicher bei Claude kosten sie wenig.
+const PICS = new Map(), PICS_KEEP = 8, PICS_SEND = 4;
+function keepPics(pk, blocks, labels) {
+  PICS.delete(pk); PICS.set(pk, { blocks, labels });
+  while (PICS.size > PICS_KEEP) PICS.delete(PICS.keys().next().value);
+}
+const PICS_GONE = '\n(Die Bilder zu dieser Nachricht siehst du jetzt nicht mehr. Was darauf war, steht in deiner Antwort darauf und meist als Abschrift unter den Dateien des Projekts.)';
+// Jedes Bild mit Beschriftung davor (Bild 1: „Folie.jpg“), damit Merki weiß, welches Bild welche Datei ist
+const picContent = (blocks, labels, text) => [...blocks.flatMap((b, i) => labels && labels[i] ? [{ type: 'text', text: labels[i] }, b] : [b]), { type: 'text', text }];
+async function aiChat({ system, turns, signal, onText, maxTokens, purpose, images, labels, ttl, tail }) {
   const pics = images && images.length ? images : null;
   if (MODE === 'artifact') {
-    const { text } = await sample([{ role: 'user', content: system.map(b => b.text).join('\n\n') }, ...turns], { cache: false, signal, ...(pics ? { images: pics } : {}), onText: ({ text: t }) => onText && onText(t) });
+    const { text } = await sample([{ role: 'user', content: system.map(b => b.text).join('\n\n') }, ...turns.map(t => ({ role: t.role, content: t.content }))], { cache: false, signal, ...(pics ? { images: pics } : {}), onText: ({ text: t }) => onText && onText(t) });
     return text;
   }
-  // Bilder gehören zur neuesten Nachricht (nur für diese eine Anfrage, im Verlauf steht nur der Name)
-  let messages = turns;
-  if (pics) {
-    const last = turns[turns.length - 1];
-    messages = [...turns.slice(0, -1), { role: last.role, content: [...(await Promise.all(pics.map(imageBlock))), { type: 'text', text: last.content }] }];
+  // Die neuesten Bilder gehen mit der Nachricht, zu der sie gehören: die neuen (images) und die aus dem Verlauf (pk, von windowTurns),
+  // zusammen höchstens PICS_SEND. Ältere oder nicht mehr gespeicherte bekommen stattdessen einen Hinweis.
+  let left = PICS_SEND;
+  const messages = turns.map(t => ({ role: t.role, content: t.content }));
+  for (let i = turns.length - 1; i >= 0; i--) {
+    const t = turns[i];
+    if (i === turns.length - 1 && pics) {
+      const blocks = await Promise.all(pics.map(x => x && x.type === 'image' ? x : imageBlock(x)));
+      left -= blocks.length;
+      messages[i].content = picContent(blocks, labels, t.content);
+    } else if (t.pk && t.role === 'user') {
+      const got = t.pk.map(k => PICS.get(k));
+      const n = got.reduce((s, g) => s + (g ? g.blocks.length : 0), 0);
+      if (n && got.every(Boolean) && n <= left) {
+        left -= n;
+        messages[i].content = picContent(got.flatMap(g => g.blocks), got.flatMap(g => g.labels), t.content);
+      } else messages[i].content = t.content + PICS_GONE;
+    }
   }
   return streamAi({ kind: 'chat', system, messages, purpose, ...(maxTokens ? { maxTokens } : {}), ...(ttl ? { ttl } : {}), ...(tail === false ? { tail } : {}) }, signal, onText);
 }
@@ -1749,11 +1835,13 @@ async function imageCaps() {
   if (MODE === 'server') return { maxCount: 4 };
   const l = await sample.limits().catch(() => null); return l && l.images ? l.images : null;
 }
+const MERKI_SETUP = 'Merki ist gerade nicht richtig eingerichtet. Sag der Person Bescheid, die Merkheft für dich eingerichtet hat. Karteikarten und Notizen gehen weiter.';
 function aiError(e) {
   const c = e && e.code;
   if (e && (e.name === 'PasswordException' || e.name === 'InvalidPDFException')) return 'Diese PDF lässt sich nicht öffnen (beschädigt oder mit Passwort geschützt).';
-  if (c === 'no_credit') return 'Das Guthaben im Claude-Konto ist aufgebraucht. Es muss im Anthropic-Konto aufgeladen werden.';
-  if (c === 'bad_model') return 'Das eingestellte KI-Modell gibt es nicht. Bitte die Einstellung MODEL auf dem Server prüfen.';
+  // Für die Studentin geschrieben, nicht für den Betreiber: Die technischen Gründe stehen in den Server-Logs
+  if (c === 'no_credit') return 'Merki kann gerade nicht antworten, das Guthaben für die KI ist aufgebraucht. Sag der Person Bescheid, die Merkheft für dich eingerichtet hat. Karteikarten und Notizen gehen weiter.';
+  if (c === 'bad_model') return MERKI_SETUP;
   if (c === 'too_large') return 'Das ist zu groß zum Speichern.';
   if (c === 'not_granted' || c === 'sampling_disabled' || c === 'not_declared' || c === 'capability_disabled') { sample = null; renderAiAvailability(); return 'Die KI ist hier nicht freigegeben. Lade die Seite neu und tippe bei der Frage auf Erlauben.'; }
   if (c === 'budget') return /^Merki macht/.test(e.message || '') ? e.message : 'Merki macht für heute Pause, das Tageslimit ist erreicht. Morgen geht es weiter.';
@@ -1761,10 +1849,11 @@ function aiError(e) {
   if (c === 'session_expired') return 'Bitte melde dich bei Claude neu an.';
   if (c === 'refused') return 'Dazu kann Merki nichts sagen. Formuliere es bitte anders.';
   if (c === 'invalid_json' || c === 'too_long') return 'Das hat nicht geklappt. Versuch es bitte nochmal.';
-  if (c === 'prompt_too_large' || c === 'bad_request') return 'Zu viel Text auf einmal. Versuch es mit weniger.';
+  if (c === 'prompt_too_large') return 'Zu viel Text auf einmal. Versuch es mit weniger.';
+  if (c === 'bad_request') return 'Das konnte Merki nicht annehmen. Versuch es mit einer anderen Datei oder mit kürzerem Text.';
   if (c === 'image_rejected') return 'Dieses Bild kann Merki nicht öffnen. Versuch ein anderes Foto (JPG oder PNG).';
   if (c === 'images_unavailable') return 'Fotos kann Merki hier leider nicht lesen.';
-  if (c === 'bad_key' || c === 'no_key') return 'Die KI ist auf dem Server nicht richtig eingerichtet (API-Schlüssel fehlt oder stimmt nicht).';
+  if (c === 'bad_key' || c === 'no_key') return MERKI_SETUP;
   if (c === 'overloaded' || c === 'network') return 'Merki ist gerade nicht erreichbar. Versuch es gleich nochmal.';
   if (c === 'offline') return 'Keine Verbindung. Bist du online?';
   return 'Verbindung unterbrochen. Versuch es nochmal.';
@@ -1805,7 +1894,24 @@ function renderAiAvailability() {
     : healthDown ? 'Offline …'
     : 'Die KI ist auf dem Server noch nicht eingerichtet';
 }
-function digest(list, max, fmt) { let out = ''; for (const x of list) { const l = fmt(x); if (out.length + l.length > max) break; out += l; } return out; }
+// Höchstens max Zeichen. Ein langer Eintrag wird gekürzt, statt die Liste dort abzubrechen: Vorher war sie leer, wenn der erste
+// Eintrag zu lang war (zum Beispiel eine Vorlesungsnotiz), und Merki dachte, es gäbe keine Notizen.
+// fair: kurze Einträge ganz, die langen teilen sich den übrigen Platz gleichmäßig (so kommen alle vor)
+function digest(list, max, fmt, fair = false) {
+  const lines = list.map(fmt), cut = (l, n) => l.slice(0, Math.max(0, n - 2)).trimEnd() + '…\n';
+  let cap = Infinity;
+  if (fair) {
+    let left = max, n = lines.length;
+    for (const len of lines.map(l => l.length).sort((a, b) => a - b)) { if (len > left / n) { cap = Math.max(300, Math.floor(left / n)); break; } left -= len; n--; }
+  }
+  let out = '';
+  for (let l of lines) {
+    if (l.length > cap) l = cut(l, cap);
+    if (out.length + l.length > max) { const room = max - out.length; if (room < 300) break; l = cut(l, room); }
+    out += l;
+  }
+  return out;
+}
 
 // Passende Stellen in langen Dateien finden (einfache Stichwortsuche)
 const STOP = new Set('aber alle allem allen aller alles also auch auf aus bei beim bin bis bitte dann darin darum dass dein deine dem den denn der des dessen die dies diese diesem diesen dieser dieses doch dort durch eine einem einen einer eines erkläre erklären erklär etwas euch fragen für gibt habe haben hast hat hier ihr ihre ihren immer indem ist jede jeder jetzt kann kannst kein keine können machen mal man mehr mein meine meinen mich mir mit nach nicht noch nur oder ohne sehr sein seine sich sie sind soll sollen sonst über und uns unter viel vom von vor wann war waren warum was weil wenn wer werden wie wieder will wir wird wo zum zur zwischen'.split(' '));
@@ -1924,7 +2030,8 @@ function projectContext(p, query, key, pool = false, hits = null) {
   let snap = key ? ctxSnap.get(key) : null;
   // Neu nach 1 Stunde (so lange bleiben die Dateien zwischengespeichert, und die Notizen sind wieder aktuell)
   if (!snap || snap.pid !== p.id || now - snap.at > 60 * 60e3) {
-    const notes = digest(pNotes(p.id), 8000, n => `- ${n.title}: ${noteBody(n)}\n`) || '(noch keine)\n';
+    // Alle Notizen kommen vor, lange gekürzt (20.000 Zeichen sind etwa 6.000 Tokens, zwischengespeichert ein Zehntel)
+    const notes = digest(pNotes(p.id), 20000, n => `- ${n.title}: ${noteBody(n)}\n`, true) || '(noch keine)\n';
     const n = p.examDate ? daysBetween(today(), p.examDate) : null;
     const exam = n !== null && n >= 0 ? `\nPrüfung: ${fmtDay(p.examDate, { weekday: 'long', day: 'numeric', month: 'long' })} (${n === 0 ? 'heute' : n === 1 ? 'morgen' : 'in ' + n + ' Tagen'}).` : '';
     snap = { pid: p.id, at: now, notes: `Notizen:\n${notes}\nHeute ist ${new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}.${exam}` };
@@ -1951,12 +2058,15 @@ function projectContext(p, query, key, pool = false, hits = null) {
 function windowTurns(all, maxTurns, maxChars, step = 6, base = 0) {
   // Hinweise der App (Fehler, offline) gehen nicht an die KI, sonst hält Merki sie für eigene Worte.
   // Eine Frage, auf die nur so ein Hinweis kam, auch nicht. Stehen dann zwei Nachrichten derselben Seite hintereinander, werden sie eine.
+  // pk: Bilder dieser Nachricht, aiChat schickt sie wieder mit, solange sie im Speicher sind ('' = nicht mehr da)
   const list = [];
   for (let i = 0; i < all.length; i++) {
     const t = all[i];
     if (t.err || (t.role === 'user' && all[i + 1] && all[i + 1].err)) continue;
-    const content = t.att && t.att.length ? `${t.content}\n\n[Angehängt: ${t.att.map(a => a.name).join(', ')}]` : t.content, last = list[list.length - 1];
-    if (last && last.role === t.role) last.content += '\n\n' + content; else list.push({ role: t.role, content });
+    const content = t.att && t.att.length ? t.content + attNote(t.att) : t.content, last = list[list.length - 1];
+    const pk = t.pk ? [t.pk] : t.att && t.att.some(a => attKind(a) === 'bild') ? [''] : null;
+    if (last && last.role === t.role) { last.content += '\n\n' + content; if (pk) last.pk = [...(last.pk || []), ...pk]; }
+    else list.push({ role: t.role, content, ...(pk ? { pk } : {}) });
   }
   let start = Math.max(0, Math.max(0, Math.ceil((base + list.length - maxTurns) / step) * step) - base);
   while (start < list.length - 2 && JSON.stringify(list.slice(start)).length > maxChars) start += 6;
@@ -2049,16 +2159,29 @@ function mdRaw(s) {
   flush(); endList();
   return html;
 }
+// Farbmarker, um die sie Merki bittet („markier alle Definitionen blau“): {blau}…{/blau}, je Markierung in einer Zeile.
+// Gezeigt wie ein Textmarker in der Pastellfarbe, im PDF als farbiger Hintergrund, beim Vorlesen weggelassen
+const HL = { gelb: 'gelb', 'grün': 'gruen', gruen: 'gruen', blau: 'blau', rosa: 'rosa', rot: 'rosa', lila: 'lila', violett: 'lila', orange: 'orange', 'türkis': 'tuerkis', tuerkis: 'tuerkis', pink: 'pink' };
+// „rot“ fehlt absichtlich: E_{rot} oder \\mathrm{rot} kommen in der Physik vor (Merki nimmt für Rot rosa)
+const HL_NAMES = 'gelb|grün|gruen|blau|rosa|lila|violett|orange|türkis|tuerkis|pink';
+const HL_RE = new RegExp(`\\{(${HL_NAMES})\\}([^\\n]*?)\\{\\/(?:${HL_NAMES})?\\}`, 'gi');
+// Übrig gebliebene Marken (noch nicht geschlossen, während Merki schreibt, oder vertippt) nicht anzeigen
+const HL_TAG = new RegExp(`\\{\\/?(?:${HL_NAMES})\\}|\\{\\/\\}`, 'gi');
+const hlHtml = h => h.replace(HL_RE, (m, c, body) => `<mark class="hl hl-${HL[c.toLowerCase()]}">${body}</mark>`).replace(HL_TAG, '');
+const hlStrip = s => String(s ?? '').replace(HL_TAG, '');
+// Während Merki schreibt: eine halb angekommene Marke am Ende („{bl“, „{/“) noch nicht zeigen
+const hlTail = t => t.replace(/\{\/?[a-zäöü]{0,8}$/i, '');
 // Auszeichnungen im Text (schon maskiert): **fett**, *kursiv*, `Code`, [Link](https://…) und Formeln, falls Merki doch LaTeX schreibt
 function mdInline(h) {
   // Code zuerst beiseitelegen, damit * _ $ darin nicht als Auszeichnung gelesen werden
   const code = [];
   return h.replace(/`([^`\n]+)`/g, (m, c) => `\u0002${code.push(c) - 1}\u0002`)
     .replace(/\\\[([\s\S]+?)\\\]|\\\(([^\n]+?)\\\)/g, (m, a, b) => texLite(a ?? b))
-    .replace(/\$\$([^$]+?)\$\$|\$([^$\n]+?)\$/g, (m, a, b) => /[\\^_{]/.test(a ?? b) ? texLite(a ?? b) : m)
+    .replace(/\$\$([^$]+?)\$\$|\$([^$\n]+?)\$/g, (m, a, b) => /[\\^_{]/.test(hlStrip(a ?? b)) ? texLite(a ?? b) : m)
+    .replace(/[^\n]+/g, hlHtml)
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/(^|[\s(„])\*([^*\s](?:[^*\n]*[^*\s])?)\*(?=[\s.,;:!?)“]|$)/gm, '$1<em>$2</em>')
-    .replace(/(^|[\s(„])_([^_\s](?:[^_\n]*[^_\s])?)_(?=[\s.,;:!?)“]|$)/gm, '$1<em>$2</em>')
+    .replace(/(^|[\s(„]|<mark[^>]*>)\*([^*\s](?:[^*\n]*[^*\s])?)\*(?=[\s.,;:!?)“]|<\/mark>|$)/gm, '$1<em>$2</em>')
+    .replace(/(^|[\s(„]|<mark[^>]*>)_([^_\s](?:[^_\n]*[^_\s])?)_(?=[\s.,;:!?)“]|<\/mark>|$)/gm, '$1<em>$2</em>')
     .replace(/\[([^\]\n]+)\]\((https?:\/\/(?:[^\s()]|\([^\s()]*\))+)\)/g, '<a class="mda" href="$2" target="_blank" rel="noopener">$1</a>')
     .replace(/\u0002(\d+)\u0002/g, (m, k) => `<code class="mdc">${code[+k]}</code>`);
 }
@@ -2088,7 +2211,7 @@ function saveNoteLines(full, pid, skip = '') {
   const saved = [];
   if (!pid) return saved;
   for (const m of full.matchAll(NOTE_RE)) {
-    const title = m[1].trim().slice(0, 120), body = m[2].trim().slice(0, 1500), low = title.toLowerCase();
+    const title = hlStrip(m[1]).trim().slice(0, 120), body = m[2].trim().slice(0, 1500), low = title.toLowerCase();
     if ((skip && low === skip.toLowerCase()) || pNotes(pid).some(n => n.title.toLowerCase() === low)) continue;
     put('note', { id: 'n-' + uid8(), projectId: pid, title, text: body, source: 'chat', createdAt: Date.now() }, false);
     saved.push(title);
@@ -2151,9 +2274,10 @@ function readAloud(t, btn) {
 function chatTurnHtml(t, i, retry) {
   if (t.hidden) return ''; // Startsatz beim mündlichen Üben: geht an die KI, steht aber nicht im Chat
   if (t.err) return `<div class="msg ai err">${md(t.content)}${retry && t.again !== false ? `<div class="msg-acts"><button type="button" class="notebtn" data-retry="${i}">${ICON.refresh}Nochmal senden</button></div>` : ''}</div>`;
-  if (t.role === 'user') return `<div class="msg me">${t.att && t.att.length ? `<div class="matt">${t.att.map(a => a.thumb ? `<img src="${esc(a.thumb)}" alt="${esc(a.name)}">` : `<span>${ICON.file}${esc(a.name)}</span>`).join('')}</div>` : ''}${esc(t.content).replace(/\n/g, '<br>')}</div>`;
+  if (t.role === 'user') return `<div class="msg me">${t.att && t.att.length ? `<div class="matt">${t.att.map(a => a.thumb ? `<img src="${esc(a.thumb)}" alt="${esc(a.name)}">` : `<span>${attKind(a) === 'ton' ? ICON.mic : ICON.file}${esc(a.name)}</span>`).join('')}</div>` : ''}${esc(t.content).replace(/\n/g, '<br>')}</div>`;
   const can = Number.isInteger(i) && /[\p{L}\p{N}]/u.test(t.content);
-  const btn = !can ? '' : (t.noted ? notedHtml(t.noted) : `<button type="button" class="notebtn" data-tnote="${i}">${ICON.pin}Als Notiz</button>`) + (canRead() ? readBtnHtml(t, i) : '');
+  const btn = !can ? '' : (t.noted ? notedHtml(t.noted) : `<button type="button" class="notebtn" data-tnote="${i}">${ICON.pin}Als Notiz</button>`) + (canRead() ? readBtnHtml(t, i) : '')
+    + (MODE === 'server' ? `<button type="button" class="notebtn" data-tpdf="${i}">${ICON.pdf}PDF</button>` : '');
   return `<div class="msg ai">${md(t.content)}${t.saved && t.saved.length ? `<div class="saved">${t.saved.map(notedHtml).join('')}</div>` : ''}${btn ? `<div class="msg-acts">${btn}</div>` : ''}</div>`;
 }
 const notedHtml = title => `<span class="notebtn done">${ICON.check}Notiz gespeichert: ${esc(typeof title === 'string' ? title : '')}</span>`;
@@ -2161,7 +2285,7 @@ const notedHtml = title => `<span class="notebtn done">${ICON.check}Notiz gespei
 const noting = new Set();
 function noteTitleFallback(text, q) {
   const bold = /\*\*(.+?)\*\*/.exec(text);
-  const t = (bold ? bold[1] : String(q || text).replace(/[*_#>`-]/g, ' ')).replace(/\s+/g, ' ').trim();
+  const t = hlStrip(bold ? bold[1] : String(q || text).replace(/[*_#>`-]/g, ' ')).replace(/\s+/g, ' ').trim();
   return (t.split(' ').slice(0, 6).join(' ') || 'Notiz aus dem Chat').slice(0, 120);
 }
 async function noteFromTurn(turns, i, pid, persist, btn) {
@@ -2175,13 +2299,13 @@ async function noteFromTurn(turns, i, pid, persist, btn) {
   let title = '', text = '';
   if (aiReady()) {
     try {
-      const x = await aiJson(`Mach aus dieser Antwort von Merki eine Lernnotiz auf Deutsch. Übernimm alle Lerninhalte vollständig (Erklärungen, Regeln, Formeln, Zahlen, Beispiele, Eselsbrücken) und gliedere sie übersichtlich. Lass nur Begrüßung, Lob, Smalltalk und Rückfragen an die Person weg. Erfinde nichts dazu. Formatierung: **fett** sparsam, nur für die wichtigsten Fachbegriffe (höchstens ein bis zwei pro Absatz), Listen mit "- ". Tabellen (Markdown) und Diagramme (\`\`\`mermaid … \`\`\`) aus der Antwort übernimmst du vollständig.
+      const x = await aiJson(`Mach aus dieser Antwort von Merki eine Lernnotiz auf Deutsch. Übernimm alle Lerninhalte vollständig (Erklärungen, Regeln, Formeln, Zahlen, Beispiele, Eselsbrücken) und gliedere sie übersichtlich. Lass nur Begrüßung, Lob, Smalltalk und Rückfragen an die Person weg. Erfinde nichts dazu. Formatierung: **fett** sparsam, nur für die wichtigsten Fachbegriffe (höchstens ein bis zwei pro Absatz), Listen mit "- ". Tabellen (Markdown) und Diagramme (\`\`\`mermaid … \`\`\`) aus der Antwort übernimmst du vollständig. Farbmarkierungen wie {blau}…{/blau} übernimmst du unverändert an denselben Stellen.
 "titel" ist ein kurzer, passender Titel mit höchstens 6 Wörtern.
 Antworte nur mit JSON: {"titel": "...", "inhalt": "..."}
 ${qText ? `\nFrage der Person dazu: ${qText.slice(0, 1500)}\n` : ''}
 Antwort von Merki:
 ${t.content.slice(0, 12000)}`, { schema: SCHEMA.voice, tier: 'quick', maxTokens: 8000, purpose: 'note' });
-      title = String((x && x.titel) || '').trim().slice(0, 120);
+      title = hlStrip((x && x.titel) || '').trim().slice(0, 120);
       text = String((x && x.inhalt) || '').trim().slice(0, 12000);
     } catch (e) { console.warn('note', e); }
   }
@@ -2272,6 +2396,8 @@ function chatName(x) {
 function saveChat(c) { c.turns = trimChat(c, pruneThumbs(c.turns)); c.updatedAt = Date.now(); put('chat', { ...c }, false); }
 
 // Notizen macht die Person selbst mit dem Knopf „Als Notiz“ an Merkis Antworten. Merki schreibt nur auf ausdrücklichen Wunsch welche.
+// Farben nur auf Wunsch: Die App zeigt {blau}…{/blau} als Textmarker (siehe hlHtml)
+const COLOR_RULE = `Farbmarkierungen: Nur wenn die Person ausdrücklich darum bittet (zum Beispiel „markier alle Definitionen blau und Formeln grün“), markierst du die gewünschten Stellen so: {blau}Mitose: Teilung des Zellkerns{/blau}. Farben: gelb, grün, blau, rosa, lila, orange (wünscht sie Rot, nimm rosa). Jede Markierung beginnt und endet in derselben Zeile (in Tabellen in derselben Zelle) und umfasst nur die gewünschte Stelle, nicht ganze Absätze. Nicht in Überschriften, NOTIZ-Titeln, Diagrammen oder Codeblöcken. Schreib am Anfang in einem kurzen Satz, welche Farbe wofür steht. Hat sie es für das ganze Gespräch gewünscht („ab jetzt“, „immer“), markierst du auch in den nächsten Antworten so. Ohne ihren Wunsch keine Farben.`;
 const NOTE_RULE = `Notizen: Unter jeder deiner Antworten hat die Person einen Knopf „Als Notiz“, damit speichert sie selbst, was sie behalten will. Schreib deshalb nicht von dir aus Notizen und biete es auch nicht ständig an.
 Nur wenn sie dich in ihrer letzten Nachricht ausdrücklich bittet, etwas zu notieren oder zu merken, hänge GANZ AM ENDE deiner Antwort pro Punkt eine eigene Zeile in genau diesem Format an:
 NOTIZ: <kurzer Titel> :: <Inhalt in 1 bis 4 klaren Sätzen>
@@ -2280,7 +2406,7 @@ const RULES = `Du bist "Merki", ein freundlicher, geduldiger Lernbegleiter in de
 Nutze die Dateien und Notizen des Projekts. Wenn du etwas daraus hast, sag aus welcher Datei. Wenn du abfragst: immer nur eine Frage, warte auf die Antwort, lobe ehrlich und korrigiere freundlich.
 Keine LaTeX-Formeln: Schreib Formeln als Klartext mit Unicode, zum Beispiel v = Vₘₐₓ · [S] / (Kₘ + [S]) oder H₂O.
 
-` + NOTE_RULE;
+` + NOTE_RULE + '\n' + COLOR_RULE;
 // Im Gespräch wird alles vorgelesen: kurz, gesprochen, ohne Formatierung
 const VOICE_RULES = `Du bist "Merki", ein herzlicher Lernbegleiter in der Lern-App "Merkheft". Gerade redet ihr miteinander: Deine Antwort wird laut vorgelesen, und die Person antwortet mit ihrer Stimme. Die Spracherkennung versteht manchmal einzelne Wörter falsch. Wenn etwas komisch klingt, rate sinnvoll oder frag kurz nach.
 So redest du:
@@ -2298,7 +2424,7 @@ const ASK_RULES = `Du bist "Merki", ein freundlicher, geduldiger Lernbegleiter i
 Wenn in der Notiz etwas falsch oder unklar ist, sag es freundlich. Wenn du abfragst: immer nur eine Frage, warte auf die Antwort, lobe ehrlich und korrigiere freundlich.
 Keine LaTeX-Formeln: Schreib Formeln als Klartext mit Unicode, zum Beispiel v = Vₘₐₓ · [S] / (Kₘ + [S]) oder H₂O.
 
-` + NOTE_RULE;
+` + NOTE_RULE + '\n' + COLOR_RULE;
 // Wie Merki helfen soll (Einstellungen). Steht in stats, gilt also auf allen Geräten.
 const HELP_DEF = { level: 'uni', len: 'normal', tone: 'locker', ex: true, mnemo: true, quiz: false, steps: false, wish: '' };
 const helpOf = () => ({ ...HELP_DEF, ...(state.stats.help || {}) });
@@ -2343,9 +2469,21 @@ const MAX_ATT = 4;
 const ATT_TEXT = 60000; // so viel Text aus angehängten Dateien kommt in die Frage
 const ATT_QUICK = [['Erklär mir das Thema', 'Erklär mir das Thema ausführlich.'], ['Was steht da drauf?', 'Was steht da drauf? Schreib das Wichtigste ab und erklär es mir.'], ['Frag mich dazu ab', 'Frag mich dazu ab, eine Frage nach der anderen.']];
 const isImgFile = f => (f.type || '').startsWith('image/');
+// Aufnahmen (Sprachmemos m4a, mp3): Der Server schreibt sie mit, Merki bekommt die Mitschrift zusammen mit den Bildern
+const isAudioFile = f => (f.type || '').startsWith('audio/') || ['m4a', 'mp3', 'aac'].includes((f.name.split('.').pop() || '').toLowerCase());
+const canHear = () => MODE === 'server' && serverRec;
+// Welche Art Anhang: im Verlauf gespeichert (ältere Anhänge kennen nur den Namen)
+const attKind = a => a.kind || (/\.(jpe?g|png|gif|webp|heic|heif)$/i.test(a.name) ? 'bild' : 'datei');
+const tonName = name => `Mitschrift ${name.replace(/\.[a-z0-9]{2,4}$/i, '')}`.slice(0, 120);
+// So steht ein Anhang im Verlauf: was es war und dass mehrere zusammengehören
+function attNote(att) {
+  const list = att.map(a => attKind(a) === 'bild' ? `Bild „${a.name}“` : attKind(a) === 'ton' ? `Aufnahme „${a.name}“ (Mitschrift unter Dateien als „${tonName(a.name)}“)` : `Datei „${a.name}“`);
+  return `\n\n[${att.length > 1 ? 'Zusammen angehängt, gehört zusammen' : 'Angehängt'}: ${list.join(', ')}]`;
+}
 function attProblem(file) {
   const ext = (file.name.split('.').pop() || '').toLowerCase();
-  if (!(isImgFile(file) || ext === 'pdf' || ext === 'docx' || TEXT_EXT.includes(ext) || (file.type || '').startsWith('text/'))) return 'kennt Merki nicht. Es gehen PDF, Word (.docx), Text und Fotos.';
+  if (isAudioFile(file)) return !canHear() ? 'kann Merki hier nicht anhören.' : file.size > 40 * 1024 * 1024 ? 'ist zu groß für den Chat (höchstens 40 MB). Lade sie unter Notizen mit „Vorlesung“ hoch.' : '';
+  if (!(isImgFile(file) || ext === 'pdf' || ext === 'docx' || TEXT_EXT.includes(ext) || (file.type || '').startsWith('text/'))) return 'kennt Merki nicht. Es gehen PDF, Word (.docx), Text, Fotos und Aufnahmen (m4a, mp3).';
   return file.size > 40 * 1024 * 1024 ? 'ist größer als 40 MB.' : '';
 }
 function addAtt(list) {
@@ -2373,13 +2511,13 @@ function renderAtt() {
   bar.hidden = !on;
   $('#chatin').placeholder = on ? 'Frage dazu …' : 'Frag Merki …';
   const c = curChat(); $('#suggest').hidden = on || !!(c && c.turns.length); // die Schnellknöpfe für Anhänge ersetzen die Vorschläge
-  bar.innerHTML = on ? `<div class="attchips">${chatAtt.map(a => `<span class="attchip">${a.url ? `<img src="${a.url}" alt="">` : ICON.file}<span class="an">${esc(a.file.name)}</span><button type="button" data-unatt="${a.id}" aria-label="${esc(a.file.name)} entfernen">${ICON.close}</button></span>`).join('')}</div>
+  bar.innerHTML = on ? `<div class="attchips">${chatAtt.map(a => `<span class="attchip">${a.url ? `<img src="${a.url}" alt="">` : isAudioFile(a.file) ? ICON.mic : ICON.file}<span class="an">${esc(a.file.name)}</span><button type="button" data-unatt="${a.id}" aria-label="${esc(a.file.name)} entfernen">${ICON.close}</button></span>`).join('')}</div>
     <div class="attquick" role="group" aria-label="Schnell fragen">${ATT_QUICK.map(([t, q]) => `<button type="button" data-attq="${esc(q)}">${t}</button>`).join('')}</div>` : '';
 }
-// Für den Verlauf: Name und bei Bildern ein kleines Vorschaubild
+// Für den Verlauf: Name, Art und bei Bildern ein kleines Vorschaubild
 async function attMeta(files) {
   return Promise.all(files.map(async f => {
-    const a = { name: f.name.slice(0, 80) };
+    const a = { name: f.name.slice(0, 80), kind: isImgFile(f) ? 'bild' : isAudioFile(f) ? 'ton' : 'datei' };
     if (isImgFile(f)) {
       const bmp = await createImageBitmap(f).catch(() => null);
       if (bmp) {
@@ -2403,15 +2541,33 @@ function pruneThumbs(turns) {
     return ++n <= 4 ? t : { ...t, att: t.att.map(({ thumb, ...a }) => a) };
   }).reverse();
 }
-// Was Merki für genau diese Frage bekommt: Bilder sieht Merki direkt (Scans: die ersten Seiten als Bild),
-// aus PDF, Word und Text kommt der Text mit. Bei langen Dateien der Anfang und die zur Frage passenden Stellen.
-async function attContent(files, query) {
+// Aufnahme aus dem Chat vom Server mitschreiben lassen (kostenlose Spracherkennung) und auf die Mitschrift warten
+async function hearAudio(file, p, signal) {
+  let r;
+  try { r = await fetch('/api/stt?' + new URLSearchParams({ pid: (p && p.id) || '' }), { method: 'POST', body: file, signal, cache: 'no-store', headers: { 'x-merkheft-code': encodeURIComponent(code || '') } }); }
+  catch (e) { throw { code: e && e.name === 'AbortError' ? 'cancelled' : 'offline' }; }
+  const j = await r.json().catch(() => null);
+  if (!r.ok) throw { code: (j && j.error && j.error.code) || 'server', msg: (j && j.error && j.error.msg) || '' };
+  const text = String((j && j.text) || '').trim();
+  if (!text) throw { code: 'stt_empty', msg: `In „${file.name}“ konnte Merki nichts verstehen.` };
+  return { text, secs: Number(j.secs) || 0 };
+}
+// Was Merki für genau diese Frage bekommt: Bilder sieht Merki direkt (Scans: die ersten Seiten als Bild), jedes mit Beschriftung,
+// aus PDF, Word und Text kommt der Text mit, aus Aufnahmen die Mitschrift. Bei langen Dateien der Anfang und die zur Frage passenden Stellen.
+// Alles kommt in dieselbe Anfrage, mit dem Hinweis, dass es zusammengehört (vorher ging ein Sprachmemo im Chat gar nicht).
+async function attContent(files, query, p, signal) {
   const caps = await imageCaps(), maxImg = caps ? Math.min(caps.maxCount || 1, 4) : 0;
-  const images = [], texts = [], hints = [];
+  const images = [], labels = [], texts = [], hints = [], heard = [];
   for (const file of files) {
     const ext = (file.name.split('.').pop() || '').toLowerCase();
+    if (isAudioFile(file)) {
+      const h = await hearAudio(file, p, signal);
+      heard.push({ name: file.name, ...h });
+      texts.push({ name: file.name, text: h.text, secs: h.secs });
+      continue;
+    }
     if (isImgFile(file)) {
-      if (images.length < maxImg) images.push(file);
+      if (images.length < maxImg) { images.push(file); labels.push(`Bild ${images.length}: „${file.name}“`); }
       else hints.push(maxImg ? `Das Bild „${file.name}“ passt nicht mehr in diese Anfrage (höchstens ${maxImg} Bilder auf einmal).` : `Bilder kannst du hier nicht sehen, „${file.name}“ fehlt deshalb.`);
       continue;
     }
@@ -2420,7 +2576,7 @@ async function attContent(files, query) {
       const pdf = await pdfDoc(file), pt = await pdfPageTexts(pdf);
       if (pt.join('').replace(/\s/g, '').length < 80) {
         const n = Math.min(pdf.numPages, maxImg - images.length);
-        if (n > 0) images.push(...await pdfImages(pdf, Array.from({ length: n }, (_, i) => i + 1)));
+        if (n > 0) { images.push(...await pdfImages(pdf, Array.from({ length: n }, (_, i) => i + 1))); for (let k = 1; k <= n; k++) labels.push(`Bild ${labels.length + 1}: Seite ${k} aus „${file.name}“`); }
         hints.push(n > 0 ? `„${file.name}“ ist eingescannt. Du siehst ${n === 1 ? 'die erste Seite' : `die ersten ${n} Seiten`}${pdf.numPages > n ? ` von ${pdf.numPages}` : ''} als Bild.${pdf.numPages > n ? ' Die ganze Datei liest Merki danach für „Dateien“ ein.' : ''}` : `„${file.name}“ ist eingescannt und passt nicht mehr in diese Anfrage.`);
         continue;
       }
@@ -2442,11 +2598,16 @@ async function attContent(files, query) {
     if (body.length > per) {
       const head = body.slice(0, Math.floor(per / 3));
       body = `${head}\n[…]\n${filePassages([{ id: 'att-' + t.name, name: t.name, text: t.text }], query, per - head.length)}`;
-      hints.push(`„${t.name}“ ist lang. Du siehst den Anfang und die Stellen, die zur Frage passen. Die ganze Datei liest Merki danach für „Dateien“ ein.`);
+      hints.push(`„${t.name}“ ist lang. Du siehst den Anfang und die Stellen, die zur Frage passen. Die ganze ${t.secs !== undefined ? 'Mitschrift legt Merki danach unter „Dateien“ ab' : 'Datei liest Merki danach für „Dateien“ ein'}.`);
     }
-    out += `\n=== Angehängte Datei „${t.name}“ ===\n${body}\n`;
+    out += t.secs !== undefined ? `\n=== Angehängte Aufnahme „${t.name}“ (${recMin(t.secs)}, Mitschrift der Spracherkennung) ===\n${body}\n` : `\n=== Angehängte Datei „${t.name}“ ===\n${body}\n`;
   }
-  return { images, text: out, hints };
+  const intro = [
+    files.length > 1 ? 'Diese Anhänge hat die Person zusammen geschickt, sie gehören zusammen (zum Beispiel ein Foto einer Folie oder der Tafel und die Aufnahme, in der es erklärt wird). Beziehe sie aufeinander und beantworte die Frage mit allem zusammen, nicht mit jedem Anhang einzeln.' : '',
+    heard.length && images.length ? 'Sagt jemand in der Aufnahme „hier“, „das“ oder „diese Kurve“, ist meist etwas auf dem Bild gemeint: Ordne es zu.' : '',
+    heard.length ? 'Die Aufnahme hat eine automatische Spracherkennung mitgeschrieben, die Zeitangaben [mm:ss] zeigen, wo etwas gesagt wurde. Sie verhört sich manchmal, vor allem bei Fachbegriffen und Namen: Verbessere solche Wörter still, wenn aus den Bildern, den Notizen oder dem Zusammenhang klar ist, was gemeint war. Bist du unsicher, sag es.' : '',
+  ].filter(Boolean).join(' ');
+  return { images, labels, text: out, hints, heard, intro };
 }
 
 // Mit Anhängen (files): Merki beantwortet zuerst die Frage dazu. Danach liest Merki die Dateien in Ruhe
@@ -2468,20 +2629,29 @@ async function send(text, files = [], title) {
   liveCid = c.id;
   ctl = new AbortController(); // gleich, damit „Stopp“ auch beim Vorbereiten geht
   const att = files.length ? await attMeta(files).catch(() => files.map(f => ({ name: f.name.slice(0, 80) }))) : null;
-  c.turns.push({ role: 'user', content: asked, ...(att ? { att } : {}) });
+  const q = { role: 'user', content: asked, ...(att ? { att } : {}) };
+  c.turns.push(q);
   renderChat();
-  const thinking = files.length ? 'Merki schaut sich das an …' : 'Merki denkt nach …';
+  const hears = files.some(isAudioFile);
+  const thinking = hears ? 'Merki hört sich die Aufnahme an …' : files.length ? 'Merki schaut sich das an …' : 'Merki denkt nach …';
   const bubble = document.createElement('div');
   bubble.className = 'msg ai thinking live'; bubble.textContent = thinking; liveEl = bubble;
   $('#chatlog').appendChild(bubble); scrollDown(true);
   let partial = '', ok = false;
   // Dauert es, bis das erste Wort kommt, sagt Merki, dass sie noch dran ist (sonst sieht es auf dem alten iPad hängend aus)
-  const slow = setTimeout(() => { if (!partial && bubble.isConnected) bubble.textContent = files.length ? 'Merki schaut noch … bei großen Dateien dauert es etwas.' : 'Merki denkt noch … bei schwierigen Fragen dauert es etwas.'; }, 6000);
+  const slow = setTimeout(() => { if (!partial && bubble.isConnected) bubble.textContent = hears ? 'Merki hört noch zu … eine lange Aufnahme dauert etwas.' : files.length ? 'Merki schaut noch … bei großen Dateien dauert es etwas.' : 'Merki denkt noch … bei schwierigen Fragen dauert es etwas.'; }, 6000);
   const follow = follower($('#main'), () => ui.tab === 'chat');
-  const paint = throttled(t => { if (!bubble.isConnected) return; bubble.classList.toggle('thinking', !t); bubble.innerHTML = t ? mdRaw(visible(t)) : thinking; follow.step(bubble); });
+  const paint = throttled(t => { if (!bubble.isConnected) return; bubble.classList.toggle('thinking', !t); bubble.innerHTML = t ? mdRaw(hlTail(visible(t))) : thinking; follow.step(bubble); });
+  let extra = null;
   try {
-    const extra = files.length ? await attContent(files, asked) : null;
+    extra = files.length ? await attContent(files, asked, p, ctl.signal) : null;
     if (ctl.signal.aborted) throw { code: 'cancelled' };
+    // Bilder gleich umwandeln und merken: Bei Rückfragen und beim Reden schickt aiChat sie wieder mit (pk an der Frage)
+    let pics = extra && extra.images.length ? extra.images : null;
+    if (pics && MODE === 'server') {
+      pics = await Promise.all(pics.map(imageBlock));
+      q.pk = uid8(); keepPics(q.pk, pics, extra.labels);
+    }
     const recent = c.turns.filter(t => t.role === 'user').slice(-3).map(t => t.content).join(' ');
     const hits = await semHits(p, asked + ' ' + recent);
     if (ctl.signal.aborted) throw { code: 'cancelled' };
@@ -2489,13 +2659,13 @@ async function send(text, files = [], title) {
     // Dateien zuerst: Chat, Gespräch und „Frag Merki“ teilen sich dann einen Zwischenspeicher dafür
     const system = [{ text: ctx.files, cache: '1h' }, { text: RULES + who() }, { text: ctx.notes, cache: '1h' }];
     let turns = withPassages(windowTurns(c.turns, 26, 60000, 12, c.base || 0), ctx);
-    if (extra && (extra.text || extra.hints.length)) {
+    if (extra && (extra.text || extra.hints.length || extra.intro)) {
       const last = turns[turns.length - 1];
-      turns = [...turns.slice(0, -1), { role: 'user', content: `${extra.text}${extra.hints.map(h => '\nHinweis: ' + h).join('')}\n\n---\n\n${last.content}` }];
+      turns = [...turns.slice(0, -1), { role: 'user', content: `${extra.intro ? extra.intro + '\n' : ''}${extra.text}${extra.hints.map(h => '\nHinweis: ' + h).join('')}\n\n---\n\n${last.content}` }];
     }
     // Textstellen und Anhänge gelten nur für diese eine Anfrage: die neueste Nachricht dann nicht zwischenspeichern
     // Halbe Antworten nicht im Speicher für fertige Texte ablegen (mdRaw statt md)
-    const full = await aiChat({ system, turns, images: extra && extra.images, signal: ctl.signal, purpose: 'chat', ttl: '1h', tail: !ctx.passages && !extra, onText: t => { partial = t; paint(t); } });
+    const full = await aiChat({ system, turns, images: pics, labels: extra && extra.labels, signal: ctl.signal, purpose: 'chat', ttl: '1h', tail: !ctx.passages && !extra, onText: t => { partial = t; paint(t); } });
     const saved = saveNoteLines(full, p.id);
     c.turns.push({ role: 'assistant', content: visible(full) || '…', saved });
     ok = true;
@@ -2509,7 +2679,7 @@ async function send(text, files = [], title) {
       const kept = visible(e && typeof e.text === 'string' ? e.text : partial); // bei einer Ablehnung nichts behalten
       if (kept) c.turns.push({ role: 'assistant', content: kept + ' …' });
       // again: false, wenn nochmal Senden nichts ändert (abgelehnt, Tageslimit, zu viel Text, Server nicht eingerichtet)
-      const noRetry = !!e && /^(refused|budget|prompt_too_large|bad_request|bad_key|no_key|no_credit|bad_model)$/.test(e.code);
+      const noRetry = !!e && /^(refused|budget|prompt_too_large|bad_request|bad_key|no_key|no_credit|bad_model|stt_long|stt_big|stt_format|stt_empty|stt_off)$/.test(e.code);
       c.turns.push({ role: 'assistant', content: e && e.msg ? e.msg : e && e.code === 'lib' ? 'Das Lese-Werkzeug für diese Datei lädt gerade nicht. Versuch es später nochmal.' : aiError(e), err: true, ...(noRetry ? { again: false } : {}) });
     }
   }
@@ -2522,8 +2692,18 @@ async function send(text, files = [], title) {
   if (ui.tab === 'chat' && (curChat() || {}).id === c.id) chatPin = () => requestAnimationFrame(() => { if (follow.on) follow.to($('#chatlog').lastElementChild); else m.scrollTop = at; });
   renderAll(); renderAiAvailability();
   chatPin = null; chatKeepFrom = null;
-  // Hat es nicht geklappt, liegen die Dateien wieder bereit. Sonst legt Merki sie unter „Dateien“ ab.
-  if (files.length) { if (ok) handleFiles(files, p); else if (!chatAtt.length) addAtt(files); }
+  // Hat es nicht geklappt, liegen die Dateien wieder bereit. Sonst legt Merki sie unter „Dateien“ ab
+  // (Aufnahmen als Mitschrift, ohne neue Kosten: Merki findet darin später die passenden Stellen)
+  if (files.length) {
+    if (!ok) { if (!chatAtt.length) addAtt(files); return; }
+    for (const h of (extra && extra.heard) || []) {
+      if (pFiles(p.id).some(x => x.name === tonName(h.name))) continue;
+      tonSave(p, tonName(h.name), h.text, h.secs, Date.now());
+      toast(`Die Mitschrift von „${h.name}“ liegt jetzt unter Dateien`, 3500);
+    }
+    if (extra && extra.heard.length) renderAll(!busy);
+    handleFiles(files.filter(f => !isAudioFile(f)), p);
+  }
 }
 
 // ---------- Notizen ----------
@@ -2544,11 +2724,12 @@ function showNewNote(n) {
 }
 function renderNotes() {
   renderRecs();
-  const all = pNotes(), allView = ui.noteView === 'all' && all.length > 0;
+  const all = pNotes(), view = all.length ? noteViewNow() : 'cards', allView = view === 'all', pdfView = view === 'pdf';
   $('#noteView').hidden = !all.length;
-  $('#noteView').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === (ui.noteView === 'all' ? 'all' : 'cards')));
-  $('#search').hidden = allView; $('#filters').hidden = allView; $('#cards').hidden = allView; $('#allNote').hidden = !allView;
+  $('#noteView').querySelectorAll('button').forEach(b => { b.setAttribute('aria-pressed', b.dataset.v === view); if (b.dataset.v === 'pdf') b.hidden = MODE !== 'server'; });
+  $('#search').hidden = allView || pdfView; $('#filters').hidden = allView || pdfView; $('#cards').hidden = allView || pdfView; $('#allNote').hidden = !allView; $('#pdfNote').hidden = !pdfView;
   if (allView) { renderAllNote(); return; }
+  if (pdfView) { renderPdfNote(); return; }
   if (filterFresh || !FILTERS.some(([k]) => k === ui.filter)) ui.filter = 'all';
   filterFresh = false;
   // Filter erst ab 10 Notizen (vorher findet sie alles auf einen Blick)
@@ -2739,6 +2920,8 @@ function openSheet(html, onMount, onClose, opts = {}) {
   root.innerHTML = `<div class="sheet-bg"><div class="sheet" role="dialog" aria-modal="true">${x}${html}</div></div>`;
   root._onClose = onClose || null;
   const bg = root.firstElementChild, sheet = bg.firstElementChild;
+  // Auf dem iPhone verdeckt die Tastatur sonst das Feld und „Speichern“: das Blatt passt sich dem sichtbaren Bereich an
+  root._unfit = fitViewport(bg, true);
   if (x) {
     sheet.firstElementChild.onclick = closeSheet;
     sheet.addEventListener('scroll', () => sheet.classList.toggle('scrolled', sheet.scrollTop > 8), { passive: true });
@@ -2756,7 +2939,12 @@ function openSheet(html, onMount, onClose, opts = {}) {
   });
   onMount && onMount(sheet);
 }
-function closeSheet() { const r = $('#sheetRoot'); if (r._onClose) { const f = r._onClose; r._onClose = null; try { f(); } catch {} } r.innerHTML = ''; }
+function closeSheet() {
+  const r = $('#sheetRoot');
+  if (r._unfit) { r._unfit(); r._unfit = null; }
+  if (r._onClose) { const f = r._onClose; r._onClose = null; try { f(); } catch {} }
+  r.innerHTML = '';
+}
 function confirmSheet(title, text, yes, onYes) {
   openSheet(`<h2>${esc(title)}</h2><p class="muted">${esc(text)}</p>
     <div class="row"><button class="btn danger" type="button" id="cYes">${esc(yes)}</button><button class="btn alt" type="button" id="cNo">Abbrechen</button></div>`, el => {
@@ -3257,7 +3445,7 @@ function openPad(orig, opts = {}) {
     askCtl = new AbortController();
     let partial = '';
     const follow = follower(askLog);
-    const paint = throttled(t => { if (dead || !bubble.isConnected) return; bubble.classList.toggle('thinking', !t); bubble.innerHTML = t ? mdRaw(visible(t)) : 'Merki denkt nach …'; follow.step(bubble); });
+    const paint = throttled(t => { if (dead || !bubble.isConnected) return; bubble.classList.toggle('thinking', !t); bubble.innerHTML = t ? mdRaw(hlTail(visible(t))) : 'Merki denkt nach …'; follow.step(bubble); });
     try {
       const full = await aiChat({ system, turns, signal: askCtl.signal, purpose: 'ask', ttl: '1h', tail: !ctx.passages, onText: t => { partial = t; paint(t); } });
       paint.cancel();
@@ -3385,7 +3573,7 @@ function voiceNote(fromChat) {
     const sendBtn = el.querySelector('#vSend');
     if (sendBtn) sendBtn.onclick = () => { const t = ta.value.trim(); dict.stop(); forget(); closeSheet(); if (t) send(t); };
     const fallback = raw => ({ id: 'n-' + uid8(), projectId: ui.pid, title: raw.split(/[.!?\n]/)[0].slice(0, 60), text: raw, raw, source: 'voice', createdAt: Date.now() });
-    const done = n => { forget(); put('note', n); closeSheet(); toast('Sprachnotiz gespeichert'); ui.filter = 'all'; showNewNote(n); tab('notes'); };
+    const done = n => { forget(); put('note', n); closeSheet(); toast('Sprachnotiz gespeichert'); ui.filter = 'all'; showNewNote(n); tab('notes', true); };
     ai.onclick = async () => {
       dict.stop();
       const raw = ta.value.trim(); if (!raw) return ta.focus();
@@ -3614,7 +3802,7 @@ function splitLong(t, max = 600) {
 }
 // Vorlesbarer Text: ohne Sternchen, Listenzeichen, Pfeile, Emojis, Adressen von Links und LaTeX-Zeichen ($, \frac und Klammern)
 function speakable(t) {
-  return String(t).replace(/```[\s\S]*?(?:```|$)/g, ' ').replace(/\[([^\]\n]+)\]\(https?:\/\/(?:[^\s()]|\([^\s()]*\))+\)/g, '$1').replace(/\$\$?([^$]*[\\^_{][^$]*?)\$\$?/g, ' $1 ')
+  return hlStrip(t).replace(/```[\s\S]*?(?:```|$)/g, ' ').replace(/\[([^\]\n]+)\]\(https?:\/\/(?:[^\s()]|\([^\s()]*\))+\)/g, '$1').replace(/\$\$?([^$]*[\\^_{][^$]*?)\$\$?/g, ' $1 ')
     .replace(/[_^]\{([^{}]*)\}/g, ' $1').replace(/\\[dt]?frac\{([^{}]*)\}\{([^{}]*)\}/g, ' $1 durch $2 ').replace(/\\(?:cdot|times)/g, ' mal ').replace(/\\(alpha|beta|gamma|[dD]elta|epsilon|eta|theta|lambda|mu|pi|rho|sigma|tau|phi|omega|Omega)\b/g, ' $1 ').replace(/\\[A-Za-z]+|[\\{}^]/g, ' ').replace(/^[ \t]*\|?[ \t]*:?-{2,}[-:| \t]*$/gm, '')
     .replace(/^[ \t]*\|(.*)\|[ \t]*$/gm, (m, r) => r.split('|').map(c => c.trim()).filter(Boolean).join(', ') + '.').replace(/\*\*|__|`/g, '').replace(/^\s*(?:[-*•]|\d+[.)])\s+/gm, '').replace(/[#>*_~|]/g, '')
     .replace(/\s*(?:->|→|⇒)\s*/g, ', ').replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, '').replace(/[ \t]+/g, ' ');
@@ -3770,7 +3958,7 @@ function logPin() {
 }
 function showAi(t) {
   const x = call.el && call.el.querySelector('#capAi'); if (!x) return;
-  x.textContent = String(t).replace(/\*\*/g, '').replace(/^[ \t]*[-*][ \t]+/gm, '• ');
+  x.textContent = hlStrip(t).replace(/\*\*/g, '').replace(/^[ \t]*[-*][ \t]+/gm, '• ');
 }
 function showSaved(list, turn) {
   const x = call.el && call.el.querySelector('#capSaved'); if (!x) return;
@@ -4699,18 +4887,23 @@ Antworte nur mit JSON: {"titel": "...", "projekt": "...", "notiz": "..."}
 Mitschrift:
 ${String(t.text || '').slice(0, 400000)}`;
 }
-// Notiz zum Lesen und Vorlesen, dazu die ganze Mitschrift als Datei (Merki findet darin im Chat die passenden Stellen)
-function lectureSave(p, t, title, text) {
-  const fid = 'f-' + uid8(), full = String(t.text || '').slice(0, MAX_TEXT), name = `Mitschrift ${title}`.slice(0, 120);
-  const short = ((/##\s*Kurz gesagt[^\n]*\n+([\s\S]*?)(?=\n\s*#|$)/i.exec(text) || [])[1] || '').trim();
-  const f = { id: fid, projectId: p.id, name, kind: 'TON', size: full.length, textLen: full.length, truncated: String(t.text || '').length > MAX_TEXT, summary: short.slice(0, 700), secs: t.secs || 0, createdAt: t.created || Date.now() };
+// Mitschrift einer Aufnahme als Datei (Merki findet darin im Chat die passenden Stellen)
+function tonSave(p, name, text, secs, created, summary = '') {
+  const fid = 'f-' + uid8(), full = String(text || '').slice(0, MAX_TEXT);
+  const f = { id: fid, projectId: p.id, name: name.slice(0, 120), kind: 'TON', size: full.length, textLen: full.length, truncated: String(text || '').length > MAX_TEXT, summary: summary.slice(0, 700), secs: secs || 0, createdAt: created || Date.now() };
   if (full.length > PART) {
     const parts = splitText(full, PART);
     f.parts = parts.length;
     parts.forEach((x, i) => put('part', { id: `fp-${fid.slice(2)}-${i}`, fileId: fid, projectId: p.id, i, text: x }, false));
   } else f.text = full;
   put('file', f, false);
-  const n = { id: 'n-' + uid8(), projectId: p.id, title, text: text.slice(0, 80000), source: 'lecture', fileName: name, fileId: fid, recId: t.id, secs: t.secs || 0, createdAt: t.created || Date.now() };
+  return f;
+}
+// Notiz zum Lesen und Vorlesen, dazu die ganze Mitschrift als Datei
+function lectureSave(p, t, title, text) {
+  const short = ((/##\s*Kurz gesagt[^\n]*\n+([\s\S]*?)(?=\n\s*#|$)/i.exec(text) || [])[1] || '').trim();
+  const f = tonSave(p, `Mitschrift ${title}`, t.text, t.secs, t.created, short);
+  const n = { id: 'n-' + uid8(), projectId: p.id, title, text: text.slice(0, 80000), source: 'lecture', fileName: f.name, fileId: f.id, recId: t.id, secs: t.secs || 0, createdAt: t.created || Date.now() };
   put('note', n, false);
   return n;
 }
@@ -4735,7 +4928,7 @@ function noteView(n) {
       r.onclick = () => readAloud({ content: n.text }, r);
     }
     const a = q('#lAsk'); if (a) a.onclick = () => { closeSheet(); openPad(n, { ask: true }); };
-    const t = q('#lText'); if (t) t.onclick = () => viewFile(f);
+    const t = q('#lText'); if (t) t.onclick = () => viewFile(f, 'text');
   });
 }
 function lectureSheet() {
@@ -5057,7 +5250,7 @@ async function readFiles(files, p) {
     job(base);
     try {
       const { f, saved } = await readOne(file, p, s => job(`${base} ${s}`));
-      const part = f.partial ? ' · Ein Teil hat nicht geklappt' : f.pages && f.readPages < f.pages ? ` · ${pagesText(f)}` : '';
+      const part = f.partial ? (/^Merki macht/.test(f.partial) && !(f.pages && f.readPages < f.pages) ? ' · Die Zusammenfassung fehlt noch, weil Merki Pause macht. Später unter Dateien „Neu zusammenfassen“ tippen' : ' · Ein Teil hat nicht geklappt') : f.pages && f.readPages < f.pages ? ` · ${pagesText(f)}` : '';
       if (f.batch) toast(`„${f.name}“ gespeichert · Zusammenfassung folgt${part}`, part ? 6000 : 4000);
       else toast((saved.length ? `„${f.name}“ gelesen · ${saved.length} neue Notizen` : `„${f.name}“ gespeichert`) + part, part ? 6000 : 2800);
     } catch (e) {
@@ -5081,15 +5274,15 @@ function renderFiles() {
     // Ältere Dateien kennen ihre Seitenzahl nicht. Früher stand hier eine Schätzung aus der Textmenge („etwa 15 Seiten“), die wie „nur 15 Seiten gelesen“ aussah.
     const pg = pagesText(f);
     return `<div class="file"><div class="ficon">${esc(f.kind || '')}</div><div class="fbody"><b>${fname(f.name)}</b>
-      <p>${f.secs ? `Aufnahme ${recMin(f.secs)}` : fmtSize(f.size || 0)}${pg ? ` · ${pg}` : ''} · ${new Date(f.createdAt).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}${nn ? ` · ${nn} ${nn === 1 ? 'Notiz' : 'Notizen'}` : ''}</p>
+      <p>${f.secs ? `Aufnahme ${recMin(f.secs)}` : fmtSize(f.size || 0)}${pg ? ` · ${pg}` : ''} · ${new Date(f.createdAt).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}${nn ? ` · ${nn} ${nn === 1 ? 'Notiz' : 'Notizen'}` : ''}${f.sum && f.sum.abschnitte.length > 1 ? ` · ${f.sum.abschnitte.length} Themen` : ''}</p>
       ${sumBusy.has(f.id) ? `<p class="sum muted" data-sum-for="${esc(f.id)}">${esc(sumLabel(f.id))}</p>` : f.batch ? `<p class="sum muted">Die Zusammenfassung kommt in ein paar Minuten (Sammelauftrag, halber Preis).</p>` : ''}
       ${f.summary ? `<p class="sum">${inl(f.summary)}</p>` : ''}
-      ${f.sum ? `<button type="button" class="linkbtn fs-open" data-view="${esc(f.id)}">Zusammenfassung ansehen${f.sum.abschnitte.length > 1 ? ` · ${f.sum.abschnitte.length} Themen` : ''}</button>` : ''}</div>
+      ${f.sum ? `<button type="button" class="btn alt fs-open" data-view="${esc(f.id)}" aria-label="Zusammenfassung ansehen">${ICON.eye}Zusammenfassung</button>` : ''}</div>
       <div class="acts"><button type="button" data-view="${esc(f.id)}" aria-label="Zusammenfassung und Text ansehen">${ICON.eye}</button><button type="button" data-fdel="${esc(f.id)}" aria-label="Datei löschen">${ICON.trash}</button></div></div>`;
   }).join('') : `<p class="muted">Noch keine Dateien in diesem Projekt.</p>`;
 }
 // Fett im Fließtext (aus **...**), sonst nur Text
-const inl = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+const inl = s => hlHtml(esc(s)).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 // Ausführliche Zusammenfassung: Überblick, Themen (bei vielen mit Inhaltsverzeichnis), je Erklärung, Stichpunkte, Tabelle und Diagramm,
 // dann Begriffe, Merksätze und typische Klausurfragen. Ältere Zusammenfassungen haben nur Stichpunkte.
 function sumHtml(sum, ask) {
@@ -5126,27 +5319,42 @@ function sumDone(f, msg, ok = '') {
   else if (ok) toast(ok, 4000);
 }
 // Text in den Chat legen (nicht abschicken), damit sie ihn ergänzen kann
-function askInChat(text) {
+// Aus einer Zusammenfassung in den Chat gesprungen (Klausurfrage, „Frag Merki dazu“): ein Knopf führt an dieselbe Stelle zurück
+let chatBackFile = null;
+function chatBackShow(f) {
+  const row = $('#chatBackRow'), b = $('#chatBack');
+  chatBackFile = f.id; row.hidden = false;
+  b.textContent = `‹ Zurück zu „${cut(f.name, 40)}“`;
+  b.onclick = () => { const cur = state.files.find(x => x.id === chatBackFile); chatBackHide(); if (cur) viewFile(cur); };
+}
+function chatBackHide() { chatBackFile = null; const row = $('#chatBackRow'); if (row) row.hidden = true; }
+function askInChat(text, from) {
   closeSheet(); tab('chat');
+  if (from) chatBackShow(from); else chatBackHide();
   const c = $('#chatin'); c.value = text; autoGrow();
   requestAnimationFrame(() => { c.focus(); c.setSelectionRange(c.value.length, c.value.length); });
 }
-function viewFile(f) {
+// Lesestelle pro Datei: welche Ansicht (Zusammenfassung oder ganzer Text) und wie weit unten
+const fileScroll = new Map();
+// want: 'sum' oder 'text', wenn sie gezielt eine Ansicht geöffnet hat (sonst die zuletzt benutzte)
+function viewFile(f, want) {
   if (!f) return;
   const t = fileText(f), show = t.slice(0, 120000);
+  let sheetEl = null;
   openSheet(`<h2>${fname(f.name)}</h2>
     <div class="seg fs-tabs" role="group" aria-label="Was möchtest du sehen?" id="fsTabs"><button type="button" data-tab="sum" aria-pressed="true">Zusammenfassung</button><button type="button" data-tab="text" aria-pressed="false">Ganzer Text</button></div>
     <div class="fs-pane" id="fsPane" aria-live="polite"></div>
     <div class="fs-pane" id="ftPane" hidden><div class="textview">${esc(show || '(kein Text)')}</div>${t.length > show.length ? `<p class="muted">Hier siehst du den Anfang. Merki kennt die ganze Datei (${Math.round(t.length / 1000)}.000 Zeichen).</p>` : ''}${f.truncated ? '<p class="muted">Die Datei ist sehr lang. Merki hat die ersten 500.000 Zeichen gelesen.</p>' : ''}</div>
-    <div class="row"><button class="btn alt" type="button" id="fClose">Schließen</button>${aiReady() && t ? '<button class="btn alt" type="button" id="fAsk">Frag Merki dazu</button>' : ''}</div>`, el => {
+    <div class="row fs-actions"><button class="btn alt" type="button" id="fClose">Schließen</button>${aiReady() && t ? '<button class="btn alt" type="button" id="fAsk">Frag Merki dazu</button>' : ''}</div>`, el => {
+    sheetEl = el;
     const q = sel => el.querySelector(sel);
     q('#fClose').onclick = closeSheet;
-    const fa = q('#fAsk'); if (fa) fa.onclick = () => askInChat(`Zu „${f.name}“: `);
+    const fa = q('#fAsk'); if (fa) fa.onclick = () => askInChat(`Zu „${f.name}“: `, f);
     // Klausurfrage antippen: sie steht im Chat, darunter schreibt sie ihre eigene Antwort
     q('#fsPane').addEventListener('click', e => {
       const b = e.target.closest('[data-qi]'); if (!b) return;
       const cur = state.files.find(x => x.id === f.id) || f, frage = cur.sum && (cur.sum.fragen || [])[+b.dataset.qi];
-      if (frage) askInChat(`Klausurfrage zu „${f.name}“: ${frage}\nMeine Antwort: `);
+      if (frage) askInChat(`Klausurfrage zu „${f.name}“: ${frage}\nMeine Antwort: `, f);
     });
     const paint = (msg = '') => {
       const cur = state.files.find(x => x.id === f.id) || f;
@@ -5157,7 +5365,7 @@ function viewFile(f) {
       const working = sumBusy.has(f.id) ? sumLabel(f.id) : ''; // läuft schon (vielleicht vor dem Schließen gestartet)
       q('#fsPane').innerHTML = (cur.batch && !working ? `<p class="notice tip">Merki fasst diese Datei gerade im Sammelauftrag zusammen, zum halben Preis. Das dauert meist ein paar Minuten, dann kommen Zusammenfassung und Notizen von selbst.</p>` : '')
         + (cur.partial ? (cur.pages && cur.readPages < cur.pages ? `<p class="notice">Ein Teil dieser Datei hat beim Hochladen nicht geklappt. Lösch sie und lade sie nochmal hoch, dann liest Merki alles.</p>`
-          : `<p class="notice">Die Zusammenfassung ist beim Hochladen nicht ganz fertig geworden (${esc(cur.partial)}). Tippe auf „Neu zusammenfassen“, nochmal hochladen musst du die Datei nicht.</p>`) : '')
+          : `<p class="notice">Die Zusammenfassung ist beim Hochladen nicht ganz fertig geworden. ${esc(cur.partial)} Tippe auf „Neu zusammenfassen“, nochmal hochladen musst du die Datei nicht.</p>`) : '')
         + (cur.sum ? sumHtml(cur.sum, can) + (old && can ? '<p class="notice tip">Diese Zusammenfassung ist noch die kürzere Fassung. Mit „Neu zusammenfassen“ schreibt Merki sie ausführlich, mit Erklärungen, Tabellen, Diagrammen und Klausurfragen.</p>' : '')
         : lecNote ? `<p class="muted">Die Notiz zu dieser Vorlesung hat Merki schon geschrieben.</p><button class="btn alt" type="button" id="fsLec">${ICON.lecture}Notiz „${esc(cut(lecNote.title, 40))}“ öffnen</button>`
         : cur.summary ? `<div class="fsum"><p class="fs-intro">${inl(cur.summary)}</p></div>${can ? '<p class="notice tip">Das ist noch die alte, kurze Zusammenfassung. Merki kann sie jetzt ausführlich schreiben, auf Uni-Niveau mit Erklärungen, Tabellen, Diagrammen und typischen Klausurfragen.</p>' : ''}`
@@ -5207,7 +5415,12 @@ function viewFile(f) {
       q('#fsPane').hidden = b.dataset.tab !== 'sum'; q('#ftPane').hidden = b.dataset.tab !== 'text';
     });
     paint();
-    if (f.secs && !f.sum) q('#fsTabs [data-tab="text"]').click(); // Mitschrift einer Vorlesung: gleich der Text
+    const last = fileScroll.get(f.id);
+    const show = want || (last ? last.tab : f.secs && !f.sum ? 'text' : 'sum'); // Mitschrift einer Vorlesung: gleich der Text
+    if (show === 'text') q('#fsTabs [data-tab="text"]').click();
+    if (last && last.y && last.tab === show) requestAnimationFrame(() => { if (el.isConnected) el.scrollTop = last.y; });
+  }, () => {
+    if (sheetEl) fileScroll.set(f.id, { y: sheetEl.scrollTop, tab: sheetEl.querySelector('#ftPane').hidden ? 'sum' : 'text' });
   });
 }
 // ---------- PDF-Lernzettel ----------
@@ -5215,7 +5428,25 @@ function viewFile(f) {
 // Das Programm dafür (pdfmake) lädt erst beim ersten Lernzettel. Diagramme kommen als Bild hinein.
 const PZ = { ink: '#2b2622', soft: '#6b6158', line: '#d8cdbf', head: '#f6e7c1', box: '#fbf5e8', merke: '#e8f3ea' };
 // **fett** im Text
-const pzInline = s => String(s ?? '').split(/(\*\*.+?\*\*)/g).filter(Boolean).map(t => { const m = t.match(/^\*\*(.+)\*\*$/); return m ? { text: m[1], bold: true } : t; });
+// Farbmarker im PDF als Hintergrund in den hellen Pastellfarben (wie --pc-* im hellen Design), gut zu drucken
+const PZ_HL = { gelb: '#F7D98E', gruen: '#A9D9B5', blau: '#AAC9EF', rosa: '#F2AA9B', lila: '#CBB8E9', orange: '#F6BE8A', tuerkis: '#9ED8D2', pink: '#F3B4CF' };
+// Erst die Marker durch Platzhalter ersetzen, dann nach **fett** trennen: so geht auch „**{blau}Mitose{/blau}**“ (fett und blau)
+const pzInline = s => {
+  const str = String(s ?? '').replace(HL_RE, (m, c, b) => `\u0001${HL[c.toLowerCase()]}\u0001${b}\u0003`).replace(HL_TAG, '');
+  const out = [];
+  let bg;
+  for (const part of str.split(/(\*\*.+?\*\*)/g)) {
+    const b = part.match(/^\*\*(.+)\*\*$/);
+    for (const t of (b ? b[1] : part).split(/(\u0001\w+\u0001|\u0003)/)) {
+      if (!t) continue;
+      if (t === '\u0003') { bg = undefined; continue; }
+      const o = t.match(/^\u0001(\w+)\u0001$/);
+      if (o) { bg = PZ_HL[o[1]]; continue; }
+      out.push(b || bg ? { text: t, ...(b ? { bold: true } : {}), ...(bg ? { background: bg } : {}) } : t);
+    }
+  }
+  return out;
+};
 const pzTable = (head, rows) => ({
   table: { headerRows: 1, widths: head.map(() => '*'), body: [head.map(c => ({ text: pzInline(c), bold: true, fillColor: PZ.head })), ...rows.map(r => head.map((_, j) => ({ text: pzInline(r[j] ?? '') })))] },
   layout: { hLineColor: () => PZ.line, vLineColor: () => PZ.line, paddingLeft: () => 5, paddingRight: () => 5, paddingTop: () => 3, paddingBottom: () => 3 }, fontSize: 9.5, margin: [0, 4, 0, 8],
@@ -5389,6 +5620,79 @@ async function lernzettel(btn, make, sig) {
     toast(e && e.code === 'lib' ? 'Für den Lernzettel braucht Merki einmal Internet.' : 'Der Lernzettel hat nicht geklappt. Versuch es nochmal.', 5000);
   }
 }
+// ---------- PDF-Mappe ----------
+// Gute Antworten aus dem Chat und Notizen sammeln und dann einzeln oder mehrere zusammen als ein PDF teilen oder sichern.
+// Das PDF entsteht auf dem Gerät (wie der Lernzettel), die KI kostet dafür nichts. Was in der Mappe liegt, ist eine Notiz
+// mit pdf (Zeitpunkt, an dem sie hineinkam): So gleicht sich die Mappe wie jede Notiz zwischen iPhone und iPad ab.
+const pdfSel = new Set();
+const noteViewNow = () => ui.noteView === 'all' || (ui.noteView === 'pdf' && MODE === 'server') ? ui.noteView : 'cards';
+const pdfNotes = (pid = ui.pid) => pNotes(pid).filter(n => n.pdf).sort((a, b) => a.pdf - b.pdf);
+const pdfDay = t => new Date(t || Date.now()).toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' });
+const PDF_SRC = { chat: 'Aus dem Chat', lecture: 'Vorlesung', voice: 'Sprachnotiz', file: 'Aus Dateien' };
+// Ein oder mehrere Einträge als ein PDF (mehrere: jeder mit eigener Überschrift, ab drei mit Inhaltsverzeichnis)
+function mappePdf(ids, pid) {
+  const p = state.projects.find(x => x.id === pid), notes = ids.map(id => state.notes.find(n => n.id === id)).filter(Boolean);
+  if (notes.length === 1) return { name: notes[0].title, content: pzMd(noteBody(notes[0])), sub: `${p ? p.name + ' · ' : ''}${pdfDay()}` };
+  const c = [...pzToc(notes.length)];
+  for (const n of notes) c.push(pzH2(n.title, notes.length >= 3), ...pzMd(noteBody(n)));
+  return { name: `${p ? p.name : 'Merkheft'}, ${notes.length} Teile`, content: c, sub: `${notes.map(n => n.title).join(' · ').slice(0, 180)} · ${pdfDay()}` };
+}
+// Stand der ausgewählten Einträge: ändert sich einer, ist ein fertiges PDF veraltet
+const pdfSig = ids => ids.map(id => { const n = state.notes.find(x => x.id === id); return n ? n.id + ':' + n.title.length + ':' + noteBody(n).length : ''; }).join('|');
+function renderPdfNote() {
+  const list = pdfNotes(), box = $('#pdfNote');
+  for (const id of [...pdfSel]) if (!list.some(n => n.id === id)) pdfSel.delete(id);
+  const ids = list.filter(n => pdfSel.has(n.id)).map(n => n.id), k = ids.length;
+  const pzk = 'pm:' + ids.join(','); let pz = k ? pzJobs.get(pzk) : null;
+  if (pz && pz.file && pz.sig !== pdfSig(ids)) { pzJobs.delete(pzk); pz = null; }
+  const label = `${ICON.pdf}${k > 1 ? `${k} zusammen als PDF` : 'Als PDF'}`;
+  box.innerHTML = `<div class="ad-head"><div><h2>PDF-Mappe</h2><p class="muted">${list.length ? `${list.length} ${list.length === 1 ? 'Eintrag' : 'Einträge'} · Wähle aus, was in ein PDF soll.` : 'Noch leer'}</p></div><div class="ad-btns"><button class="btn alt" type="button" id="pmAdd">Notizen hineinlegen</button></div></div>
+    ${list.length ? `<div class="pm-list">${list.map(n => `<label class="pm-item"><input type="checkbox" data-pmsel="${esc(n.id)}"${pdfSel.has(n.id) ? ' checked' : ''}><span class="pm-t"><b>${esc(n.title)}</b><small>${PDF_SRC[n.source] || 'Notiz'} · ${new Date(n.createdAt || Date.now()).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}</small></span><button type="button" class="iconbtn plain" data-pmout="${esc(n.id)}" aria-label="„${esc(n.title)}“ aus der Mappe nehmen" title="Aus der Mappe nehmen">${ICON.close}</button></label>`).join('')}</div>
+    <div class="pm-acts"><button class="btn alt" type="button" id="pmAll">${k === list.length ? 'Keine auswählen' : 'Alle auswählen'}</button><button class="btn${pz && pz.file && canShareFiles() ? '' : k ? '' : ' alt'}" type="button" id="pmPdf" data-pz="${esc(pzk)}"${!k || (pz && !pz.file) ? ' disabled' : ''}>${pz ? pzInner(pz) : label}</button></div>
+    <p class="muted">Das PDF entsteht auf deinem Gerät, die KI kostet dafür nichts. Aus der Mappe nehmen löscht nichts, die Notiz bleibt.</p>`
+    : `<p class="muted">Im Chat tippst du unter einer guten Antwort auf „PDF“ und legst sie hier hinein. Mit „Notizen hineinlegen“ kommen auch deine Notizen dazu. Dann wählst du aus, was zusammen in ein PDF soll, zum Beispiel alles zu einem Thema vor der Klausur.</p>`}`;
+}
+function pdfPut(n, at) {
+  const { pdf, ...rest } = n;
+  put('note', at ? { ...rest, pdf: at } : rest, false);
+}
+// „Notizen hineinlegen“: Notizen des Projekts auswählen, die noch nicht in der Mappe sind
+function pdfPick() {
+  const rest = pNotes().filter(n => !n.pdf);
+  if (!rest.length) { toast('Alle Notizen liegen schon in der PDF-Mappe.'); return; }
+  openSheet(`<h2>Notizen in die PDF-Mappe</h2>
+    <div class="pm-list">${rest.map(n => `<label class="pm-item"><input type="checkbox" value="${esc(n.id)}"><span class="pm-t"><b>${esc(n.title)}</b><small>${PDF_SRC[n.source] || 'Eigene Notiz'} · ${new Date(n.createdAt || Date.now()).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}</small></span></label>`).join('')}</div>
+    <div class="row"><button class="btn" type="button" id="pmOk">Hineinlegen</button><button class="btn alt" type="button" id="pmNo">Abbrechen</button></div>`, el => {
+    el.querySelector('#pmNo').onclick = closeSheet;
+    el.querySelector('#pmOk').onclick = () => {
+      const t = Date.now();
+      [...el.querySelectorAll('input:checked')].forEach((x, k) => { const n = state.notes.find(y => y.id === x.value); if (n) { pdfPut(n, t + k); pdfSel.add(n.id); } });
+      closeSheet(); renderAll(!busy);
+    };
+  });
+}
+// Knopf „PDF“ unter einer Antwort im Chat: gleich als PDF teilen oder sichern, oder in die Mappe legen (ohne KI, so wie sie ist)
+function answerPdfSheet(c, i) {
+  const t = c.turns[i]; if (!t || t.role !== 'assistant') return;
+  const q = c.turns.slice(0, i).reverse().find(x => x.role === 'user'), qText = q && !/^Frag mich mündlich ab/.test(q.content) ? q.content : '';
+  const p = state.projects.find(x => x.id === c.projectId), title = noteTitleFallback(t.content, qText);
+  const inMappe = () => state.notes.find(n => n.pdf && n.projectId === c.projectId && n.text === t.content.replace(/\s*…$/, ''));
+  openSheet(`<h2>Antwort als PDF</h2>
+    <p class="muted">„${esc(title)}“. Das PDF entsteht auf deinem Gerät, die KI kostet dafür nichts.</p>
+    <div class="row"><button class="btn" type="button" id="paNow">${ICON.pdf}Als PDF teilen oder sichern</button><button class="btn alt" type="button" id="paMap"${inMappe() ? ' disabled' : ''}>${inMappe() ? `${ICON.check}Liegt in der PDF-Mappe` : 'In die PDF-Mappe legen'}</button></div>
+    <p class="muted">In der PDF-Mappe (unter Notizen) führst du mehrere Antworten und Notizen zu einem PDF zusammen.</p>`, el => {
+    const now = el.querySelector('#paNow'), map = el.querySelector('#paMap');
+    now.onclick = () => lernzettel(now, () => ({ name: title, content: [...(qText ? [pzBox([{ text: [{ text: 'Frage: ', bold: true }, qText.slice(0, 600)] }])] : []), ...pzMd(t.content)], sub: `${p ? p.name + ' · ' : ''}Aus dem Chat · ${pdfDay()}` }));
+    map.onclick = () => {
+      if (inMappe() || !p) return;
+      const n = { id: 'n-' + uid8(), projectId: p.id, title, text: t.content.replace(/\s*…$/, '').slice(0, 80000), source: 'chat', pdf: Date.now(), createdAt: Date.now() };
+      put('note', n, false); pdfSel.add(n.id);
+      map.disabled = true; map.innerHTML = `${ICON.check}Liegt in der PDF-Mappe`;
+      toast(`In der PDF-Mappe: „${title}“`, 3500);
+      renderAll(!busy);
+    };
+  });
+}
 function deleteFile(f) {
   if (f.batch) batchPost('cancel', f.batch.id); // Sammelauftrag läuft noch: abbrechen, kostet dann nichts mehr
   fileParts(f).forEach(x => remove('part', x.id, false));
@@ -5425,6 +5729,7 @@ function projectSheet(p) {
 }
 function createProject(name, desc = '', examDate = '', color = nextColor()) {
   const p = { id: 'p-' + uid8(), name: name.slice(0, 60), desc, examDate, color, createdAt: Date.now() };
+  chatBackHide();
   ui.pid = p.id; ui.cid = null; ui.tab = 'chat'; ui.filter = 'all'; saveUi();
   put('project', p); closeSide(); backHome();
 }
@@ -5503,11 +5808,11 @@ function playMaterial(focus) {
   const label = v === '__all' ? 'Alle Projekte' : p.name;
   if (focus && focus.length) {
     const fw = new Set(words(focus.join(' '))), hit = n => words(n.title + ' ' + noteBody(n)).some(w => fw.has(w));
-    const nt = digest(shuffle(notes.filter(hit)).concat(shuffle(notes.filter(n => !hit(n)))), 10000, n => `- ${n.title}: ${noteBody(n)}\n`);
+    const nt = digest(shuffle(notes.filter(hit)).concat(shuffle(notes.filter(n => !hit(n)))), 10000, n => `- ${n.title}: ${hlStrip(noteBody(n))}\n`, true);
     const ft = filePassages(files, focus.join(' '), 20000) || digest(shuffle(files), 12000, f => `\n[${f.name}]\n${fileWindow(f, 6000)}\n`);
     return { label, text: `Notizen:\n${nt || '(keine)'}\n${ft ? 'Aus den Dateien:' + ft : ''}`, notes };
   }
-  const nt = digest(shuffle(notes), 10000, n => `- ${n.title}: ${noteBody(n)}\n`);
+  const nt = digest(shuffle(notes), 10000, n => `- ${n.title}: ${hlStrip(noteBody(n))}\n`, true);
   const ft = digest(shuffle(files), 20000, f => `\n[${f.name}]\n${fileWindow(f, 6000)}\n`);
   return { label, text: `Notizen:\n${nt || '(keine)'}\n${ft ? 'Aus den Dateien:' + ft : ''}`, notes };
 }
@@ -5639,7 +5944,7 @@ async function startMemory() {
   let pairs = null;
   if (!aiReady()) {
     if (!mat.notes || mat.notes.length < 3) return playMsg('Für Memory brauchst du mindestens 3 Notizen oder die KI.');
-    pairs = shuffle(mat.notes).slice(0, 6).map(n => ({ begriff: n.title, partner: noteBody(n).split(/[.!?\n]/)[0].split(' ').slice(0, 8).join(' ') }));
+    pairs = shuffle(mat.notes).slice(0, 6).map(n => ({ begriff: n.title, partner: hlStrip(noteBody(n)).split(/[.!?\n]/)[0].split(' ').slice(0, 8).join(' ') }));
   } else {
     const btn = $('#startMemory'); btn.disabled = true;
     const ctl = playWait(`Merki mischt die Karten zu „${esc(mat.label)}“ …`);
@@ -5733,7 +6038,7 @@ function cardsHome(msg) {
       </div>
       <p class="notice err" id="cMsg"${msg ? '' : ' hidden'}>${esc(msg || '')}</p>
     </div>
-    ${all.length ? `<details class="clist"${ui.cardsOpen ? ' open' : ''}><summary>Alle Karten ansehen (${all.length})</summary>${all.length > 8 ? `<input type="search" id="cFind" class="cfind" placeholder="Karte suchen" aria-label="Karte suchen">` : ''}${all.map(c => `<div class="citem" data-ctext="${esc((c.front + ' ' + c.back + ' ' + (c.topic || '')).toLowerCase())}"><div>${c.topic ? `<span class="ctopic">${esc(c.topic)}</span>` : ''}<b>${esc(c.front)}</b><p>${esc(c.back)}</p>
+    ${all.length ? `<details class="clist"${ui.cardsOpen ? ' open' : ''}><summary>Alle Karten ansehen (${all.length})</summary>${all.length > 8 ? `<input type="search" id="cFind" class="cfind" placeholder="Karte suchen" aria-label="Karte suchen">` : ''}${all.map(c => `<div class="citem" data-ctext="${esc((c.front + ' ' + c.back + ' ' + (c.topic || '')).toLowerCase())}"><div>${c.topic ? `<span class="ctopic">${esc(c.topic)}</span>` : ''}<b>${hlHtml(esc(c.front))}</b><p>${hlHtml(esc(c.back))}</p>
       <div class="boxdots" title="Fortschritt">${[1, 2, 3, 4, 5].map(k => `<i class="${(c.box || 0) >= k ? 'on' : ''}"></i>`).join('')}</div></div>
       <span class="acts"><button type="button" data-cedit="${esc(c.id)}" aria-label="Karte bearbeiten">${ICON.edit}</button><button type="button" data-cdel="${esc(c.id)}" aria-label="Karte löschen">${ICON.trash}</button></span></div>`).join('')}<p class="muted" id="cNone" hidden>Keine Karte gefunden.</p></details>` : ''}`);
   a.querySelector('#cBack').onclick = backHome;
@@ -5748,7 +6053,7 @@ function cardsHome(msg) {
     a.querySelector('#cNone').hidden = n > 0;
   };
   a.querySelectorAll('[data-cedit]').forEach(b => b.onclick = () => { const c = state.cards.find(x => x.id === b.dataset.cedit); if (c) editCard(c); });
-  a.querySelectorAll('[data-cdel]').forEach(b => b.onclick = () => { const c = state.cards.find(x => x.id === b.dataset.cdel); if (c) confirmSheet('Karte löschen?', `„${c.front.slice(0, 80)}“ ist danach weg.`, 'Löschen', () => { remove('card', c.id, false); cardsHome(); renderBadges(); }); });
+  a.querySelectorAll('[data-cdel]').forEach(b => b.onclick = () => { const c = state.cards.find(x => x.id === b.dataset.cdel); if (c) confirmSheet('Karte löschen?', `„${hlStrip(c.front).slice(0, 80)}“ ist danach weg.`, 'Löschen', () => { remove('card', c.id, false); cardsHome(); renderBadges(); }); });
 }
 // Eigene Karte anlegen oder eine Karte ändern (auch mitten beim Lernen: after bekommt die geänderte Karte)
 function editCard(c, after) {
@@ -5829,8 +6134,8 @@ function reviewCards(queue) {
     const a = showArea(`<div class="q"${reviewed ? ' data-busy' : ''}><div class="count"><span>Karte ${i + 1} von ${queue.length}</span><span>${known} gewusst</span></div>
       <div class="progress"><i style="width:${(i / queue.length) * 100}%"></i></div>
       <button class="flash${shown ? ' open' : ''}" type="button" id="flash" aria-label="Karte umdrehen"><span class="in">
-        <span class="fs f"><span class="ftop">${c.topic ? esc(c.topic) : 'Frage'}</span>${esc(c.front)}<small>Antwort im Kopf überlegen, dann umdrehen</small></span>
-        <span class="fs b"><small>${esc(cut(c.front, 160))}</small><span class="ftop">Antwort</span>${esc(c.back)}</span></span></button>
+        <span class="fs f"><span class="ftop">${c.topic ? esc(c.topic) : 'Frage'}</span>${hlHtml(esc(c.front))}<small>Antwort im Kopf überlegen, dann umdrehen</small></span>
+        <span class="fs b"><small>${esc(cut(hlStrip(c.front), 160))}</small><span class="ftop">Antwort</span>${hlHtml(esc(c.back))}</span></span></button>
       <button class="btn" type="button" id="flip"${shown ? ' hidden' : ''}>Umdrehen</button>
       <div class="grade" id="grade"${shown ? '' : ' hidden'}><button class="btn alt bad" type="button" data-g="0">Nicht gewusst</button><button class="btn alt" type="button" data-g="1">Unsicher</button><button class="btn good" type="button" data-g="2">Gewusst</button></div>
     </div><div class="row" style="margin-top:12px"><button class="btn alt" type="button" id="quit">Beenden</button><button class="linkbtn" type="button" id="cEdit">${ICON.edit}Karte bearbeiten</button></div>`);
@@ -5885,7 +6190,7 @@ function startExplain(prefill, draft = '') {
     if (text.split(/\s+/).length < 8) { msg.hidden = false; msg.textContent = 'Schreib ruhig ein paar Sätze, dann kann Merki dir mehr sagen.'; return; }
     const btn = a.querySelector('#eCheck'); btn.disabled = true; btn.textContent = 'Merki liest …'; msg.hidden = true;
     const p = proj();
-    const notes = digest(pNotes().filter(n => words(n.title + ' ' + noteBody(n)).some(w => words(topic).includes(w))).concat(pNotes()), 6000, n => `- ${n.title}: ${noteBody(n)}\n`);
+    const notes = digest(pNotes().filter(n => words(n.title + ' ' + noteBody(n)).some(w => words(topic).includes(w))).concat(pNotes()), 6000, n => `- ${n.title}: ${hlStrip(noteBody(n))}\n`, true);
     const pass = filePassages(pFiles(), topic, 12000);
     try {
       const x = await aiJson(`Du bist Merki, ein freundlicher Lerncoach. Die Person, mit der du lernst, erklärt dir ein Thema in eigenen Worten. Bewerte ehrlich und ermutigend auf Deutsch und sprich sie mit „du“ an.${wishLine()}
@@ -6076,7 +6381,7 @@ function renderProgress() {
     [ICON.flame, streak, streak === 1 ? 'Tag in Folge' : 'Tage in Folge'], [ICON.star, st.xp || 0, 'XP gesamt'], [ICON.cards, due, due === 1 ? 'Karte heute dran' : 'Karten heute dran'],
   ].map(([i, v, l]) => `<div>${i}<b>${esc(v)}</b><span>${esc(l)}</span></div>`).join('');
   $('#cardPanel').innerHTML = `<h3 class="sub">Karteikarten</h3>${cards.length ? stackBar(s) + `<p class="muted">${due ? `${due} ${due === 1 ? 'Karte ist' : 'Karten sind'} heute dran.` : 'Für heute alles wiederholt.'}</p>${due ? '<button class="btn alt" type="button" id="progLearn">Jetzt lernen</button>' : ''}` : '<p class="muted">Noch keine Karten. Unter „Lernen“ macht Merki dir welche.</p>'}`;
-  const pl = $('#progLearn'); if (pl) pl.onclick = () => { tab('learn'); reviewCards(dueCards().slice(0, 20)); };
+  const pl = $('#progLearn'); if (pl) pl.onclick = () => { tab('learn', true); reviewCards(dueCards().slice(0, 20)); };
   const t = today(), days = Array.from({ length: 14 }, (_, i) => addDays(t, i - 13)), vals = days.map(d => pr.days[d] || 0), max = Math.max(10, ...vals);
   const active = vals.filter(Boolean).length;
   $('#activity').innerHTML = `<h3 class="sub">Letzte 14 Tage</h3><p class="muted">${active ? `An ${active} von 14 Tagen gelernt, ${vals.reduce((a, b) => a + b, 0)} XP.` : 'Noch keine Lernpunkte in diesem Projekt.'}</p>
@@ -6086,8 +6391,8 @@ function renderProgress() {
   const topicHtml = (x, cls) => `<div class="topic ${cls}"><div><span>${esc(x.name)}</span><span class="muted">${Math.round(x.m * 100)} %</span></div><div class="progress"><i style="width:${Math.round(x.m * 100)}%"></i></div></div>`;
   $('#topics').innerHTML = `<div class="panel"><h3 class="sub">Kannst du schon gut</h3>${strong.length ? strong.map(x => topicHtml(x, '')).join('') : '<p class="muted">Mach ein paar Quiz oder Karten, dann zeigt Merki hier deine starken Themen.</p>'}</div>
     <div class="panel"><h3 class="sub">Noch üben</h3>${weak.length ? weak.map(x => topicHtml(x, 'weak')).join('') + '<div class="row"><button class="btn alt" type="button" id="quizWeak">Quiz zu diesen Themen</button><button class="btn alt" type="button" id="practiceWeak">Schwächstes Thema erklären</button></div>' : '<p class="muted">Hier erscheinen Themen, bei denen du noch unsicher bist.</p>'}</div>`;
-  const pw = $('#practiceWeak'); if (pw) pw.onclick = () => { tab('learn'); startExplain(weak[0].name); };
-  const qw = $('#quizWeak'); if (qw) qw.onclick = () => { tab('learn'); $('#playSource').value = '__proj'; $('#topicWrap').hidden = true; startQuiz('weak'); };
+  const pw = $('#practiceWeak'); if (pw) pw.onclick = () => { tab('learn', true); startExplain(weak[0].name); };
+  const qw = $('#quizWeak'); if (qw) qw.onclick = () => { tab('learn', true); $('#playSource').value = '__proj'; $('#topicWrap').hidden = true; startQuiz('weak'); };
 }
 async function askTip() {
   const p = proj(), out = $('#tipOut'), btn = $('#tipBtn');
@@ -6135,6 +6440,7 @@ function renderLearnHome() {
 }
 function renderView() {
   const p = proj();
+  if (chatBackFile && !pFiles().some(f => f.id === chatBackFile)) chatBackHide();
   $('#pName').textContent = p ? p.name : 'Merkheft';
   $('#pDesc').textContent = p ? p.desc || '' : 'dein Lernbegleiter';
   $('#pDesc').hidden = !!p && !p.desc;
@@ -6188,17 +6494,51 @@ function toast(t, ms = 2800) {
   el.style.bottom = top ? 'auto' : r && r.height ? Math.round(innerHeight - r.top + 8) + 'px' : 'calc(84px + env(safe-area-inset-bottom,0px))';
   el.textContent = t; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { el.hidden = true; }, ms);
 }
-function tab(name) {
-  const was = ui.tab;
+// Wo sie in jedem Bereich war (pro Projekt), damit sie nach einem kurzen Blick in den Chat an derselben Stelle weiterliest.
+// Gemerkt wird die oberste sichtbare Notiz oder Datei samt Abstand, nicht nur die Pixelzahl: Nach dem Neuzeichnen schätzt der
+// Browser die Höhe von Karten außerhalb des Bildschirms nur (content-visibility), dieselbe Pixelzahl träfe eine andere Karte
+const tabScroll = new Map();
+function scrollAnchor(view, top) {
+  for (const e of document.querySelectorAll(`#v-${view} .card[data-open], #v-${view} .file`)) {
+    const r = e.getBoundingClientRect();
+    if (r.bottom <= top) continue;
+    const id = e.dataset.open ? 'n:' + e.dataset.open : 'f:' + ((e.querySelector('[data-view]') || { dataset: {} }).dataset.view || '');
+    return id.length > 2 ? { id, off: r.top - top } : null;
+  }
+  return null;
+}
+function anchorEl(view, id) {
+  if (id.startsWith('n:')) return document.querySelector(`#v-${view} .card[data-open="${CSS.escape(id.slice(2))}"]`);
+  const v = document.querySelector(`#v-${view} .file [data-view="${CSS.escape(id.slice(2))}"]`);
+  return v && v.closest('.file');
+}
+// top: von außen an eine bestimmte Stelle springen (z. B. „Heute“ im Lernplan), dann nicht die alte Lesestelle wiederherstellen
+function tab(name, top = false) {
+  const was = ui.tab, m = $('#main');
+  tabScroll.set(`${ui.pid}|${was}`, { y: m.scrollTop, a: scrollAnchor(was, m.getBoundingClientRect().top) }); // vor dem Neuzeichnen merken
   ui.tab = name; saveUi(); renderView();
+  if (name !== 'chat') chatBackHide();
   if (name === 'progress') stale.add(name); // Fortschritt immer frisch
   renderTab(name);
   // Eine laufende Übung bleibt, wenn sie kurz in einen anderen Bereich schaut. Nochmal „Lernen“ tippen (oder eine
   // fertige Runde) führt zur Übersicht, mitten in einer Runde erst nach Rückfrage. Das Diktat im Erklär-Modus hört beim Wechseln auf.
-  if (name === 'learn' && (was === 'learn' || $('#playArea .result'))) leavePlay();
+  const home = name === 'learn' && (was === 'learn' || !!$('#playArea .result'));
+  if (home) leavePlay();
   if (name !== 'learn' && playDict) { playDict.stop(); playDict = null; }
   if (name === 'notes') { ndAuto(); fitCards(); }
-  if (name === 'chat') scrollDown(true); else $('#main').scrollTop = 0;
+  // Derselbe Bereich nochmal angetippt: nach oben. Sonst dorthin, wo sie zuletzt war, nach dem Zeichnen noch einmal (die Höhe ändert sich noch),
+  // aber nur, wenn inzwischen niemand anders gescrollt hat
+  if (name === 'chat') { scrollDown(true); return; }
+  const s = top || home || was === name ? null : tabScroll.get(`${ui.pid}|${name}`); // home: die gemerkte Stelle gehörte zum Ergebnis, das nicht mehr da ist
+  m.scrollTop = 0;
+  if (!s || !s.y) return;
+  const go = () => {
+    const e = s.a && anchorEl(name, s.a.id);
+    m.scrollTop = e ? m.scrollTop + e.getBoundingClientRect().top - m.getBoundingClientRect().top - s.a.off : s.y;
+  };
+  go();
+  const at = m.scrollTop;
+  requestAnimationFrame(() => { if (ui.tab === name && m.scrollTop === at) go(); });
 }
 
 // Wofür die KI heute Geld gebraucht hat (Einstellungen)
@@ -6492,11 +6832,12 @@ $('#plist').addEventListener('click', e => {
   const b = e.target.closest('[data-p]'); if (!b) return;
   // Schreibt Merki gerade in einem Chat dieses Projekts, diesen zeigen (sonst kommt die Antwort nicht ins Bild)
   const live = busy && liveCid && state.chats.some(c => c.id === liveCid && c.projectId === b.dataset.p);
+  chatBackHide();
   ui.pid = b.dataset.p; ui.cid = live ? liveCid : (pChats(b.dataset.p)[0] || {}).id || null; ui.filter = 'all'; saveUi(); playPicked = false;
   $('#search').value = ''; $('#tipOut').hidden = true; closeSide(); backHome(); renderAll(); ndAuto();
 });
 $('#pMenu').onclick = projectMenu;
-$('#examChip').onclick = () => tab('progress');
+$('#examChip').onclick = () => tab('progress', true);
 $('#settingsBtn').onclick = () => { closeSide(); settingsSheet(); };
 $('#wSuggest').addEventListener('click', e => { const b = e.target.closest('button'); if (b) $('#wName').value = b.textContent; });
 $('#wCreate').onclick = () => { const n = $('#wName').value.trim(); if (!n) return $('#wName').focus(); $('#wName').value = ''; createProject(n); };
@@ -6548,6 +6889,8 @@ $('#chatlog').addEventListener('click', e => {
     send(q.content, want ? takeAtt() : []);
     return;
   }
+  const pb = e.target.closest('[data-tpdf]');
+  if (pb && cr) { answerPdfSheet(cr, +pb.dataset.tpdf); return; }
   const b = e.target.closest('[data-tnote]'), c = curChat(); if (!b || !c) return;
   // Beim Speichern den aktuellen Chat nehmen: inzwischen kann eine neuere Fassung da sein (neue Nachrichten)
   noteFromTurn(c.turns, +b.dataset.tnote, c.projectId, (title, t) => {
@@ -6562,14 +6905,16 @@ $('#voiceBtn').onclick = () => openCall({ chat: curChat() }); $('#voiceBtn2').on
 let uploadFromChat = false;
 $('#attachBtn').onclick = () => { uploadFromChat = true; $('#fileIn').click(); };
 $('#uploadBtn').onclick = () => { uploadFromChat = false; $('#fileIn').click(); };
-$('#fileIn').onchange = () => { const f = [...$('#fileIn').files]; $('#fileIn').value = ''; if (uploadFromChat) addAtt(f); else handleFiles(f); };
+// Unter „Dateien“: Aufnahmen gehen wie bei „Vorlesung“ zum Mitschreiben, alles andere wird gelesen
+const upFiles = list => { const f = [...list], rec = canHear() ? f.filter(isAudioFile) : []; rec.forEach(recUpload); handleFiles(f.filter(x => !rec.includes(x))); };
+$('#fileIn').onchange = () => { const f = [...$('#fileIn').files]; $('#fileIn').value = ''; if (uploadFromChat) addAtt(f); else upFiles(f); };
 const drop = $('#drop');
 drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
 drop.addEventListener('dragleave', () => drop.classList.remove('over'));
-drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); handleFiles(e.dataTransfer.files); });
+drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); upFiles(e.dataTransfer.files); });
 $('#flist').addEventListener('click', e => {
   const v = e.target.closest('[data-view]'), d = e.target.closest('[data-fdel]');
-  if (v) viewFile(state.files.find(f => f.id === v.dataset.view));
+  if (v) viewFile(state.files.find(f => f.id === v.dataset.view), v.classList.contains('fs-open') ? 'sum' : undefined);
   if (d) { const f = state.files.find(x => x.id === d.dataset.fdel); if (f) confirmSheet('Datei löschen?', `„${f.name}“ ist danach weg. Die Notizen daraus bleiben.`, 'Löschen', () => deleteFile(f)); }
 });
 $('#newNote').onclick = () => openPad(null);
@@ -6586,8 +6931,21 @@ let searchT = 0;
 $('#search').addEventListener('input', () => { clearTimeout(searchT); searchT = setTimeout(renderNotes, 180); });
 $('#filters').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { ui.filter = b.dataset.f; saveUi(); renderNotes(); } });
 $('#noteView').addEventListener('click', e => {
-  const b = e.target.closest('button[data-v]'); if (!b || (ui.noteView === 'all') === (b.dataset.v === 'all')) return;
+  const b = e.target.closest('button[data-v]'); if (!b || noteViewNow() === b.dataset.v) return;
   ui.noteView = b.dataset.v; saveUi(); renderNotes(); ndAuto();
+});
+$('#pdfNote').addEventListener('change', e => {
+  const x = e.target.closest('[data-pmsel]'); if (!x) return;
+  if (x.checked) pdfSel.add(x.dataset.pmsel); else pdfSel.delete(x.dataset.pmsel);
+  renderPdfNote();
+});
+$('#pdfNote').addEventListener('click', e => {
+  const out = e.target.closest('[data-pmout]');
+  if (out) { e.preventDefault(); const n = state.notes.find(x => x.id === out.dataset.pmout); if (n) { pdfSel.delete(n.id); pdfPut(n, 0); renderAll(!busy); } return; }
+  if (e.target.closest('#pmAdd')) { pdfPick(); return; }
+  if (e.target.closest('#pmAll')) { const list = pdfNotes(), on = list.every(n => pdfSel.has(n.id)); list.forEach(n => on ? pdfSel.delete(n.id) : pdfSel.add(n.id)); renderPdfNote(); return; }
+  const b = e.target.closest('#pmPdf');
+  if (b) { const ids = pdfNotes().filter(n => pdfSel.has(n.id)).map(n => n.id), pid = ui.pid; if (ids.length) lernzettel(b, () => mappePdf(ids, pid), () => pdfSig(ids)); }
 });
 $('#allNote').addEventListener('click', e => {
   const o = e.target.closest('[data-open]');
@@ -6633,7 +6991,7 @@ $('#startCards').onclick = () => { playMsg(''); const due = dueCards(); if (due.
 $('#startExplain').onclick = () => startExplain('');
 $('#startTalk').onclick = () => openCall({ quiz: true });
 $('#todayPlan').onclick = () => {
-  tab('progress');
+  tab('progress', true);
   // Heute nach oben holen, wenn die Karte nicht ganz zu sehen ist (zum Beispiel bei aufgeklappten früheren Tagen)
   const d = document.querySelector('#examBox .pday.now');
   if (d && d.getBoundingClientRect().bottom > $('nav.tabs').getBoundingClientRect().top) d.scrollIntoView({ block: 'start' });
@@ -6657,6 +7015,8 @@ document.addEventListener('keydown', e => {
   renderAll(); renderAiAvailability();
   if (MODE === 'artifact') connectArtifact();
   else if (code) startServer();
+  // Ohne einen Touch-Listener zeigt iOS Safari :active gar nicht an (Rückmeldung beim Antippen)
+  document.addEventListener('touchstart', () => {}, { passive: true });
   if (MODE === 'server' && 'serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('/sw.js').catch(() => {});
 })();
 })();

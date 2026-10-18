@@ -20,7 +20,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { makeVapidKeys, pushEndpointOk, sendPush, unb64url, type VapidKeys } from './push';
 import { berlinDay, costUsd, emptyUsage, takeUsage } from './cost';
 import { embed, pack, similarity, unit, SEM_KEEP_DAYS, type SemEnv } from './sem';
-import { AudioError, QUOTA_RE, split, stamp, transcribe, withStamps, type Source, type WhisperEnv } from './audio';
+import { AudioError, QUOTA_RE, split, stamp, transcribe, withStamps, type Piece, type Source, type WhisperEnv } from './audio';
 
 export interface DocRow {
   id: string;
@@ -143,6 +143,9 @@ type RecRow = {
 
 /** Größte Aufnahme (Cloudflare nimmt höchstens 100 MB pro Anfrage, das sind über 3 Stunden Sprachmemos) */
 export const MAX_REC_BYTES = 100 * 1024 * 1024;
+/** Aufnahme aus dem Chat: wird sofort mitgeschrieben, darum kürzer (längere gehen über „Vorlesung“) */
+const MAX_STT_BYTES = 40 * 1024 * 1024;
+const MAX_STT_SECS = 30 * 60;
 /** Die Aufnahme liegt in Zeilen zu 1 MB im Speicher (eine Zeile darf höchstens 2 MB haben) */
 const REC_ROW = 1 << 20;
 /** So lange arbeitet ein Alarm am Stück, dann geht es mit dem nächsten weiter */
@@ -499,6 +502,7 @@ export class Store extends DurableObject<StoreEnv> {
   /** Nimmt eine Aufnahme an (App oder Kurzbefehl aus Sprachmemos), teilt sie in Stücke und stellt den Alarm zum Mitschreiben. */
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
+    if (url.pathname === '/stt' && request.method === 'POST') return await this.stt(request, url);
     if (url.pathname !== '/rec' || request.method !== 'POST') return Response.json({ error: { code: 'not_found', msg: 'Unbekannte Adresse.' } }, { status: 404 });
     const fail = (status: number, code: string, msg: string) => Response.json({ error: { code, msg } }, { status });
     if (/^multipart\//i.test(request.headers.get('content-type') || '')) {
@@ -630,6 +634,67 @@ export class Store extends DurableObject<StoreEnv> {
     this.sql.exec(`DELETE FROM rec_pieces WHERE id = ?`, id);
     this.sql.exec(`DELETE FROM rec_bytes WHERE id = ?`, id);
     await this.schedule();
+  }
+
+  /**
+   * Aufnahme aus dem Chat sofort mitschreiben, Stück für Stück, und die Mitschrift zurückgeben (wird nicht gespeichert).
+   * Längere Aufnahmen gehören zu „Vorlesung“: Dort schreibt Merki in Ruhe mit, auch wenn die App zu ist.
+   */
+  private async stt(request: Request, url: URL): Promise<Response> {
+    const fail = (status: number, code: string, msg: string) => Response.json({ error: { code, msg } }, { status });
+    if (!request.body) return fail(400, 'stt_empty', 'Es kam keine Aufnahme an.');
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    try {
+      const reader = request.body.getReader();
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.length;
+        if (size > MAX_STT_BYTES) {
+          reader.cancel().catch(() => {});
+          return fail(413, 'stt_big', 'Die Aufnahme ist zu groß für den Chat. Lade sie unter Notizen mit „Vorlesung“ hoch, dann schreibt Merki sie in Ruhe mit.');
+        }
+        chunks.push(value);
+      }
+    } catch {
+      return fail(400, 'stt_broken', 'Die Aufnahme kam nicht ganz an. Versuch es bitte nochmal.');
+    }
+    if (!size) return fail(400, 'stt_empty', 'Es kam keine Aufnahme an.');
+    const bytes = new Uint8Array(size);
+    for (let o = 0, i = 0; i < chunks.length; o += chunks[i].length, i++) bytes.set(chunks[i], o);
+    const src: Source = { size, read: (off, len) => bytes.slice(off, Math.min(size, off + Math.max(0, len))) };
+    const pieces: Piece[] = [];
+    let secs = 0;
+    try {
+      secs = split(src, (p) => pieces.push(p));
+    } catch (e) {
+      if (e instanceof AudioError) return fail(400, 'stt_format', e.message);
+      console.error('stt split error', e instanceof Error ? e.message : e);
+      return fail(400, 'stt_format', 'Diese Aufnahme kann Merki nicht lesen.');
+    }
+    if (secs > MAX_STT_SECS) {
+      return fail(413, 'stt_long', `Die Aufnahme ist ${Math.round(secs / 60)} Minuten lang, im Chat gehen höchstens ${MAX_STT_SECS / 60}. Lade sie unter Notizen mit „Vorlesung“ hoch, dann schreibt Merki sie in Ruhe mit.`);
+    }
+    const pidRaw = url.searchParams.get('pid') || '';
+    const terms = this.recTerms(/^p-[A-Za-z0-9_-]{1,80}$/.test(pidRaw) ? pidRaw : '');
+    const lines: string[] = [];
+    let tail = '';
+    for (const p of pieces) {
+      const prompt = [terms ? `Lernstoff an der Uni. Fachbegriffe: ${terms}.` : 'Lernstoff an der Uni.', tail].filter(Boolean).join(' ');
+      try {
+        const heard = await transcribe(this.env, p.data, prompt);
+        lines.push(withStamps(heard, p.start) || `[${stamp(p.start)}] (hier ist nichts zu verstehen)`);
+        tail = heard.text.slice(-250);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        console.warn('stt whisper error', msg);
+        if (QUOTA_RE.test(msg)) return fail(429, 'stt_quota', 'Die kostenlose Spracherkennung ist für heute aufgebraucht. Morgen früh geht es wieder. Schreib Merki bis dahin, worum es in der Aufnahme geht.');
+        if (!lines.length) return fail(502, 'stt_failed', 'Die Spracherkennung konnte die Aufnahme gerade nicht lesen. Versuch es bitte gleich nochmal.');
+        lines.push(`[${stamp(p.start)}] (Dieses Stück konnte die Spracherkennung nicht lesen.)`);
+      }
+    }
+    return Response.json({ text: lines.join('\n'), secs: Math.round(secs) });
   }
 
   /** Fachbegriffe für die Spracherkennung: kurze Titel ihrer Notizen (aus dem Fach, sonst aus allen). */
