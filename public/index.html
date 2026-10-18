@@ -297,23 +297,74 @@ mark.hl .mdc{background:rgba(255,255,255,.4)} /* sonst dunkler Kasten mit dunkle
 .meter.full i{background:var(--red)}
 .notice.tip{color:var(--text);border-left:4px solid var(--marker)}
 
-/* Notizen: Karteikarten mit rotem Rand */
-.toolbar{display:flex;gap:8px;flex-wrap:wrap}
-.toolbar input{flex:1 1 180px;min-width:0;border:1px solid var(--line);background:var(--sheet);border-radius:12px;padding:10px 12px}
-.filters{display:flex;gap:6px;overflow-x:auto;overflow-y:hidden;padding:4px 0;margin:-4px 0 -2px} /* Innenabstand für die größeren Tippflächen, Höhe bleibt gleich */
-.filters button{flex:none;border:1px solid var(--line);background:var(--sheet);border-radius:999px;padding:7px 14px;font-size:14px;color:var(--ink-soft)}
-.filters button[aria-pressed="true"]{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;align-items:start}
-.morenotes{grid-column:1/-1;text-align:center}
+/* Notizen: eine ruhige Reihe oben, darunter eine Liste (Titel, zwei Zeilen Vorschau, Quelle und Datum), nach Datum oder Art gruppiert.
+   Nur eine Farbe hebt hervor (der gewählte Tab und „+“), sonst neutral. Breiter Bildschirm: zwei Spalten, alle Karten einer Reihe gleich hoch */
+.ntop{display:flex;align-items:center;gap:8px;min-width:0}
+/* Schmal genug, dass alle drei Tabs neben Lupe und „+“ auf ein iPhone passen (auch fett gesetzt) */
+.ntabs{display:flex;gap:14px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+.ntabs::-webkit-scrollbar{display:none}
+.ntabs button{flex:none;border:0;border-bottom:2.5px solid transparent;border-radius:0;background:none;padding:10px 0 7px;min-height:44px;font-size:15px;color:var(--ink-soft);white-space:nowrap}
+.ntabs button[aria-pressed="true"]{color:var(--text);font-weight:700;border-bottom-color:var(--ink)}
+.nsearch{display:none;flex:1 1 auto;min-width:0;align-items:center;gap:8px;border:1px solid var(--line);background:var(--sheet);border-radius:12px;padding:0 12px;min-height:44px;color:var(--ink-soft);cursor:text}
+.nsearch:focus-within{outline:2px solid var(--ink);outline-offset:2px}
+.nsearch svg{width:18px;height:18px}
+.nsearch input{flex:1;min-width:0;border:0;background:none;padding:9px 0;outline:0}
+#newNote{flex:none;margin-left:auto;width:44px;height:44px;padding:0;border-radius:50%}
+#newNote span{display:none}
+#newNote svg{width:20px;height:20px}
+:root[data-design="pastell"] #newNote{border-radius:999px} /* rund wie alle Knöpfe im Pastell-Design */
+/* Handy und iPad hochkant: Die Lupe öffnet die Suche an Stelle der Tabs (so passt alles in eine Reihe) */
+.ntop.find .ntabs,.ntop.find #newNote{display:none}
+.ntop.find .nsearch{display:flex}
+@media (max-width:999px){.nsearch input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}} /* daneben steht schon das X der Lupe */
+@media (min-width:760px){
+  .ntabs{gap:22px}
+  .ntabs button{font-size:16px}
+  #newNote{width:auto;border-radius:12px;padding:0 16px}
+  #newNote span{display:inline}
+}
+/* iPad quer und Rechner: Platz genug, das Suchfeld steht gleich da */
+@media (min-width:1000px){
+  .nsearch{display:flex;flex:0 1 260px}
+  #searchBtn{display:none}
+  .ntop.find .ntabs{display:flex}
+  .ntop.find #newNote{display:inline-flex}
+}
+.nsub{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:-8px 2px -6px;font-size:14px;color:var(--ink-soft)}
+.nsort{position:relative;display:inline-flex;align-items:center;gap:3px;min-height:44px;margin:-10px 0;cursor:pointer}
+.nsort b{font-size:16px;color:var(--text)}
+.nsort svg{width:16px;height:16px;color:var(--text)}
+/* Das echte Auswahlfeld liegt unsichtbar darüber (die Auswahl des Geräts geht auf). 16 px, sonst vergrößert das iPhone die Seite */
+.nsort select{position:absolute;inset:0;width:100%;opacity:0;font-size:16px;cursor:pointer}
+.cards{--nline:var(--line);display:flex;flex-direction:column;gap:6px}
+.nglabel{margin:10px 4px 0;font-size:12.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-soft)}
+.nglabel:first-child{margin-top:0}
+.ngroup{background:var(--sheet);border:1px solid var(--nline);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.card{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;min-width:0;background:var(--sheet)}
+.card+.card{border-top:1px solid var(--line)}
+.card:focus-visible{outline-offset:-3px} /* nach innen, außen schneidet content-visibility ab */
+.nbody{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.card h4{margin:0;font:700 17px/1.3 var(--f-display);letter-spacing:-.005em;color:var(--text);overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.npv{margin:0;font-size:15px;line-height:1.42;color:var(--text);overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+@supports (color:color-mix(in srgb,red 50%,blue)){.npv{color:color-mix(in srgb,var(--text) 74%,var(--sheet))}}
+.nmeta{display:flex;align-items:center;gap:5px;margin:3px 0 0;font-size:13px;line-height:1.3;color:var(--ink-soft);min-width:0;white-space:nowrap}
+.nmeta svg{width:14px;height:14px}
+.nmeta span{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.nmeta .spin{width:12px;height:12px}
+.nmeta .linkbtn{min-height:44px;margin:-14px 0}
+.nthumb{flex:none;width:68px;height:68px;object-fit:cover;object-position:left top;border-radius:10px;border:1px solid var(--line);background:var(--sheet)}
+@media (min-width:1000px){
+  .ngroup{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;background:none;border:0;border-radius:0;box-shadow:none;overflow:visible}
+  .ngroup .card{border:1px solid var(--nline);border-radius:14px;box-shadow:var(--shadow);padding:14px 16px}
+  .nbody{align-self:stretch}
+  .npv{-webkit-line-clamp:4}
+  .nmeta{margin-top:auto;padding-top:6px}
+}
+.morenotes{text-align:center;margin-top:6px}
 .older{text-align:center;margin-bottom:12px}
 .sheet-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
 .sheet-head .iconbtn{margin:-6px -10px 0 0}
 .syncnote{margin:0 0 8px;font-size:13px;color:var(--ink-soft);text-align:center}
-.card{position:relative;background:var(--sheet);border-radius:6px;box-shadow:var(--shadow);padding:12px 14px 12px 26px;min-width:0;
-  background-image:linear-gradient(to right,transparent 15px,var(--red) 15px,var(--red) 16px,transparent 16px),repeating-linear-gradient(to bottom,transparent 0,transparent 23px,var(--line) 23px,var(--line) 24px);
-  background-position:0 0,0 34px;line-height:24px}
-.card h3{font:700 16px/24px var(--f-body);margin:0;color:var(--ink);overflow-wrap:anywhere}
-.card p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
 .ntext{overflow-wrap:anywhere;min-width:0}
 .ntext p{margin:0 0 6px}
 .ntext ul,.ntext ol{margin:0 0 6px;padding-left:1.2em}
@@ -323,20 +374,12 @@ mark.hl .mdc{background:rgba(255,255,255,.4)} /* sonst dunkler Kasten mit dunkle
 .spoken b{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--ink-soft);letter-spacing:.04em;text-transform:uppercase}
 .spoken b svg{width:13px;height:13px}
 .spoken p{font-style:italic;font-size:15px;line-height:1.45}
-.card .meta{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:4px 8px;margin-top:6px;font-size:12px;color:var(--ink-soft);line-height:1.3}
-.card .meta .acts{margin-left:auto}
-.card .tag{display:inline-flex;align-items:center;gap:3px;background:var(--marker);color:var(--marker-ink);padding:1px 7px;border-radius:5px;font-weight:700}
-.card .tag svg{width:11px;height:11px}
 .acts{display:flex;gap:8px}
 .acts button{border:0;background:none;color:var(--ink-soft);padding:10px;margin:-6px 0;border-radius:8px;display:grid;place-items:center}
 .acts svg{width:16px;height:16px}
 .empty{text-align:center;padding:28px 12px;color:var(--ink-soft);display:flex;flex-direction:column;align-items:center;gap:10px}
 .empty svg{width:56px;height:56px;color:var(--line)}
 /* Alle Notizen in einer */
-.seg.nv{margin:0;align-self:flex-start}
-.toolbar2{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
-.rec-btns{display:flex;gap:8px;margin-left:auto}
-@media(max-width:600px){.rec-btns .btn{width:44px;height:44px;padding:0;justify-content:center}.rec-btns .btn span{display:none}.rec-btns .btn svg{margin:0}}
 .allnote{background:var(--sheet);border-radius:8px;box-shadow:var(--shadow);padding:16px 18px 20px;display:flex;flex-direction:column;gap:12px;line-height:1.55;overflow-wrap:anywhere;min-width:0}
 .ad-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .ad-head h2{font:800 20px/1.2 var(--f-display);color:var(--ink);margin:0}
@@ -464,6 +507,11 @@ mark.hl .mdc{background:rgba(255,255,255,.4)} /* sonst dunkler Kasten mit dunkle
 .menu button{text-align:left;border:1px solid var(--line);background:var(--sheet);border-radius:12px;padding:12px 14px;display:flex;gap:10px;align-items:center}
 .menu button svg{width:18px;height:18px;color:var(--ink)}
 .menu button.danger,.menu button.danger svg{color:var(--red)}
+.menu button small{display:block;font-size:13px;color:var(--ink-soft);line-height:1.35}
+/* Geöffnete Notiz: Vorlesen, Frag Merki, PDF und „…“ passen in eine Reihe (auf dem Handy ohne Zeichen) */
+.nv-acts .btn{padding:9px 14px;min-height:44px;white-space:nowrap}
+.nv-acts #lMore{width:44px;padding:0;border-radius:50%}
+@media (max-width:480px){.nv-acts .btn{padding:9px 12px}.nv-acts .btn:not(#lMore) svg{display:none}}
 
 /* Lernen */
 .games{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
@@ -599,8 +647,6 @@ mark.hl .mdc{background:rgba(255,255,255,.4)} /* sonst dunkler Kasten mit dunkle
 /* Notizen mit Handschrift */
 .card.clickable{cursor:pointer}
 .inkthumb{display:block;width:100%;max-height:170px;object-fit:contain;object-position:left top;margin-top:4px}
-.card p.inkread{font-size:14px;line-height:1.4;color:var(--ink-soft);margin-top:6px;display:flex;gap:6px;align-items:center}
-.card p.inkread .spin{width:13px;height:13px}
 
 /* Notiz-Blatt: tippen oder mit Stift und Finger schreiben */
 .pad{position:fixed;inset:0;z-index:21;display:flex;flex-direction:column;background:var(--paper)}
@@ -797,16 +843,16 @@ input[type=range]{accent-color:var(--ink);width:100%}
 :root[data-design="pastell"] .pcol[aria-pressed="true"]{box-shadow:0 0 0 3px var(--edge)}
 :root[data-design="pastell"] .side-foot{border-top:1.5px solid var(--edge)}
 /* Alles, was ein Kasten ist: dunkler Rand, runde Ecken, kein Schatten */
-:root[data-design="pastell"] :is(.msg.ai,.card,.file,.game,.q,.tile,.panel,.allnote,.fsum,.citem,.helpbox,.menu button,.notice,.textview,.pday,.answers button,.swatch,.flash .fs,.mcard .b,.mcard .f,.today,.ficon,.hero div,.job){border:1.5px solid var(--edge);box-shadow:none}
-:root[data-design="pastell"] :is(.card,.file,.game,.q,.panel,.allnote,.fsum,.tile,.pday,.citem,.helpbox,.flash .fs,.hero div){border-radius:20px}
+:root[data-design="pastell"] :is(.msg.ai,.file,.game,.q,.tile,.panel,.allnote,.fsum,.citem,.helpbox,.menu button,.notice,.textview,.pday,.answers button,.swatch,.flash .fs,.mcard .b,.mcard .f,.today,.ficon,.hero div,.job){border:1.5px solid var(--edge);box-shadow:none}
+:root[data-design="pastell"] :is(.file,.game,.q,.panel,.allnote,.fsum,.tile,.pday,.citem,.helpbox,.flash .fs,.hero div){border-radius:20px}
 :root[data-design="pastell"] :is(.menu button,.notice,.textview,.answers button,.swatch){border-radius:16px}
 :root[data-design="pastell"] .notice.err{border-color:var(--red)}
 :root[data-design="pastell"] .notice.tip{border-left:6px solid var(--marker)}
 :root[data-design="pastell"] .answers button.right{border-color:var(--good)}
 :root[data-design="pastell"] .answers button.wrong{border-color:var(--red)}
 :root[data-design="pastell"] .mcard.done .b{border-color:var(--good)}
-:root[data-design="pastell"] .card{background-image:none;padding:14px 16px;line-height:1.5}
-:root[data-design="pastell"] .card h3{line-height:1.35;margin-bottom:4px}
+:root[data-design="pastell"] .ngroup{border-radius:20px;box-shadow:none}
+@media (min-width:1000px){:root[data-design="pastell"] .ngroup .card{border-radius:20px;box-shadow:none}}
 :root[data-design="pastell"] .flash .fs{background-image:none;padding:20px}
 :root[data-design="pastell"] .mcard .f{background:var(--sec-learn);color:var(--sec-ink);background-image:repeating-linear-gradient(45deg,transparent 0 10px,rgba(255,255,255,.22) 10px 20px)}
 :root[data-design="pastell"] .mcard :is(.f,.b){border-radius:16px}
@@ -886,7 +932,6 @@ input[type=range]{accent-color:var(--ink);width:100%}
 @media (min-width:641px){:root[data-design="pastell"] .paper{border:1.5px solid var(--edge);border-radius:20px;box-shadow:none}}
 /* ---------- Ruhiger (4.10.): weniger Markierungen, leichtere Rahmen um Inhalte ---------- */
 .msg strong,.ntext strong,.allnote strong,.fsum strong,.textview strong{font-weight:700;color:inherit}
-.card .tag{display:flex;width:max-content;max-width:100%;background:none;color:var(--ink-soft);padding:0;font-weight:600}
 .saved span{background:none;color:var(--ink-soft);padding:0 2px;font-weight:600}
 .notebtn.done,:root[data-design="pastell"] .notebtn.done{background:none;color:var(--ink-soft);border-color:var(--line)}
 .ad-sec h3,.fsum h3{border-bottom:1px solid var(--line)}
@@ -895,15 +940,11 @@ input[type=range]{accent-color:var(--ink);width:100%}
 /* Tabellen: Wörter nicht mitten drin umbrechen („Phas-e“), lieber breiter werden und seitlich wischen */
 .mdtable :is(th,td){overflow-wrap:break-word;hyphens:auto;-webkit-hyphens:auto}
 /* Inhalte (Nachrichten, Notizen, Dateien) mit dünnem, hellerem Rand; Knöpfe behalten den kräftigen */
-:root[data-design="pastell"] :is(.msg.ai,.card,.file,.allnote,.fsum,.textview,.citem){border:1px solid var(--line)}
-@supports (color:color-mix(in srgb,red 50%,blue)){:root[data-design="pastell"] :is(.msg.ai,.card,.file,.allnote,.fsum,.textview,.citem){border-color:color-mix(in srgb,var(--edge) 28%,var(--line))}}
-/* Lange Notizen in der Übersicht nur anreißen: der Knopf darunter klappt sie auf */
-.card .ntext.long:not(.open){max-height:15em;overflow:hidden;position:relative}
-.card .ntext.long.fits::after,.card .ntext.long.fits+.more{display:none}
-.card .ntext.long:not(.open)::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3em;background:linear-gradient(to bottom,transparent,var(--sheet));pointer-events:none}
-.card .more{display:block;margin:2px 0 0;padding:8px 0;background:none;border:0;font:inherit;font-size:14px;font-weight:700;color:var(--ink-soft);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+:root[data-design="pastell"] :is(.msg.ai,.file,.allnote,.fsum,.textview,.citem){border:1px solid var(--line)}
+@supports (color:color-mix(in srgb,red 50%,blue)){:root[data-design="pastell"] :is(.msg.ai,.file,.allnote,.fsum,.textview,.citem){border-color:color-mix(in srgb,var(--edge) 28%,var(--line))}:root[data-design="pastell"] .cards{--nline:color-mix(in srgb,var(--edge) 28%,var(--line))}}
 /* Altes iPad: nur zeichnen, was zu sehen ist */
-.card,.file{content-visibility:auto;contain-intrinsic-size:auto 220px}
+.file{content-visibility:auto;contain-intrinsic-size:auto 220px}
+.card{content-visibility:auto;contain-intrinsic-size:auto 96px}
 @media (prefers-reduced-motion:reduce){.call *,.call *::before,.call *::after{animation:none!important;transition:none!important}}
 @media (prefers-reduced-motion:reduce){.mcard .in,.flash .in,.progress i,.side{transition:none}.spin,.progress.wait i{animation:none}}
 /* iPhone quer: Notch und runde Ecken seitlich frei lassen (die Seite reicht wegen viewport-fit=cover bis an den Rand).
@@ -999,23 +1040,18 @@ input[type=range]{accent-color:var(--ink);width:100%}
       <!-- NOTIZEN -->
       <section class="view" id="v-notes" hidden>
         <div class="recs" id="recs" hidden></div>
-        <div class="toolbar">
-          <input id="search" type="search" placeholder="Notizen durchsuchen" aria-label="Notizen durchsuchen">
-          <button class="btn" type="button" id="newNote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Neu</button>
-        </div>
-        <!-- Ansicht und Aufnehmen in einer Reihe; auf dem Handy nur mit Zeichen (spart eine ganze Zeile) -->
-        <div class="toolbar2">
-          <div class="seg nv" role="group" aria-label="Ansicht der Notizen" id="noteView">
-            <button type="button" data-v="cards" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>Einzeln</button>
-            <button type="button" data-v="all" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 10h7M9 14h7M9 18h4"/></svg>Zusammen</button>
-            <button type="button" data-v="pdf" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>PDF-Mappe</button>
+        <!-- Eine ruhige Reihe: Ansicht als schmale Tabs, Suche (auf dem Handy hinter der Lupe) und „+“ mit Menü -->
+        <div class="ntop" id="ntop">
+          <div class="ntabs" role="group" aria-label="Ansicht der Notizen" id="noteView">
+            <button type="button" data-v="cards" aria-pressed="true">Einzeln</button>
+            <button type="button" data-v="all" aria-pressed="false">Zusammen</button>
+            <button type="button" data-v="pdf" aria-pressed="false" hidden>PDF-Mappe</button>
           </div>
-          <span class="rec-btns">
-            <button class="btn alt" type="button" id="voiceBtn2" aria-label="Sprachnotiz aufnehmen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>Sprachnotiz</span></button>
-            <button class="btn alt" type="button" id="lectureBtn" aria-label="Vorlesung hinzufügen" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg><span>Vorlesung</span></button>
-          </span>
+          <label class="nsearch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><input id="search" type="search" placeholder="Notizen durchsuchen" aria-label="Notizen durchsuchen"></label>
+          <button class="iconbtn ghost" type="button" id="searchBtn" aria-label="Notizen durchsuchen" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg></button>
+          <button class="btn" type="button" id="newNote" aria-label="Neue Notiz"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span>Neue Notiz</span></button>
         </div>
-        <div class="filters" id="filters"></div>
+        <div class="nsub" id="nsub" hidden><span id="ncount"></span><label class="nsort">Ordnen: <b id="nsortV">Datum</b><select id="noteSort" aria-label="Notizen ordnen nach"><option value="date">Datum</option><option value="kind">Art</option></select><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m7 10 5 5 5-5"/></svg></label></div>
         <div class="cards" id="cards"></div>
         <div class="allnote" id="allNote" hidden></div>
         <div class="allnote" id="pdfNote" hidden></div>
@@ -1163,6 +1199,8 @@ const ICON = {
   type: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 6h14M12 6v13M9 19h6"/></svg>',
   ask: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M10 9a2 2 0 1 1 2.6 1.9c-.4.2-.6.5-.6 1.1M12 14.2v.1"/></svg>',
   close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  dots: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg>',
+  search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>',
   refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 3v5h5"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 21v-5h-5"/></svg>',
   share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 12v8h14v-8"/></svg>',
   copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 9V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h4"/></svg>',
@@ -1190,7 +1228,7 @@ function lookFields(d) {
   return { design: '', palette: d.palette && d.palette !== 'mitternacht' ? d.palette : '' };
 }
 const normStats = d => ({ xp: d.xp || 0, streak: d.streak || 0, lastDay: d.lastDay || '', name: d.name || '', theme: d.theme || '', ...lookFields(d), lookV: 3, help: d.help && typeof d.help === 'object' ? d.help : {} });
-const ui = { pid: null, cid: null, tab: 'chat', filter: 'all', noteView: 'cards' };
+const ui = { pid: null, cid: null, tab: 'chat', noteView: 'cards', noteSort: 'date' };
 const LISTS = { project: 'projects', note: 'notes', chat: 'chats', file: 'files', part: 'parts', card: 'cards', plan: 'plans', progress: 'progress', ink: 'inks', notedoc: 'notedocs' };
 let db = null, coll = null, sample = null, connecting = true, busy = false, migrated = false;
 let code = null, serverAi = false, serverTts = false;
@@ -1650,7 +1688,6 @@ async function checkHealth() {
     const h = await (await fetch('/api/health', { cache: 'no-store' })).json();
     serverAi = !!h.key; serverTts = !!h.tts; sem.off = !h.sem; serverRec = !!h.rec; healthDown = false;
   } catch { serverAi = false; sem.off = true; healthDown = true; }
-  $('#lectureBtn').hidden = !serverRec;
   renderAiAvailability();
 }
 const healthAgain = () => { if (healthDown && !connecting) checkHealth().then(() => { if (!healthDown) renderAll(!busy); }); };
@@ -1696,14 +1733,6 @@ function progressOf(pid) {
 const noteBody = n => [n.text, n.inkText ? (n.text ? 'Handschrift: ' : '') + n.inkText : ''].filter(Boolean).join('\n');
 // Notiztext mit Fett, Listen, Tabellen und Diagrammen
 const noteMd = t => `<div class="ntext">${md(t)}</div>`;
-// In der Übersicht: lange Notizen nur anreißen, der Knopf darunter klappt sie an Ort und Stelle auf
-const openCards = new Set();
-const isLongNote = t => t.length > 520 || t.split('\n').length > 9 || /\n\s*\|.*\|/.test(t) || t.includes('```');
-const moreLabel = on => on ? 'Weniger zeigen' : 'Ganze Notiz zeigen';
-// Diagramme in der Übersicht: statt eines winzigen Bilds ein Hinweis. Antippen öffnet die Notiz, dort ist es groß genug (und das alte iPad muss in der Liste nichts zeichnen).
-const MMD_PH = '<div class="mmd-ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="2.5" y="9" width="6" height="6" rx="1.5"/><rect x="15.5" y="3.5" width="6" height="6" rx="1.5"/><rect x="15.5" y="14.5" width="6" height="6" rx="1.5"/><path d="M8.5 12h3.5M12 6.5v11M12 6.5h3.5M12 17.5h3.5"/></svg>Diagramm: zum Ansehen antippen</div>';
-const cardText = t => !/```mermaid/i.test(t) ? md(t) : md(t.replace(/```(\w*)[^\n]*\n([\s\S]*?)(?:```|$)/g, (m, lang) => lang.toLowerCase() === 'mermaid' ? '```\n\u0001\n```' : m)).split('<pre class="mdpre">\u0001</pre>').join(MMD_PH);
-const cardMd = (t, id) => { const on = openCards.has(id); return isLongNote(t) ? `<div class="ntext long${on ? ' open' : ''}">${cardText(t)}</div><button type="button" class="more" data-more="${esc(id)}" aria-expanded="${on}">${moreLabel(on)}</button>` : `<div class="ntext">${cardText(t)}</div>`; };
 const myName = () => String(state.stats.name || '').trim();
 function fileParts(f) { return state.parts.filter(x => x.fileId === f.id).sort((a, b) => a.i - b.i); }
 function fileText(f) { return f.parts ? fileParts(f).map(x => x.text).join('') : (f.text || ''); }
@@ -2707,85 +2736,124 @@ async function send(text, files = [], title) {
 }
 
 // ---------- Notizen ----------
-const FILTERS = [['all', 'Alle'], ['lecture', 'Vorlesungen'], ['voice', 'Sprachnotizen'], ['chat', 'Aus dem Chat'], ['file', 'Aus Dateien'], ['manual', 'Eigene']];
-// Der Filter gilt nur, solange die App offen ist: Nach einem Neustart sieht sie wieder alle Notizen
-let filterFresh = true;
+// Eine Liste: Titel, zwei Zeilen Vorschau, woher die Notiz kommt und wann. Geordnet nach Datum (Diese Woche, Letzte Woche, Monate)
+// oder nach Art (Vorlesungen, Sprachnotizen …). Keine Knöpfe auf den Karten: Antippen öffnet die Notiz, dort sind die Aktionen.
+const KINDS = [['lecture', 'Vorlesungen'], ['voice', 'Sprachnotizen'], ['chat', 'Aus dem Chat'], ['file', 'Aus Dateien'], ['manual', 'Eigene']];
+const noteKind = n => KINDS.some(([k]) => k === n.source) ? n.source : 'manual';
+const noteSort = () => ui.noteSort === 'kind' ? 'kind' : 'date';
 // Suche: Jedes Wort muss vorkommen, egal wo. Bindestriche und Satzzeichen zählen als Leerzeichen („Golgi Apparat“ findet „Golgi-Apparat“), ä und ae sind gleich.
 const FOLD = { 'ä': 'ae', 'ö': 'oe', 'ü': 'ue', 'ß': 'ss' };
 const searchNorm = s => String(s || '').toLowerCase().replace(/[äöüß]|[^\p{L}\p{N}]+/gu, c => FOLD[c] || ' ');
 const searchWords = q => searchNorm(q).split(' ').filter(Boolean);
 const noteHit = (n, words) => { const t = searchNorm(n.title + ' ' + noteBody(n) + ' ' + (n.raw || '')); return words.every(w => t.includes(w)); };
-// Eine neue Notiz soll sie gleich sehen: Versteckt der Filter oder die Suche sie, wieder alles zeigen
+// Eine neue Notiz soll sie gleich sehen: Versteckt die Suche sie, die Suche leeren
 function showNewNote(n) {
   if (!n || n.projectId !== ui.pid) return;
-  if (ui.filter !== 'all' && (n.source || 'manual') !== ui.filter) { ui.filter = 'all'; saveUi(); }
   const q = $('#search').value.trim();
-  if (q && !noteHit(n, searchWords(q))) $('#search').value = '';
+  if (q && !noteHit(n, searchWords(q))) { $('#search').value = ''; noteFind(false); }
+}
+// Handy: Die Suche liegt hinter der Lupe und steht dann an Stelle der Tabs. Mit Text darin bleibt sie offen.
+function noteFind(on) {
+  const top = $('#ntop'), b = $('#searchBtn');
+  if (top.classList.contains('find') === on) return;
+  top.classList.toggle('find', on);
+  b.setAttribute('aria-expanded', on); b.setAttribute('aria-label', on ? 'Suche schließen' : 'Notizen durchsuchen');
+  b.innerHTML = on ? ICON.close : ICON.search;
+}
+// Überschrift nach Datum: Diese Woche, Letzte Woche, dann der Monat. Nicht feiner, sonst stehen auf dem iPad
+// lauter halbleere Reihen da. Heute und Gestern stehen dafür an der Notiz selbst.
+const day0 = d => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+function dayGroup(t, now) {
+  const d = new Date(t), d0 = day0(d), week0 = day0(now) - ((now.getDay() + 6) % 7) * 864e5;
+  if (d0 >= week0) return 'Diese Woche';
+  if (d0 >= week0 - 7 * 864e5) return 'Letzte Woche';
+  return d.toLocaleDateString('de-DE', d.getFullYear() === now.getFullYear() ? { month: 'long' } : { month: 'long', year: 'numeric' });
+}
+function dayLabel(t, now) {
+  const d = new Date(t), ago = Math.round((day0(now) - day0(d)) / 864e5);
+  return ago <= 0 ? 'Heute' : ago === 1 ? 'Gestern' : d.toLocaleDateString('de-DE', { day: 'numeric', month: 'short' });
+}
+function noteSrc(n, ink) {
+  return n.source === 'lecture' ? [ICON.lecture, 'Vorlesung' + (n.secs ? ' · ' + recMin(n.secs) : '')]
+    : n.source === 'voice' ? [ICON.mic, 'Sprachnotiz']
+    : n.source === 'file' ? [ICON.file, n.fileName || 'Aus einer Datei']
+    : n.source === 'chat' ? [ICON.ask, 'Aus dem Chat']
+    : ink ? [ICON.pen, 'Handschrift'] : [ICON.edit, 'Eigene Notiz'];
+}
+// Vorschau nur als Text, ohne Überschriften, Tabellenlinien, Diagramme und Auszeichnungen.
+// Kein Markdown zeichnen: Das spart dem alten iPad bei vielen Notizen viel Arbeit.
+function notePreview(n) {
+  const t = (n.text || '').trim() || n.inkText || n.raw || '';
+  return hlStrip(t.slice(0, 1200)).replace(/```[\s\S]*?(?:```|$)/g, '\n')
+    .split('\n').filter(l => !/^\s*(#{1,6}\s|\|?[\s:|-]*-{3,}[\s:|-]*$)/.test(l))
+    .map(l => (/^\s*\|/.test(l) ? l.split('|').map(c => c.trim()).filter(Boolean).join(', ') : l.replace(/^\s*(?:>\s*)?(?:[-*•]|\d+[.)])?\s*/, '')).trim())
+    // Zeilen ohne Satzzeichen am Ende (Listenpunkte) mit „·“ trennen, sonst laufen sie ineinander
+    .reduce((a, l) => !l ? a : !a ? l : a + (/[.!?:;,]$/.test(a) ? ' ' : ' · ') + l, '')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/\*\*|__|[*`]/g, '').replace(/\s+/g, ' ').trim().slice(0, 300);
+}
+// byKind: Die Überschrift nennt schon die Art, darunter dann nur Datei, Dauer und Tag
+function noteRow(n, byKind, now) {
+  const ink = inkOf(n), thumb = ink ? inkThumb(ink) : '', pv = notePreview(n), day = dayLabel(n.createdAt || Date.now(), now);
+  const [ic, src] = noteSrc(n, ink), detail = !byKind ? src : n.source === 'file' ? n.fileName || '' : n.source === 'lecture' && n.secs ? recMin(n.secs) : '';
+  const label = [detail, day].filter(Boolean).join(' · ');
+  const status = !ink ? '' : reading.has(n.id) ? '<span class="spin"></span><span>Merki liest deine Handschrift …</span>'
+    : !(n.inkText && n.inkRead === ink.v) && inkFail.get(n.id) === ink.v && aiReady() ? `<span>Merki konnte die Handschrift nicht lesen.</span><button type="button" class="linkbtn" data-inkretry="${esc(n.id)}">Nochmal</button>` : '';
+  return `<article class="card clickable" data-open="${esc(n.id)}" tabindex="0"><div class="nbody"><h4>${esc(n.title)}</h4>${pv ? `<p class="npv">${esc(pv)}</p>` : ''}<p class="nmeta">${status || `${ic}<span>${esc(label)}</span>`}</p></div>${thumb ? `<img class="nthumb" src="${thumb}" alt="">` : ''}</article>`;
 }
 function renderNotes() {
   renderRecs();
-  const all = pNotes(), view = all.length ? noteViewNow() : 'cards', allView = view === 'all', pdfView = view === 'pdf';
+  const all = pNotes(), view = all.length ? noteViewNow() : 'cards', allView = view === 'all', pdfView = view === 'pdf', listView = !allView && !pdfView;
   $('#noteView').hidden = !all.length;
   $('#noteView').querySelectorAll('button').forEach(b => { b.setAttribute('aria-pressed', b.dataset.v === view); if (b.dataset.v === 'pdf') b.hidden = MODE !== 'server'; });
-  $('#search').hidden = allView || pdfView; $('#filters').hidden = allView || pdfView; $('#cards').hidden = allView || pdfView; $('#allNote').hidden = !allView; $('#pdfNote').hidden = !pdfView;
+  const q = $('#search').value.trim(), finding = listView && !!all.length;
+  $('#ntop .nsearch').hidden = $('#searchBtn').hidden = $('#nsub').hidden = !finding;
+  noteFind(finding && (!!q || $('#ntop').classList.contains('find')));
+  $('#cards').hidden = !listView; $('#allNote').hidden = !allView; $('#pdfNote').hidden = !pdfView;
   if (allView) { renderAllNote(); return; }
   if (pdfView) { renderPdfNote(); return; }
-  if (filterFresh || !FILTERS.some(([k]) => k === ui.filter)) ui.filter = 'all';
-  filterFresh = false;
-  // Filter erst ab 10 Notizen (vorher findet sie alles auf einen Blick)
-  $('#filters').innerHTML = all.length >= 10 || ui.filter !== 'all' ? FILTERS.map(([k, l]) => {
-    const n = k === 'all' ? all.length : all.filter(x => (x.source || 'manual') === k).length;
-    return n || k === 'all' || k === ui.filter ? `<button type="button" data-f="${k}" aria-pressed="${ui.filter === k}">${l} (${n})</button>` : '';
-  }).join('') : '';
-  const q = $('#search').value.trim().toLowerCase(), words = q ? searchWords(q) : [];
-  const list = all.filter(n => (ui.filter === 'all' || (n.source || 'manual') === ui.filter) && (!words.length || noteHit(n, words)));
   if (!all.length) {
-    $('#cards').innerHTML = `<div class="empty" style="grid-column:1/-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M6 3h10l3 3v15H6z"/><path d="M9 9h7M9 13h7M9 17h4"/></svg><b>Noch keine Notizen</b><span>Lade eine Datei hoch, dann landet das Wichtigste daraus hier. Im Chat speicherst du Merkis Antworten mit „Als Notiz“. Oder tippe auf „Neu“: Dann kannst du tippen oder mit dem Stift schreiben.</span></div>`;
+    $('#cards').innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M6 3h10l3 3v15H6z"/><path d="M9 9h7M9 13h7M9 17h4"/></svg><b>Noch keine Notizen</b><span>Lade eine Datei hoch, dann landet das Wichtigste daraus hier. Im Chat speicherst du Merkis Antworten mit „Als Notiz“. Oder tippe auf „+“: Dann kannst du schreiben, mit dem Stift zeichnen oder eine Sprachnotiz aufnehmen.</span></div>`;
     return;
   }
+  const words = q ? searchWords(q) : [], list = words.length ? all.filter(n => noteHit(n, words)) : all;
+  $('#ncount').textContent = words.length ? `${list.length} Treffer` : `${all.length} ${all.length === 1 ? 'Notiz' : 'Notizen'}`;
+  $('#noteSort').value = noteSort(); $('#nsortV').textContent = noteSort() === 'kind' ? 'Art' : 'Datum';
   if (!list.length) {
-    // Sagen, was gerade eingeschränkt ist, und mit einem Tipp wieder alles zeigen
-    const fl = ui.filter !== 'all' ? (FILTERS.find(([k]) => k === ui.filter) || [])[1] : '';
-    $('#cards').innerHTML = `<p class="muted nofind" style="grid-column:1/-1">Nichts gefunden${fl ? ` in „${esc(fl)}“` : ''}. <button type="button" class="linkbtn" data-showall>${fl ? 'Alle Notizen zeigen' : 'Suche löschen'}</button></p>`;
+    $('#cards').innerHTML = `<p class="muted nofind">Nichts gefunden. <button type="button" class="linkbtn" data-showall>Suche löschen</button></p>`;
     return;
   }
   // Viele Notizen: erst 40 zeichnen, der Rest auf Knopfdruck (die Suche geht trotzdem über alle)
-  const key = ui.pid + '|' + ui.filter + '|' + q;
+  const kind = noteSort() === 'kind', key = ui.pid + '|' + kind + '|' + q;
   if (noteLimit.key !== key) noteLimit = { key, n: 40 };
-  const shown = list.slice(0, noteLimit.n), more = list.length - shown.length;
-  $('#cards').innerHTML = shown.map(n => {
-    const ink = inkOf(n), thumb = ink ? inkThumb(ink) : '';
-    const src = n.source === 'lecture' ? `<span class="tag">${ICON.lecture}Vorlesung${n.secs ? ' · ' + recMin(n.secs) : ''}</span>` : n.source === 'voice' ? `<span class="tag">${ICON.mic}Sprachnotiz</span>` : n.source === 'file' ? `<span class="tag" title="${esc(n.fileName || 'Datei')}">${ICON.file}${esc(cut(n.fileName || 'Datei', 24))}</span>` : ink ? `<span class="tag">${ICON.pen}Handschrift</span>` : '';
-    // Sprachnotiz: In der Übersicht nur Merkis saubere Notiz (ruhiger). Das Gesprochene steht beim Lesen und Bearbeiten darunter, die Suche findet es auch.
-    const spoken = n.source === 'voice' && n.raw && !(n.text || '').trim() ? `<div class="spoken"><b>${ICON.mic}Gesprochen</b><p>${esc(n.raw)}</p></div>` : '';
-    const read = !ink ? '' : reading.has(n.id) ? `<p class="inkread"><span class="spin"></span>Merki liest deine Handschrift …</p>`
-      : n.inkText && n.inkRead === ink.v ? `<p class="inkread">Merki liest: ${esc(n.inkText.length > 160 ? n.inkText.slice(0, 160) + ' …' : n.inkText)}</p>`
-      : inkFail.get(n.id) === ink.v && aiReady() ? `<p class="inkread">Merki konnte die Handschrift nicht lesen. <button type="button" class="linkbtn" data-inkretry="${esc(n.id)}">Nochmal versuchen</button></p>` : '';
-    return `<article class="card clickable" data-open="${esc(n.id)}"><h3>${esc(n.title)}</h3>${n.text ? cardMd(n.text, n.id) : ''}${thumb ? `<img class="inkthumb" src="${thumb}" alt="Handschrift">` : ''}${read}${spoken}
-      <div class="meta"><span>${src} ${new Date(n.createdAt || Date.now()).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}</span>
-      <span class="acts">${canRead() && n.text ? noteReadBtn(n) : ''}${aiReady() ? `<button type="button" data-ask="${esc(n.id)}" aria-label="Merki zu dieser Notiz fragen">${ICON.ask}</button>` : ''}<button type="button" data-edit="${esc(n.id)}" aria-label="Bearbeiten">${ICON.edit}</button><button type="button" data-del="${esc(n.id)}" aria-label="Löschen">${ICON.trash}</button></span></div></article>`;
-  }).join('') + (more ? `<div class="morenotes"><button type="button" class="btn alt" id="moreNotes">Weitere ${Math.min(40, more)} zeigen</button></div>` : '');
+  const sorted = kind ? KINDS.flatMap(([k]) => list.filter(n => noteKind(n) === k)) : list;
+  const shown = sorted.slice(0, noteLimit.n), more = sorted.length - shown.length, now = new Date();
+  let html = '', group = null;
+  for (const n of shown) {
+    const name = kind ? KINDS.find(([k]) => k === noteKind(n))[1] : dayGroup(n.createdAt || Date.now(), now);
+    if (name !== group) { html += `${group === null ? '' : '</div>'}<h3 class="nglabel">${esc(name)}</h3><div class="ngroup">`; group = name; }
+    html += noteRow(n, kind, now);
+  }
+  $('#cards').innerHTML = html + '</div>' + (more ? `<div class="morenotes"><button type="button" class="btn alt" id="moreNotes">Weitere ${Math.min(40, more)} zeigen</button></div>` : '');
   const mb = $('#moreNotes'); if (mb) mb.onclick = () => { noteLimit.n += 40; renderNotes(); };
-  fitDirty = true; requestAnimationFrame(fitCards);
 }
 let noteLimit = { key: '', n: 40 };
-// Kleiner Knopf auf jeder Notiz: Die Stimme des Geräts liest sie vor (kostet nichts)
-const noteReadBtn = n => readOut.key === n.text
-  ? `<button type="button" class="readbtn icon on" data-nread="${esc(n.id)}" aria-pressed="true" aria-label="Vorlesen stoppen">${ICON.stop}</button>`
-  : `<button type="button" class="readbtn icon" data-nread="${esc(n.id)}" aria-pressed="false" aria-label="Vorlesen">${ICON.sound}</button>`;
-// Passt eine „lange“ Notiz doch ganz in die Karte (breiter Bildschirm), braucht sie keinen Knopf.
-// Erst alles messen, dann ändern: so rechnet das iPad das Layout nur einmal aus.
-// Nur nach dem Neuzeichnen messen (jede Messung kostet auf dem alten iPad spürbar Zeit)
-let fitDirty = true;
-function fitCards() {
-  if (!fitDirty || !$('#cards').offsetParent) return; // nichts Neues oder Notizen gerade nicht zu sehen
-  fitDirty = false;
-  const els = [...document.querySelectorAll('#cards .ntext.long:not(.open)')];
-  const fits = els.map(e => e.scrollHeight <= e.clientHeight + 2);
-  els.forEach((e, i) => e.classList.toggle('fits', fits[i]));
+// „+“: neue Notiz schreiben, aufnehmen oder aus einer Datei. Ein Knopf statt vieler, damit die Kopfzeile ruhig bleibt
+function addNoteSheet() {
+  openSheet(`<h2>Neue Notiz</h2><div class="menu">
+    <button type="button" id="aPad">${ICON.pen}<span>Schreiben oder zeichnen<small>Tippen oder mit dem Stift</small></span></button>
+    <button type="button" id="aVoice">${ICON.mic}<span>Sprachnotiz<small>Du sprichst, Merki schreibt sauber mit</small></span></button>
+    ${serverRec ? `<button type="button" id="aLec">${ICON.lecture}<span>Vorlesung<small>Aufnahme aus Sprachmemos, Merki schreibt mit</small></span></button>` : ''}
+    <button type="button" id="aFile">${ICON.file}<span>Aus einer Datei<small>PDF, Word oder Foto: Merki schreibt das Wichtigste heraus</small></span></button>
+  </div>`, el => {
+    const q = s => el.querySelector(s);
+    q('#aPad').onclick = () => { closeSheet(); openPad(null); };
+    q('#aVoice').onclick = () => { closeSheet(); voiceNote(false); };
+    if (q('#aLec')) q('#aLec').onclick = lectureSheet;
+    q('#aFile').onclick = () => { closeSheet(); uploadFromChat = false; $('#fileIn').click(); };
+  });
 }
 let fitT = 0;
-window.addEventListener('resize', () => { clearTimeout(fitT); fitT = setTimeout(() => { fitDirty = true; fitCards(); markWide(); }, 250); }); // iPad gedreht
+window.addEventListener('resize', () => { clearTimeout(fitT); fitT = setTimeout(markWide, 250); }); // iPad gedreht
 
 // ---------- Alle Notizen in einer ----------
 // Merki ordnet alle Notizen eines Projekts nach Themen zu einem Text. Der Text wird gespeichert (notedoc).
@@ -3573,7 +3641,7 @@ function voiceNote(fromChat) {
     const sendBtn = el.querySelector('#vSend');
     if (sendBtn) sendBtn.onclick = () => { const t = ta.value.trim(); dict.stop(); forget(); closeSheet(); if (t) send(t); };
     const fallback = raw => ({ id: 'n-' + uid8(), projectId: ui.pid, title: raw.split(/[.!?\n]/)[0].slice(0, 60), text: raw, raw, source: 'voice', createdAt: Date.now() });
-    const done = n => { forget(); put('note', n); closeSheet(); toast('Sprachnotiz gespeichert'); ui.filter = 'all'; showNewNote(n); tab('notes', true); };
+    const done = n => { forget(); put('note', n); closeSheet(); toast('Sprachnotiz gespeichert'); showNewNote(n); tab('notes', true); };
     ai.onclick = async () => {
       dict.stop();
       const raw = ta.value.trim(); if (!raw) return ta.focus();
@@ -4349,7 +4417,7 @@ async function drawDiagrams() {
       catch { e.dataset.state = 'err'; e.innerHTML = '<span class="muted">Dieses Diagramm konnte Merki nicht zeichnen.</span>'; }
       const junk = document.getElementById('d' + id); if (junk) junk.remove();
     }
-    fitDirty = true; fitCards(); markWide();
+    markWide();
   } finally { mmdBusy = false; }
 }
 // Breite Diagramme nur bis auf drei Viertel verkleinern, sonst ist die Schrift auf dem Handy winzig. Was nicht passt, lässt sich seitlich wischen.
@@ -4907,21 +4975,38 @@ function lectureSave(p, t, title, text) {
   put('note', n, false);
   return n;
 }
-// Notiz zum Lesen (mit Tabellen und Formatierung). Bearbeiten öffnet das Blatt.
+// Antippen öffnet die Notiz zum Lesen. Handschrift und leere Notizen öffnen gleich das Blatt.
+const openNote = n => !inkOf(n) && (n.text || '').trim() ? noteView(n) : openPad(n);
+// Notiz zum Lesen (mit Tabellen und Formatierung). Oben, was sie oft braucht; unter „Mehr“ Bearbeiten, PDF-Mappe und Löschen.
 function noteView(n) {
   const f = state.files.find(x => x.id === n.fileId), lec = n.source === 'lecture';
   const when = new Date(n.createdAt || Date.now()).toLocaleDateString('de-DE', { day: 'numeric', month: 'long' });
   const sub = lec ? `Vorlesung vom ${when}${n.secs ? ' · ' + recMin(n.secs) : ''}` : n.source === 'voice' ? `Sprachnotiz vom ${when}`
     : n.source === 'file' && n.fileName ? `Aus „${esc(n.fileName)}“ · ${when}` : n.source === 'chat' ? `Aus dem Chat · ${when}` : when;
   const spoken = n.source === 'voice' && n.raw && n.raw.trim() !== (n.text || '').trim() ? `<div class="spoken"><b>${ICON.mic}Gesprochen</b><p>${esc(n.raw)}</p></div>` : '';
+  const server = MODE === 'server', mapLabel = on => on ? 'Aus der PDF-Mappe nehmen' : 'In die PDF-Mappe legen';
   openSheet(`<h2>${esc(n.title)}</h2>
     <p class="muted">${sub}</p>
-    <div class="row">${canRead() ? `<button class="btn readbtn" type="button" id="lRead" aria-pressed="false">${ICON.sound}Vorlesen</button>` : ''}${aiReady() ? `<button class="btn alt" type="button" id="lAsk">${ICON.ask}Frag Merki</button>` : ''}${f ? `<button class="btn alt" type="button" id="lText">${ICON.file}${lec ? 'Ganze Mitschrift' : 'Datei ansehen'}</button>` : ''}</div>
+    <div class="row nv-acts">${canRead() ? `<button class="btn readbtn" type="button" id="lRead" aria-pressed="false">${ICON.sound}Vorlesen</button>` : ''}${aiReady() ? `<button class="btn alt" type="button" id="lAsk">${ICON.ask}Frag Merki</button>` : ''}${server ? `<button class="btn alt" type="button" id="lPdf">${ICON.pdf}PDF</button>` : ''}<button class="btn alt" type="button" id="lMore" aria-label="Mehr" aria-expanded="false" aria-controls="lMoreRow">${ICON.dots}</button></div>
+    <div class="menu" id="lMoreRow" hidden><button type="button" id="lEdit2">${ICON.edit}Bearbeiten</button>${f ? `<button type="button" id="lText">${ICON.file}${lec ? 'Ganze Mitschrift' : 'Datei ansehen'}</button>` : ''}${server ? `<button type="button" id="lMap">${ICON.pdf}<span>${mapLabel(n.pdf)}</span></button>` : ''}<button type="button" class="danger" id="lDel">${ICON.trash}Löschen</button></div>
     <div class="ntext lec">${md(n.text || '')}</div>${spoken}
     <div class="row"><button class="btn alt" type="button" id="lEdit">${ICON.edit}Bearbeiten</button><button class="btn alt" type="button" id="lClose">Schließen</button></div>`, el => {
     const q = s => el.querySelector(s);
     q('#lClose').onclick = closeSheet;
-    q('#lEdit').onclick = () => { closeSheet(); openPad(n); };
+    q('#lEdit').onclick = q('#lEdit2').onclick = () => { closeSheet(); openPad(n); };
+    q('#lMore').onclick = () => { const row = q('#lMoreRow'), on = row.hidden; row.hidden = !on; q('#lMore').setAttribute('aria-expanded', on); };
+    q('#lDel').onclick = () => confirmSheet('Notiz löschen?', `„${n.title}“ ist danach weg.`, 'Löschen', () => { if (inkOf(n)) remove('ink', inkIdOf(n.id), false); remove('note', n.id); });
+    const pz = q('#lPdf'); if (pz) pz.onclick = () => lernzettel(pz, () => mappePdf([n.id], n.projectId), () => pdfSig([n.id]));
+    const m = q('#lMap');
+    if (m) m.onclick = () => {
+      const cur = state.notes.find(x => x.id === n.id); if (!cur) return;
+      const on = !cur.pdf;
+      pdfPut(cur, on ? Date.now() : 0);
+      if (on) pdfSel.add(cur.id); else pdfSel.delete(cur.id);
+      m.lastElementChild.textContent = mapLabel(on);
+      toast(on ? `In der PDF-Mappe: „${cur.title}“` : 'Aus der PDF-Mappe genommen. Die Notiz bleibt.', 3500);
+      renderAll(!busy);
+    };
     const r = q('#lRead');
     if (r) {
       if (readOut.key === n.text) { r.classList.add('on'); r.setAttribute('aria-pressed', 'true'); r.innerHTML = `${ICON.stop}Stopp`; }
@@ -5730,7 +5815,7 @@ function projectSheet(p) {
 function createProject(name, desc = '', examDate = '', color = nextColor()) {
   const p = { id: 'p-' + uid8(), name: name.slice(0, 60), desc, examDate, color, createdAt: Date.now() };
   chatBackHide();
-  ui.pid = p.id; ui.cid = null; ui.tab = 'chat'; ui.filter = 'all'; saveUi();
+  ui.pid = p.id; ui.cid = null; ui.tab = 'chat'; saveUi();
   put('project', p); closeSide(); backHome();
 }
 function projectMenu() {
@@ -6525,7 +6610,7 @@ function tab(name, top = false) {
   const home = name === 'learn' && (was === 'learn' || !!$('#playArea .result'));
   if (home) leavePlay();
   if (name !== 'learn' && playDict) { playDict.stop(); playDict = null; }
-  if (name === 'notes') { ndAuto(); fitCards(); }
+  if (name === 'notes') ndAuto();
   // Derselbe Bereich nochmal angetippt: nach oben. Sonst dorthin, wo sie zuletzt war, nach dem Zeichnen noch einmal (die Höhe ändert sich noch),
   // aber nur, wenn inzwischen niemand anders gescrollt hat
   if (name === 'chat') { scrollDown(true); return; }
@@ -6833,8 +6918,8 @@ $('#plist').addEventListener('click', e => {
   // Schreibt Merki gerade in einem Chat dieses Projekts, diesen zeigen (sonst kommt die Antwort nicht ins Bild)
   const live = busy && liveCid && state.chats.some(c => c.id === liveCid && c.projectId === b.dataset.p);
   chatBackHide();
-  ui.pid = b.dataset.p; ui.cid = live ? liveCid : (pChats(b.dataset.p)[0] || {}).id || null; ui.filter = 'all'; saveUi(); playPicked = false;
-  $('#search').value = ''; $('#tipOut').hidden = true; closeSide(); backHome(); renderAll(); ndAuto();
+  ui.pid = b.dataset.p; ui.cid = live ? liveCid : (pChats(b.dataset.p)[0] || {}).id || null; saveUi(); playPicked = false;
+  $('#search').value = ''; noteFind(false); $('#tipOut').hidden = true; closeSide(); backHome(); renderAll(); ndAuto();
 });
 $('#pMenu').onclick = projectMenu;
 $('#examChip').onclick = () => tab('progress', true);
@@ -6901,7 +6986,7 @@ $('#chatlog').addEventListener('click', e => {
   }, b);
 });
 $('#suggest').addEventListener('click', e => { const s = e.target.closest('button'); if (!s) return; if (s.dataset.call) openCall(); else send(s.dataset.s, takeAtt(), s.textContent); });
-$('#voiceBtn').onclick = () => openCall({ chat: curChat() }); $('#voiceBtn2').onclick = () => voiceNote(false);
+$('#voiceBtn').onclick = () => openCall({ chat: curChat() });
 let uploadFromChat = false;
 $('#attachBtn').onclick = () => { uploadFromChat = true; $('#fileIn').click(); };
 $('#uploadBtn').onclick = () => { uploadFromChat = false; $('#fileIn').click(); };
@@ -6917,8 +7002,7 @@ $('#flist').addEventListener('click', e => {
   if (v) viewFile(state.files.find(f => f.id === v.dataset.view), v.classList.contains('fs-open') ? 'sum' : undefined);
   if (d) { const f = state.files.find(x => x.id === d.dataset.fdel); if (f) confirmSheet('Datei löschen?', `„${f.name}“ ist danach weg. Die Notizen daraus bleiben.`, 'Löschen', () => deleteFile(f)); }
 });
-$('#newNote').onclick = () => openPad(null);
-$('#lectureBtn').onclick = lectureSheet;
+$('#newNote').onclick = addNoteSheet;
 $('#recIn').onchange = () => { const f = $('#recIn').files[0]; $('#recIn').value = ''; if (f) recUpload(f); };
 $('#recs').addEventListener('click', e => {
   const d = e.target.closest('[data-rdel]');
@@ -6929,7 +7013,12 @@ $('#recs').addEventListener('click', e => {
 // Beim Tippen erst kurz warten, sonst zeichnet das alte iPad bei jedem Buchstaben alle Notizen neu
 let searchT = 0;
 $('#search').addEventListener('input', () => { clearTimeout(searchT); searchT = setTimeout(renderNotes, 180); });
-$('#filters').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { ui.filter = b.dataset.f; saveUi(); renderNotes(); } });
+$('#searchBtn').onclick = () => {
+  const on = !$('#ntop').classList.contains('find');
+  noteFind(on);
+  if (on) $('#search').focus(); else if ($('#search').value) { $('#search').value = ''; renderNotes(); }
+};
+$('#noteSort').onchange = () => { ui.noteSort = $('#noteSort').value; saveUi(); renderNotes(); };
 $('#noteView').addEventListener('click', e => {
   const b = e.target.closest('button[data-v]'); if (!b || noteViewNow() === b.dataset.v) return;
   ui.noteView = b.dataset.v; saveUi(); renderNotes(); ndAuto();
@@ -6949,41 +7038,20 @@ $('#pdfNote').addEventListener('click', e => {
 });
 $('#allNote').addEventListener('click', e => {
   const o = e.target.closest('[data-open]');
-  if (o) { const n = state.notes.find(x => x.id === o.dataset.open); if (n) { if (!inkOf(n) && (n.text || '').trim()) noteView(n); else openPad(n); } return; }
+  if (o) { const n = state.notes.find(x => x.id === o.dataset.open); if (n) openNote(n); return; }
   const j = e.target.closest('[data-jump]');
   if (j) { const t = document.getElementById('ad-' + j.dataset.jump); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
   if (e.target.closest('#ndGen')) makeNoteDoc(ui.pid);
   const z = e.target.closest('#ndPdf'); if (z) { const pid = ui.pid; lernzettel(z, () => notesPdf(pid), () => ndSig(pid)); }
 });
 $('#cards').addEventListener('click', e => {
-  const more = e.target.closest('[data-more]');
-  if (more) {
-    const id = more.dataset.more, on = !openCards.has(id);
-    if (on) openCards.add(id); else openCards.delete(id);
-    more.previousElementSibling.classList.toggle('open', on);
-    more.textContent = moreLabel(on); more.setAttribute('aria-expanded', on);
-    if (!on) more.closest('.card').scrollIntoView({ block: 'nearest' });
-    return;
-  }
-  if (e.target.closest('[data-showall]')) { ui.filter = 'all'; saveUi(); $('#search').value = ''; renderNotes(); return; }
-  const del = e.target.closest('[data-del]');
-  if (del) {
-    const n = state.notes.find(x => x.id === del.dataset.del);
-    if (n) confirmSheet('Notiz löschen?', `„${n.title}“ ist danach weg.`, 'Löschen', () => { if (inkOf(n)) remove('ink', inkIdOf(n.id), false); remove('note', n.id); });
-    return;
-  }
-  const ask = e.target.closest('[data-ask]');
-  if (ask) { const n = state.notes.find(x => x.id === ask.dataset.ask); if (n) openPad(n, { ask: true }); return; }
+  if (e.target.closest('[data-showall]')) { $('#search').value = ''; noteFind(false); renderNotes(); return; }
   const ir = e.target.closest('[data-inkretry]');
   if (ir) { inkFail.delete(ir.dataset.inkretry); readInk(ir.dataset.inkretry); return; }
-  const rd = e.target.closest('[data-nread]');
-  if (rd) { const n = state.notes.find(x => x.id === rd.dataset.nread); if (n) readAloud({ content: n.text }, rd); return; }
-  const op = e.target.closest('[data-edit],[data-open]');
-  const n = op && state.notes.find(x => x.id === (op.dataset.edit || op.dataset.open));
-  // Antippen öffnet die Notiz zum Lesen. Handschrift und leere Notizen öffnen gleich das Blatt, „Bearbeiten“ auch.
-  if (n && op.dataset.open && !inkOf(n) && (n.text || '').trim()) noteView(n);
-  else if (n) openPad(n);
+  const op = e.target.closest('[data-open]'), n = op && state.notes.find(x => x.id === op.dataset.open);
+  if (n) openNote(n);
 });
+$('#cards').addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-open]')) { e.preventDefault(); e.target.click(); } });
 $('#playSource').addEventListener('change', () => { playPicked = true; $('#topicWrap').hidden = $('#playSource').value !== '__topic'; playMsg(''); });
 $('#startQuiz').onclick = () => startQuiz(); $('#startMemory').onclick = startMemory;
 // Sind Karten dran, geht es gleich los. Alle Karten, neue Karten und Bearbeiten gibt es nach der Runde.
