@@ -818,21 +818,16 @@ input[type=range]{accent-color:var(--ink);width:100%}
 :root[data-design="pastell"] .mainwrap[data-tab="learn"]{--sec:var(--sec-learn)}
 :root[data-design="pastell"] .mainwrap[data-tab="progress"]{--sec:var(--sec-progress)}
 :root[data-design="pastell"] .mainwrap[data-tab="home"]{--sec:var(--sec-progress)}
-/* Oben die Farbe der Ansicht, darunter der Inhalt wie ein Blatt mit runden Ecken */
-:root[data-design="pastell"] header.top{background:var(--sec);color:var(--sec-ink);border-bottom:0;padding-bottom:30px}
-:root[data-design="pastell"] .ptitle h1,:root[data-design="pastell"] .ptitle p{color:var(--sec-ink)}
+/* Oben ruhig: keine Farbfläche, nur eine schmale Linie in der Farbe der Ansicht */
+:root[data-design="pastell"] header.top{border-bottom:3px solid var(--sec)}
 :root[data-design="pastell"] .ptitle h1{font-size:24px}
 @media (max-width:480px){.ptitle h1,:root[data-design="pastell"] .ptitle h1{font-size:20px}.examchip{padding-left:8px;padding-right:8px}.examchip svg{display:none}}
-:root[data-design="pastell"] header.top .iconbtn.plain{width:44px;height:44px;background:var(--marker);color:var(--marker-ink);border:1.5px solid var(--edge)}
-:root[data-design="pastell"] header.top .chip{border:1.5px solid var(--edge)}
-:root[data-design="pastell"] main{position:relative;z-index:1;margin-top:-20px;background:var(--paper);border-top:1.5px solid var(--edge);border-radius:24px 24px 0 0;padding-top:16px}
-/* Leiste unten: gelb, rund, mit Namen unter den Symbolen; die gewählte Ansicht im dunklen Kreis */
-:root[data-design="pastell"] nav.tabs{width:calc(100% - 20px);max-width:620px;align-self:center;margin:6px auto calc(8px + env(safe-area-inset-bottom,0px));padding:6px 4px;background:var(--marker);border:1.5px solid var(--edge);border-radius:28px}
-:root[data-design="pastell"] nav.tabs button{color:var(--marker-ink);font-weight:700;font-size:11.5px;letter-spacing:-.1px;padding:3px 0;gap:3px}
-:root[data-design="pastell"] nav.tabs button svg{width:22px;height:22px;padding:5px;box-sizing:content-box;border-radius:50%;margin:-3px 0 -2px}
-:root[data-design="pastell"] nav.tabs button[aria-selected="true"]{color:var(--marker-ink)}
-:root[data-design="pastell"] nav.tabs button[aria-selected="true"] svg{background:var(--sec-ink);color:var(--marker);padding:5px;margin:-3px 0 -2px;border-radius:50%}
-:root[data-design="pastell"] .badge{border:1.5px solid var(--edge);top:0}
+/* Leiste unten: hell und schlicht; nur die gewählte Ansicht bekommt ein Feld in ihrer Farbe */
+:root[data-design="pastell"] nav.tabs button{font-size:11.5px;padding:4px 0;gap:3px}
+:root[data-design="pastell"] nav.tabs button svg{width:22px;height:22px;padding:4px 14px;box-sizing:content-box;border-radius:999px}
+:root[data-design="pastell"] nav.tabs button[aria-selected="true"]{color:var(--text)}
+:root[data-design="pastell"] nav.tabs button[aria-selected="true"] svg{background:var(--sec);color:var(--sec-ink);padding:4px 14px;margin:0;border-radius:999px}
+:root[data-design="pastell"] .badge{top:0;box-shadow:0 0 0 2px var(--sheet)}
 /* Seitenleiste */
 :root[data-design="pastell"] .side{border-right:1.5px solid var(--edge)}
 :root[data-design="pastell"] .plist button{border:1.5px solid transparent;border-radius:14px}
@@ -876,7 +871,7 @@ input[type=range]{accent-color:var(--ink);width:100%}
 :root[data-design="pastell"] :is(.field input,.field select,.field textarea,.toolbar input,.chatbar select,.helpbox textarea,.dateinp){border-radius:14px}
 :root[data-design="pastell"] .composer textarea{border-radius:22px}
 :root[data-design="pastell"] .chip{border:1.5px solid var(--edge);color:var(--text)}
-:root[data-design="pastell"] .examchip{color:var(--marker-ink)}
+:root[data-design="pastell"] .examchip{background:var(--sheet);color:var(--text);border:1px solid var(--line)}
 :root[data-design="pastell"] :is(.filters button,.htog button,.ad-toc button){border:1.5px solid var(--edge);color:var(--text);background:var(--sheet)}
 :root[data-design="pastell"] :is(.filters button,.htog button)[aria-pressed="true"]{background:var(--edge);color:var(--paper)}
 :root[data-design="pastell"] .seg{background:var(--sheet);border:1.5px solid var(--edge);border-radius:999px}
@@ -955,7 +950,6 @@ input[type=range]{accent-color:var(--ink);width:100%}
   .pad-bar{padding-left:max(10px,env(safe-area-inset-left,0px));padding-right:max(10px,env(safe-area-inset-right,0px))}
   .pad-tools{padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
   .side{padding-left:max(12px,env(safe-area-inset-left,0px))}
-  :root[data-design="pastell"] nav.tabs{width:calc(100% - 20px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px))}
   .pad-body{padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
 }
 /* Ab 760 px steht links die Seitenleiste (sie bekommt den Abstand), und das Blatt ist schmal und mittig: dort links normale Abstände */
@@ -963,7 +957,6 @@ input[type=range]{accent-color:var(--ink);width:100%}
   header.top,main{padding-left:16px}
   nav.tabs{padding-left:4px}
   .sheet{padding-left:16px;padding-right:16px}
-  :root[data-design="pastell"] nav.tabs{width:calc(100% - 20px - env(safe-area-inset-right,0px));margin-left:10px}
 }
 </style>
 <script>var r=document.documentElement;r.setAttribute('data-design','pastell');r.setAttribute('data-palette','sonne');try{var l=JSON.parse(localStorage.getItem('merkheft.look')||'null');if(l){if(l.theme==='light'||l.theme==='dark')r.setAttribute('data-theme',l.theme);var p=/^[a-z]{2,20}$/.test(l.palette||'')&&l.palette!=='pastell'?l.palette:'';if(l.design==='klassisch'){r.removeAttribute('data-design');if(!p||p==='mitternacht')r.removeAttribute('data-palette');else r.setAttribute('data-palette',p)}else if(p)r.setAttribute('data-palette',p)}}catch(e){}</script>
@@ -3099,7 +3092,7 @@ function applyLook() {
   try { localStorage.setItem('merkheft.look', JSON.stringify(l)); } catch {}
   lookChanged();
 }
-// Farbe der Statusleiste: im Pastell-Look die Farbe der Kopfzeile (wechselt mit der Ansicht), sonst der Hintergrund
+// Farbe der Statusleiste: die Farbe der Kopfzeile, falls sie eine hat, sonst der Hintergrund
 function barColor() {
   const m = document.querySelector('meta[name="theme-color"]'); if (!m) return;
   const h = document.querySelector('header.top'), bg = h ? getComputedStyle(h).backgroundColor : '';
