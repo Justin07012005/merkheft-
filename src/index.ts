@@ -18,7 +18,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { Store, DocOp } from './store';
 import { MAX_SEM_TEXT, SEM_ADD_MAX, SEM_HASH_RE, SEM_SEARCH_MAX, semOn } from './sem';
-import { berlinDay, budgetPlan, costUsd, emptyUsage, takeUsage, type BudgetPlan, type RawUsage, type UsageSum } from './cost';
+import { berlinDay, budgetPlan, costUsd, emptyUsage, SHARE_FACTOR, takeUsage, usdText, type BudgetPlan, type RawUsage, type UsageSum } from './cost';
 
 export { Store } from './store';
 
@@ -122,10 +122,31 @@ async function budget(s: DurableObjectStub<Store>, env: Env, day = berlinDay()):
   return { ...budgetPlan(day, today.usd, before, budgetUsd(env), monthLimit), today, monthLimit };
 }
 
-function budgetFail(b: Budget): Response | null {
-  if (b.full === 'monat') return fail(429, 'budget', 'Merki macht Pause, das Monatsbudget für die KI ist aufgebraucht. Am 1. geht es weiter.');
-  if (b.full === 'tag') return fail(429, 'budget', 'Merki macht für heute Pause, das Budget für heute ist aufgebraucht. Morgen geht es weiter.');
-  return null;
+/** Die Pause mit Zahlen erklären: warum heute Schluss ist und was morgen wieder geht. Der Text beginnt immer mit „Merki macht“, so zeigt die App ihn wörtlich. */
+function budgetFail(b: Budget, day = berlinDay()): Response | null {
+  if (!b.full) return null;
+  const [y, m] = day.split('-').map(Number);
+  const next = new Date(Date.UTC(y, m, 1)).toLocaleDateString('de-DE', { month: 'long', timeZone: 'UTC' });
+  if (b.full === 'monat') {
+    return fail(429, 'budget', `Merki macht Pause: Das Monatsbudget von ${usdText(b.monthLimit)} für die KI ist aufgebraucht. Am 1. ${next} geht es weiter.`);
+  }
+  const tomorrow = b.monthLimit > 0 && b.daysLeft <= 1
+    ? `Morgen beginnt ein neues Monatsbudget, dann gehen wieder etwa ${usdText(b.tomorrow)}.`
+    : `Morgen gehen wieder etwa ${usdText(b.tomorrow)}.`;
+  // Der Anteil ist nur am Monatsletzten nie die Grenze (dann ist es der Rest), hier gibt es also immer noch mindestens einen Tag danach
+  if (b.cause === 'anteil') {
+    const rest = b.daysLeft - 1;
+    const times = ({ 2: 'Doppelte', 3: 'Dreifache', 4: 'Vierfache' } as Record<number, string>)[SHARE_FACTOR] || `${SHARE_FACTOR}-Fache`;
+    return fail(
+      429,
+      'budget',
+      // Die letzte Antwort darf fertig werden, darum steht der Verbrauch oft knapp über dem Anteil: nur den Anteil nennen
+      `Merki macht für heute Pause: Der Anteil für heute (${usdText(b.limit)}) ist verbraucht. ` +
+        `Damit die ${usdText(b.monthLimit)} bis zum Monatsende reichen, darf ein Tag höchstens das ${times} des Durchschnitts nutzen. ` +
+        `Übrig sind noch ${usdText(b.monthLeft)} ${rest === 1 ? 'für morgen' : `für die restlichen ${rest} Tage`}. ${tomorrow}`,
+    );
+  }
+  return fail(429, 'budget', `Merki macht für heute Pause: Das Tageslimit von ${usdText(b.limit)} ist erreicht. ${tomorrow}`);
 }
 
 async function sameCode(given: string, expected: string): Promise<boolean> {
@@ -433,8 +454,8 @@ function buildParams(input: AiRequest | null, env: Env, forBatch = false): Built
   const purpose = typeof input.purpose === 'string' && PURPOSES.has(input.purpose) ? input.purpose : 'other';
   const smart = !/haiku/.test(model); // Die kleinen Modelle kennen weder effort noch fallbacks
   const effort = kind === 'chat' || input.tier === 'quick' ? 'low' : 'medium';
-  // Ausführliche Zusammenfassungen langer Dateien brauchen viel Platz, darum bis 32.000 (beim zweiten Versuch mehr)
-  // Wird eine sehr lange Zusammenfassung abgeschnitten, versucht die App es einmal mit bis zu 64.000
+  // Lange Aufträge (Zusammenfassungen, Vorlesungen, Scans) schickt die App gleich mit 64.000: Bezahlt wird nur, was wirklich
+  // geschrieben wird, ein abgeschnittener Versuch wäre dagegen bezahlt und trotzdem verloren
   const maxTokens = Math.min(Math.max(Number(input.maxTokens) || (kind === 'chat' ? 6000 : 8000), 300), 64000);
 
   const params: Anthropic.Beta.MessageCreateParamsNonStreaming = {
@@ -469,10 +490,11 @@ async function postAi(request: Request, env: Env, ctx: ExecutionContext): Promis
   const day = berlinDay();
   const s = store(env);
   const plan = await budget(s, env, day);
-  const over = budgetFail(plan);
+  const over = budgetFail(plan, day);
   if (over) return over;
-  // Wie viel vom heutigen Anteil noch frei ist (0 bis 1), damit die App rechtzeitig leise Bescheid sagen kann
-  const left = plan.limit > 0 ? Math.max(0, Math.min(1, (plan.limit - plan.today.usd) / plan.limit)) : 1;
+  // Wie viel vom heutigen Anteil noch frei ist (0 bis 1 und in Dollar), damit die App rechtzeitig leise Bescheid sagen kann
+  const leftUsd = Math.max(0, plan.limit - plan.today.usd);
+  const left = plan.limit > 0 ? Math.min(1, leftUsd / plan.limit) : 1;
 
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, baseURL: env.ANTHROPIC_BASE_URL || undefined, maxRetries: 2 });
   const aborter = new AbortController();
@@ -529,6 +551,11 @@ async function postAi(request: Request, env: Env, ctx: ExecutionContext): Promis
       if (!open) reader.cancel().catch(() => {});
       const usd = meter.costUsd();
       if (usd > 0) await s.addSpend(day, usd, purpose);
+      // Zum Schluss ein eigenes Ereignis: was nach dieser Antwort heute noch frei ist (die Kopfzeile kennt nur den Stand davor)
+      if (open) {
+        const usdLeft = Math.round(Math.max(0, leftUsd - usd) * 1000) / 1000;
+        write(enc.encode(`event: merkheft\ndata: ${JSON.stringify({ type: 'merkheft_left', usd: usdLeft, limit: Math.round(plan.limit * 1000) / 1000 })}\n\n`));
+      }
       if (open) {
         open = false;
         try {
@@ -547,6 +574,8 @@ async function postAi(request: Request, env: Env, ctx: ExecutionContext): Promis
       'cache-control': 'no-store, no-transform',
       'x-content-type-options': 'nosniff',
       'x-merkheft-left': left.toFixed(2),
+      'x-merkheft-left-usd': leftUsd.toFixed(3),
+      'x-merkheft-limit-usd': plan.limit.toFixed(3),
     },
   });
 }
@@ -722,6 +751,14 @@ async function getStatus(env: Env): Promise<Response> {
     calls: spent.calls,
     monthUsd: r3(b.month),
     monthBudgetUsd: b.monthLimit,
+    // Für die Erklärung in den Einstellungen: woher das heutige Limit kommt und was morgen etwa geht
+    full: b.full,
+    cause: b.cause,
+    daysLeft: b.daysLeft,
+    monthLeftUsd: r3(b.monthLeft),
+    startLeftUsd: r3(b.startLeft),
+    tomorrowUsd: r3(b.tomorrow),
+    shareFactor: SHARE_FACTOR,
     byKind,
     monthByKind,
     since,

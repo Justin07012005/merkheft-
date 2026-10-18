@@ -281,6 +281,13 @@ h3.sub{font:800 18px/1.25 var(--f-display);color:var(--ink);margin:4px 0 0}
 .muted{color:var(--ink-soft);font-size:14px;margin:0}
 .notice{background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px;color:var(--ink-soft);margin:0}
 .notice.err{border-color:var(--red);color:var(--red)}
+.budget{background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:10px 12px;gap:8px}
+.meter-row{display:flex;flex-direction:column;gap:4px}
+.meter-top{display:flex;justify-content:space-between;gap:8px;font-size:14px;color:var(--text)}
+.meter-top b{font-weight:700;white-space:nowrap}
+.meter{height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.meter i{display:block;height:100%;border-radius:inherit;background:var(--ink)}
+.meter.full i{background:var(--red)}
 .notice.tip{color:var(--text);border-left:4px solid var(--marker)}
 
 /* Notizen: Karteikarten mit rotem Rand */
@@ -1681,7 +1688,7 @@ async function imageBlock(blob) {
 // Der Server reicht Claudes Antwort als Stream (Server-Sent Events) durch, hier wird der Text zusammengesetzt
 async function streamAi(body, signal, onText) {
   const r = await api('/api/ai', { method: 'POST', body: JSON.stringify(body), signal });
-  noteAiLeft(r.headers.get('x-merkheft-left'));
+  noteAiLeft(r.headers.get('x-merkheft-left-usd'), r.headers.get('x-merkheft-limit-usd'));
   const reader = r.body.getReader(), dec = new TextDecoder();
   let buf = '', text = '', stop = null, ended = false;
   const handle = data => {
@@ -1690,6 +1697,7 @@ async function streamAi(body, signal, onText) {
     if (ev.type === 'content_block_delta' && ev.delta && ev.delta.type === 'text_delta') { text += ev.delta.text; if (onText) onText(text); }
     else if (ev.type === 'message_delta' && ev.delta) stop = ev.delta.stop_reason || stop;
     else if (ev.type === 'message_stop') ended = true;
+    else if (ev.type === 'merkheft_left') noteAiLeft(ev.usd, ev.limit); // vom Server: was nach dieser Antwort heute noch frei ist
     else if (ev.type === 'error') { const t = ev.error && ev.error.type; throw { code: t === 'rate_limit_error' ? 'rate_limited' : t === 'invalid_request_error' ? 'bad_request' : 'overloaded', text }; }
   };
   try {
@@ -1761,17 +1769,23 @@ function aiError(e) {
   if (c === 'offline') return 'Keine Verbindung. Bist du online?';
   return 'Verbindung unterbrochen. Versuch es nochmal.';
 }
-// Wird der heutige KI-Anteil knapp, sagt die App es einmal am Tag leise, statt mitten im Gespräch aufzuhören
-let aiLow = false;
-function noteAiLeft(h) {
-  if (h === null || h === '') return;
-  const low = Number(h) < 0.2;
+// Wird der heutige KI-Anteil knapp, sagt die App es einmal am Tag leise, statt mitten im Gespräch aufzuhören.
+// Knapp heißt: weniger als ein Fünftel des heutigen Limits, aber mindestens 0,30 $ Puffer (eine Zusammenfassung kostet oft 10 bis 40 Cent)
+let aiLow = false, aiLowDay = '';
+function noteAiLeft(usd, limit) {
+  if (usd === null || usd === '' || limit === null || limit === '') return;
+  const left = Number(usd), max = Number(limit);
+  if (!Number.isFinite(left) || !Number.isFinite(max) || max <= 0) return;
+  const low = left < Math.max(0.3, max * 0.2);
+  // Ein neuer Tag fängt neu an, auch wenn die App über Nacht offen war (sonst fiele die Warnung am nächsten Tag aus)
+  const day = new Date().toDateString();
+  if (day !== aiLowDay) { aiLowDay = day; aiLow = false; }
   if (low === aiLow) return;
   aiLow = low; renderAiAvailability();
   if (!low) return;
-  const day = new Date().toDateString();
   try { if (localStorage.getItem('merkheft.lowDay') === day) return; localStorage.setItem('merkheft.lowDay', day); } catch {}
-  toast('Für heute ist nur noch wenig KI übrig. Karteikarten gehen auch ohne.', 5000);
+  toast(left < 0.01 ? 'Die KI für heute ist aufgebraucht. Karteikarten gehen auch ohne.'
+    : `Für heute sind nur noch etwa ${left.toFixed(2).replace('.', ',')} $ KI frei. Karteikarten gehen auch ohne.`, 6000);
 }
 function renderAiAvailability() {
   const off = !aiReady();
@@ -2649,7 +2663,7 @@ ${list}` : `Sortiere alle Lernnotizen unten nach Themen für das Projekt „${p.
 Antworte nur mit JSON: {"abschnitte": [{"titel": "...", "text": "...", "notizen": [1, 2]}]}
 
 Notizen:
-${list}`, { schema: SCHEMA.notedoc, maxTokens: full ? 32000 : 8000, purpose: 'order' });
+${list}`, { schema: SCHEMA.notedoc, maxTokens: full ? 64000 : 8000, purpose: 'order' });
     const raw = Array.isArray(x) ? x : x && x.abschnitte;
     const secs = (Array.isArray(raw) ? raw : []).map(a => ({
       t: String((a && a.titel) || '').trim().slice(0, 120),
@@ -4418,7 +4432,7 @@ async function fileSummary(name, p, text, step = () => {}, info = {}) {
 Antworte nur mit JSON: ${SUM_JSON}
 
 ${chunks.length > 1 ? 'Teil' : 'Dokument'}:
-${chunks[k]}`, { schema: SCHEMA.fsum, maxTokens: 32000, purpose: 'file' });
+${chunks[k]}`, { schema: SCHEMA.fsum, maxTokens: 64000, purpose: 'file' });
     } catch (e) {
       if (e && e.code === 'cancelled') throw e;
       if (!parts.some(Boolean) && chunks.length === 1) throw e;
@@ -4638,7 +4652,7 @@ async function lectureWrite(it) {
     if (t.state !== 'ready') return;
     const known = state.projects.find(p => p.id === t.pid) || null, list = sortedProjects();
     // Viel Platz: eine ausführliche Notiz zu 90 Minuten ist lang, und abgerechnet wird nur, was Merki wirklich schreibt
-    const x = await aiJson(lecturePrompt(t, known, list), { schema: SCHEMA.lecture, maxTokens: 32000, purpose: 'lecture' });
+    const x = await aiJson(lecturePrompt(t, known, list), { schema: SCHEMA.lecture, maxTokens: 64000, purpose: 'lecture' });
     const text = String((x && x.notiz) || '').trim();
     if (!text) throw { code: 'invalid_json' };
     // Fach: beim Hochladen in der App das offene Projekt, beim Teilen aus Sprachmemos das, das Merki passend findet
@@ -4783,7 +4797,7 @@ function shortcutSheet(back) {
 const BATCH_MIN = 40000; // ab so vielen Zeichen (etwa 15 Seiten) als Sammelauftrag
 let batchTimer = 0, batchBusy = false;
 async function batchStart(fileId, name, prompts) {
-  const r = await api('/api/batch', { method: 'POST', body: JSON.stringify({ fileId, name, requests: prompts.map((content, k) => ({ id: 'p' + k, kind: 'json', schema: SCHEMA.docsum, maxTokens: 32000, purpose: 'file', messages: [{ role: 'user', content }] })) }) });
+  const r = await api('/api/batch', { method: 'POST', body: JSON.stringify({ fileId, name, requests: prompts.map((content, k) => ({ id: 'p' + k, kind: 'json', schema: SCHEMA.docsum, maxTokens: 64000, purpose: 'file', messages: [{ role: 'user', content }] })) }) });
   const j = await r.json();
   if (!j || !j.batch) throw { code: 'server' };
   return j.batch;
@@ -4832,10 +4846,12 @@ async function batchFinish(f, results, step = () => {}) {
     const r = results.find(x => x.id === 'p' + k);
     let x = null;
     if (r && r.ok && r.stop !== 'max_tokens' && r.stop !== 'refusal') { try { x = JSON.parse(r.text); } catch {} }
+    // Schon mit vollem Platz zu lang geworden: ein zweiter Versuch mit derselben Grenze bräche genauso ab und kostete den vollen Preis
+    if (!x && r && r.ok && r.stop === 'max_tokens' && (f.batch.max || 0) >= 64000) { err = err || { code: 'too_long' }; continue; }
     if (!x) {
       step(n > 1 ? `Teil ${k + 1} von ${n}` : '');
-      // Im Sammelauftrag zu lang geworden: mit mehr Platz, sonst bricht es genauso wieder ab
-      try { x = await aiJson(docsumPrompt(chunks, k, f.name, p, f, known()), { schema: SCHEMA.docsum, maxTokens: r && r.stop === 'max_tokens' ? 64000 : 32000, purpose: 'file' }); }
+      // Fehlt das Ergebnis (oder ist ein alter Auftrag mit weniger Platz zu lang geworden): sofort nachholen, gleich mit vollem Platz
+      try { x = await aiJson(docsumPrompt(chunks, k, f.name, p, f, known()), { schema: SCHEMA.docsum, maxTokens: 64000, purpose: 'file' }); }
       catch (e) {
         // Ohne Verbindung: später nochmal (die Ergebnisse bleiben auf dem Server)
         if (e && (e.code === 'offline' || e.code === 'cancelled')) throw e;
@@ -4947,7 +4963,7 @@ async function readOne(file, p, step) {
 - zusammenfassung: eine ausführliche Lern-Zusammenfassung auf Deutsch. ${SUM_RULES}
 - ${NOTES_JSON('5 bis 15')}${wishLine()}
 Antworte nur mit JSON: {"abschrift": "...", "zusammenfassung": ${SUM_JSON}, "notizen": [{"titel": "kurzer Titel", "inhalt": "2 bis 8 Sätze"}]}
-Schon vorhandene Notizen (nicht doppelt): ${known()}`, { images, schema: SCHEMA.scansum, maxTokens: 32000, purpose: 'file' });
+Schon vorhandene Notizen (nicht doppelt): ${known()}`, { images, schema: SCHEMA.scansum, maxTokens: 64000, purpose: 'file' });
     text = String((x && x.abschrift) || '').trim();
     sum = normSum(x && x.zusammenfassung);
     if (x && Array.isArray(x.notizen)) notes.push(...x.notizen);
@@ -4971,17 +4987,14 @@ Schon vorhandene Notizen (nicht doppelt): ${known()}`, { images, schema: SCHEMA.
         step(many ? `Teil ${k + 1} von ${chunks.length} zusammenfassen` : 'Zusammenfassung und Notizen');
         let x = null;
         try {
-          x = await aiJson(docsumPrompt(chunks, k, file.name, p, flags, known()), { schema: SCHEMA.docsum, maxTokens: 32000, purpose: 'file' });
+          // Gleich mit vollem Platz: Ein abgeschnittener Versuch wäre bezahlt und trotzdem verloren
+          x = await aiJson(docsumPrompt(chunks, k, file.name, p, flags, known()), { schema: SCHEMA.docsum, maxTokens: 64000, purpose: 'file' });
         } catch (e) {
           if (e && e.code === 'cancelled') throw e;
-          // Zu lang geworden: einmal mit mehr Platz, sonst bricht es genauso wieder ab
-          if (e && e.code === 'too_long') { try { x = await aiJson(docsumPrompt(chunks, k, file.name, p, flags, known()), { schema: SCHEMA.docsum, maxTokens: 64000, purpose: 'file' }); } catch (e2) { if (e2 && e2.code === 'cancelled') throw e2; e = e2; } }
-          if (!x) {
-            // Das Gelesene behalten (Seiten als Bild sind schon bezahlt), „Neu zusammenfassen“ holt den Rest
-            err = err || e;
-            if (e && (e.code === 'budget' || e.code === 'offline')) break;
-            continue;
-          }
+          // Das Gelesene behalten (Seiten als Bild sind schon bezahlt), „Neu zusammenfassen“ holt den Rest
+          err = err || e;
+          if (e && (e.code === 'budget' || e.code === 'offline')) break;
+          continue;
         }
         parts.push(normSum(x && x.zusammenfassung));
         if (x && Array.isArray(x.notizen)) notes.push(...x.notizen);
@@ -4994,7 +5007,7 @@ Schon vorhandene Notizen (nicht doppelt): ${known()}`, { images, schema: SCHEMA.
   // Echte Seitenzahl (PDF), wie viele Seiten Merki gelesen hat und wie viele davon als Bild
   const f = { id: fid, projectId: p.id, name: file.name.slice(0, 120), kind, size: file.size, textLen: full.length, truncated: text.length > MAX_TEXT, summary: sum ? sum.ueberblick : '', ...(sum ? { sum } : {}),
     ...(pg ? { pages: pg.all, readPages: pg.read, ...(pg.pics ? { picPages: pg.pics } : {}), ...(pg.ocr ? { ocrPages: pg.ocr } : {}), ...(pg.scan ? { scan: true } : {}) } : {}), ...(err ? { partial: aiError(err) } : {}),
-    ...(batch ? { batch: { id: batch, n: splitText(full, PART).length, at: Date.now() } } : {}), createdAt: Date.now() };
+    ...(batch ? { batch: { id: batch, n: splitText(full, PART).length, at: Date.now(), max: 64000 } } : {}), createdAt: Date.now() };
   if (full.length > PART) {
     const parts = splitText(full, PART);
     f.parts = parts.length;
@@ -6287,6 +6300,7 @@ function settingsSheet() {
   const saveWish = el => { const x = el && el.querySelector('#sWish'); if (x) setHelp('wish', x.value.trim().slice(0, 600)); };
   let sheetEl = null;
   openSheet(`<div class="sheet-head"><h2>Einstellungen</h2><button class="iconbtn plain" type="button" id="sX" aria-label="Schließen">${ICON.close}</button></div>
+    ${server ? '<div class="field budget" id="sBudget" aria-live="polite"><span class="label">KI-Budget</span><p class="muted">Wird geladen …</p></div>' : ''}
     <div class="field"><label for="sName">Dein Name (so spricht Merki dich an)</label><input id="sName" maxlength="40" autocomplete="given-name" enterkeyhint="done" placeholder="z. B. Lena" value="${esc(myName())}"></div>
     <div class="field"><span class="label" id="sHelpL">So soll Merki dir helfen</span><div class="helpbox" id="sHelp" role="group" aria-labelledby="sHelpL">
       ${HELP_SEGS.map(([k, label, opts]) => `<div class="hrow"><span id="sh-${k}">${label}</span><div class="seg hs" role="group" aria-labelledby="sh-${k}" data-k="${k}">${opts.map(([v, t]) => `<button type="button" data-v="${v}" aria-pressed="${help[k] === v}">${t}</button>`).join('')}</div></div>`).join('')}
@@ -6307,7 +6321,7 @@ function settingsSheet() {
     ${server && serverRec ? `<div class="field"><span class="label">Vorlesungen aus Sprachmemos</span><p class="muted">Mit dem Kurzbefehl „An Merki“ teilst du eine Aufnahme direkt aus Sprachmemos. Merki schreibt sie mit und macht daraus eine Notiz.</p><button class="btn alt" type="button" id="sShortcut">${ICON.lecture}Kurzbefehl einrichten</button></div>` : ''}
     ${server && !inApp ? `<div class="notice"><b>Als App auf den Startbildschirm</b><br>${installEvt ? 'Tippe auf „Installieren“.' : ios ? 'Tippe in Safari unten auf das Teilen-Symbol und dann auf „Zum Home-Bildschirm“.' : 'Öffne das Browser-Menü (⋮) und tippe auf „App installieren“ oder „Zum Startbildschirm hinzufügen“.'}</div>` : ''}
     ${server && installEvt && !inApp ? '<button class="btn" type="button" id="sInstall">Installieren</button>' : ''}
-    ${server ? `<p class="notice" id="sStatus">KI-Verbrauch heute wird geladen …</p>
+    ${server ? `<p class="notice" id="sStatus" hidden></p>
     <div class="menu"><button type="button" id="sReset">${ICON.refresh}Kostenzähler auf null setzen</button><button type="button" id="sOut">${ICON.logout}Auf diesem Gerät abmelden</button></div>` : ''}
     <button class="btn alt" type="button" id="sNo">Schließen</button>`, el => {
     sheetEl = el;
@@ -6384,25 +6398,64 @@ function settingsSheet() {
       renderAll(); showGate('');
     });
     let usage = '', voicesNote = '';
-    const showStatus = () => { const x = q('#sStatus'); if (x) x.textContent = [usage, ttsNote, voicesNote].filter(Boolean).join(' '); };
-    const showUsage = s => {
-      const usd = v => (v || 0).toFixed(2).replace('.', ',');
+    const showStatus = () => {
+      const x = q('#sStatus'); if (!x) return;
+      x.textContent = [usage, ttsNote, voicesNote].filter(Boolean).join(' ');
+      x.hidden = !x.textContent;
+    };
+    // Oben in den Einstellungen: Monat und heute als Balken, dazu in einem Satz, warum heute nur so viel geht
+    const showBudget = s => {
+      const box = q('#sBudget'); if (!box) return;
+      const usd = v => `${(v || 0).toFixed(2).replace('.', ',')} $`;
+      // Rot und 100 % nur, wenn der Server wirklich Pause macht (nicht schon bei 99,6 %); ohne Limit (0 $) ist der Balken voll
+      const bar = (label, used, max) => {
+        const full = !(max > 0) || (used || 0) >= max;
+        const pct = full ? 100 : Math.min(99, Math.floor((used || 0) / max * 100));
+        return `<div class="meter-row"><div class="meter-top"><span>${label}</span><b>${usd(used)} von ${usd(max)}</b></div>
+          <div class="meter${full ? ' full' : ''}" role="progressbar" aria-label="${label}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div></div>`;
+      };
       // Nach dem Zurücksetzen zählt alles ab diesem Tag, auch das Monatslimit
-      const span = s.since ? `KI seit ${new Date(s.since).toLocaleDateString('de-DE', { day: 'numeric', month: 'numeric' })}` : 'KI diesen Monat';
-      // Mit Monatsbudget: was heute höchstens geht, ist der faire Anteil am Rest des Monats
-      usage = !s.monthBudgetUsd ? `KI heute: ${usd(s.spentUsd)} $ von ${usd(s.budgetUsd)} $ Tageslimit (${s.calls} ${s.calls === 1 ? 'Anfrage' : 'Anfragen'}).`
-        : (s.monthUsd || 0) >= s.monthBudgetUsd ? `${span}: ${usd(s.monthUsd)} $ von ${usd(s.monthBudgetUsd)} $, aufgebraucht. Am 1. geht es weiter.`
-        : `${span}: ${usd(s.monthUsd)} $ von ${usd(s.monthBudgetUsd)} $. Heute: ${usd(s.spentUsd)} $ von ${usd(s.budgetUsd)} $ (${s.calls} ${s.calls === 1 ? 'Anfrage' : 'Anfragen'}). Was du an einem Tag nicht brauchst, kommt später dazu.`;
+      const span = s.since ? `Seit ${new Date(s.since).toLocaleDateString('de-DE', { day: 'numeric', month: 'numeric' })}` : 'Diesen Monat';
+      // Ob Pause ist, sagt der Server (aus den ungerundeten Zahlen), sonst wie früher selbst ausrechnen
+      const has = typeof s.full === 'string';
+      const monthFull = has ? s.full === 'monat' : s.monthBudgetUsd && (s.monthUsd || 0) >= s.monthBudgetUsd;
+      const dayFull = has ? s.full === 'tag' : (s.spentUsd || 0) >= (s.budgetUsd || 0);
+      const times = { 2: 'Doppelte', 3: 'Dreifache', 4: 'Vierfache' }[s.shareFactor] || `${s.shareFactor || 3}-Fache`;
+      const rest = s.daysLeft - 1;
+      const why = !s.monthBudgetUsd ? `Mehr als ${usd(s.dayCapUsd)} am Tag gibt Merki nicht aus.`
+        : monthFull ? 'Das Monatsbudget ist aufgebraucht. Am 1. geht es weiter.'
+        // Mit Pause zählen nur noch die Tage danach (wie in der Pause-Meldung vom Server). Ohne Pause der Stand von heute früh,
+        // denn daraus kommt der heutige Anteil: Rest geteilt durch die Tage mit heute, mal 3
+        : s.cause === 'anteil' ? `Damit das Geld bis zum Monatsende reicht, geht pro Tag höchstens das ${times} des Durchschnitts. ${dayFull && rest > 0
+          ? `Übrig sind noch ${usd(s.monthLeftUsd)} ${rest === 1 ? 'für morgen' : `für die restlichen ${rest} Tage`}.`
+          : `Heute früh waren noch ${usd(s.startLeftUsd)} für ${s.daysLeft} Tage mit heute übrig.`} Was du an einem Tag nicht brauchst, kommt später dazu.`
+        : s.cause === 'monat' ? `Vom Monatsbudget sind nur noch ${usd(s.monthLeftUsd)} übrig, das gilt für heute und die restlichen Tage zusammen.`
+        : `Mehr als ${usd(s.dayCapUsd)} am Tag gibt Merki nicht aus.`;
+      // Was morgen geht, hängt davon ab, wie viel heute noch dazukommt. Bei 'monat' ist es derselbe Rest, darum dort kein Satz
+      const tm = Number.isFinite(s.tomorrowUsd) ? usd(s.tomorrowUsd) : '';
+      const next = !tm || monthFull || (!dayFull && s.cause === 'monat') ? ''
+        : s.monthBudgetUsd && s.daysLeft <= 1 ? ` Morgen beginnt ein neues Monatsbudget, dann gehen etwa ${tm}.`
+        : dayFull ? ` Heute ist Pause. Morgen gehen wieder etwa ${tm}.`
+        : s.monthBudgetUsd ? ` Nutzt du heute nichts mehr, gehen morgen etwa ${tm}.`
+        : '';
       // Wofür das Geld ging: mit Monatsbudget über den ganzen Monat, sonst heute
       const all = s.monthBudgetUsd && Array.isArray(s.monthByKind) ? s.monthByKind : s.byKind;
-      const kinds = (Array.isArray(all) ? all : []).filter(k => k.usd >= 0.005);
-      if (kinds.length) usage += ` Davon: ${kinds.map(k => `${KIND_LABEL[k.kind] || 'Sonstiges'} ${usd(k.usd)} $`).join(', ')}.`;
-      if (s.tts) usage += ` Echte Stimme heute: ${s.tts.chars.toLocaleString('de-DE')} von ${s.tts.limit.toLocaleString('de-DE')} Zeichen.`;
+      const kinds = (Array.isArray(all) ? all : []).filter(k => k.usd >= 0.005).sort((a, b) => b.usd - a.usd);
+      box.innerHTML = `<span class="label">KI-Budget</span>
+        ${s.monthBudgetUsd ? bar(span, s.monthUsd, s.monthBudgetUsd) : ''}
+        ${bar(`Heute (${s.calls} ${s.calls === 1 ? 'Anfrage' : 'Anfragen'})`, s.spentUsd, s.budgetUsd)}
+        <p class="muted">${esc(why + next)}</p>
+        ${kinds.length ? `<p class="muted">${s.monthBudgetUsd ? span : 'Heute'} ging das Geld für: ${esc(kinds.map(k => `${KIND_LABEL[k.kind] || 'Sonstiges'} ${usd(k.usd)}`).join(', '))}.</p>` : ''}`;
+    };
+    const showUsage = s => {
+      showBudget(s);
+      usage = '';
+      if (s.tts) usage += `Echte Stimme heute: ${s.tts.chars.toLocaleString('de-DE')} von ${s.tts.limit.toLocaleString('de-DE')} Zeichen.`;
       // Bei Google zählt die kostenlose Menge pro Monat
       if (s.tts && s.tts.provider === 'google' && s.tts.monthLimit) usage += ` Diesen Monat: ${(s.tts.month || 0).toLocaleString('de-DE')} von ${s.tts.monthLimit.toLocaleString('de-DE')}.`;
       showStatus();
     };
-    if (server) api('/api/status').then(r => r.json()).then(showUsage).catch(() => { usage = 'KI-Verbrauch gerade nicht abrufbar.'; showStatus(); });
+    if (server) api('/api/status').then(r => r.json()).then(showUsage).catch(() => { const b = q('#sBudget'); if (b) b.querySelector('p').textContent = 'KI-Verbrauch gerade nicht abrufbar.'; showStatus(); });
     // Zähler auf null: zweimal tippen, damit es nicht aus Versehen passiert
     const rs = q('#sReset');
     if (rs) {

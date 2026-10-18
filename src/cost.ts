@@ -66,6 +66,16 @@ export interface BudgetPlan {
   month: number;
   /** Was gerade voll ist: '' (nichts), 'tag' oder 'monat' */
   full: '' | 'tag' | 'monat';
+  /** Woher das heutige Limit kommt: Tageslimit ('tag'), Anteil am Monatsbudget ('anteil') oder Rest des Monats ('monat') */
+  cause: 'tag' | 'anteil' | 'monat';
+  /** Tage bis zum Monatsende, mit heute */
+  daysLeft: number;
+  /** Vom Monatsbudget noch frei, nach dem, was heute schon ausgegeben wurde (0 ohne Monatsbudget) */
+  monthLeft: number;
+  /** Vom Monatsbudget frei zu Beginn des Tages, daraus kommt der heutige Anteil (0 ohne Monatsbudget) */
+  startLeft: number;
+  /** So viel geht morgen etwa, wenn heute nichts mehr dazukommt */
+  tomorrow: number;
 }
 
 /**
@@ -74,10 +84,25 @@ export interface BudgetPlan {
  */
 export function budgetPlan(day: string, todayUsd: number, beforeUsd: number, daily: number, monthLimit: number): BudgetPlan {
   const month = beforeUsd + todayUsd;
-  if (!(monthLimit > 0)) return { limit: daily, month, full: todayUsd >= daily ? 'tag' : '' };
   const [y, m, d] = day.split('-').map(Number);
   const daysLeft = new Date(Date.UTC(y, m, 0)).getUTCDate() - d + 1;
+  if (!(monthLimit > 0)) {
+    return { limit: daily, month, full: todayUsd >= daily ? 'tag' : '', cause: 'tag', daysLeft, monthLeft: 0, startLeft: 0, tomorrow: daily };
+  }
   const left = Math.max(0, monthLimit - beforeUsd);
   const limit = Math.min(daily, left, (left / daysLeft) * SHARE_FACTOR);
-  return { limit, month, full: month >= monthLimit ? 'monat' : todayUsd >= limit ? 'tag' : '' };
+  const cause = limit >= daily ? 'tag' : limit >= left ? 'monat' : 'anteil';
+  // Morgen: derselbe Anteil vom dann übrigen Rest. Am Monatsletzten beginnt morgen ein neues Monatsbudget
+  const monthLeft = Math.max(0, monthLimit - month);
+  const nextDays = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  const tomorrow = daysLeft > 1
+    ? Math.min(daily, monthLeft, (monthLeft / (daysLeft - 1)) * SHARE_FACTOR)
+    : Math.min(daily, monthLimit, (monthLimit / nextDays) * SHARE_FACTOR);
+  return { limit, month, full: month >= monthLimit ? 'monat' : todayUsd >= limit ? 'tag' : '', cause, daysLeft, monthLeft, startLeft: left, tomorrow };
+}
+
+/** Betrag für Texte an die Nutzerin, z. B. 0,72 $. Erst auf drei Stellen wie in /api/status, damit App und Pause-Meldung denselben Cent zeigen */
+export function usdText(v: number): string {
+  const r = Math.round((Math.max(0, v) || 0) * 1000) / 1000;
+  return `${r.toFixed(2).replace('.', ',')} $`;
 }
