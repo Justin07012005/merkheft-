@@ -580,6 +580,10 @@ mark.hl .mdc{background:rgba(255,255,255,.4)} /* sonst dunkler Kasten mit dunkle
 .citem[hidden]{display:none}
 .citem .acts{flex:none}
 .ctopic{display:inline-block;font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:2px}
+.ctopics{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ctopics button{border:1px solid var(--line);background:var(--sheet);color:var(--ink);border-radius:999px;padding:8px 14px;min-height:44px;font:700 14px/1.2 var(--f-body);text-align:left}
+.ctopics small{font-weight:400;color:var(--ink-soft);margin-left:4px}
+.ctgroup{margin:10px 2px 0;font:700 14px/1.3 var(--f-body);color:var(--ink-soft)}
 .cfind{width:100%;margin:2px 0 4px;-webkit-appearance:none;appearance:none;border:1px solid var(--line);background:var(--sheet);border-radius:12px;padding:10px 12px}
 :root[data-design="pastell"] .cfind{border:1.5px solid var(--edge);border-radius:14px}
 .kreset{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--ink-soft);margin:4px 0 10px}
@@ -2798,8 +2802,10 @@ function renderNotes() {
   const all = pNotes(), view = all.length ? noteViewNow() : 'cards', allView = view === 'all', pdfView = view === 'pdf', listView = !allView && !pdfView;
   $('#noteView').hidden = !all.length;
   $('#noteView').querySelectorAll('button').forEach(b => { b.setAttribute('aria-pressed', b.dataset.v === view); if (b.dataset.v === 'pdf') b.hidden = MODE !== 'server'; });
-  const q = $('#search').value.trim(), finding = listView && !!all.length;
-  $('#ntop .nsearch').hidden = $('#searchBtn').hidden = $('#nsub').hidden = !finding;
+  // Suchen geht in „Einzeln“ und in „Zusammen“ (dort fehlte sie), Zählen und Ordnen nur in „Einzeln“
+  const q = $('#search').value.trim(), finding = (listView || allView) && !!all.length;
+  $('#ntop .nsearch').hidden = $('#searchBtn').hidden = !finding;
+  $('#nsub').hidden = !finding || !listView;
   noteFind(finding && (!!q || $('#ntop').classList.contains('find')));
   $('#cards').hidden = !listView; $('#allNote').hidden = !allView; $('#pdfNote').hidden = !pdfView;
   if (allView) { renderAllNote(); return; }
@@ -2880,13 +2886,17 @@ function ndAuto() {
   const pid = ui.pid;
   if (pid && ui.tab === 'notes' && ui.noteView === 'all' && !ndOf(pid) && !ndJob && !(ndErr && ndErr.pid === pid) && Date.now() - ndErrAt(pid) > 864e5 && aiReady() && pNotes(pid).length >= 2) makeNoteDoc(pid);
 }
-async function makeNoteDoc(pid) {
+// wish: wie Merki schreiben soll (einfacher, kürzer …). Ohne Angabe gilt der Wunsch vom letzten Mal.
+async function makeNoteDoc(pid, wish) {
   const p = state.projects.find(x => x.id === pid);
   if (ndJob || !p || !aiReady()) return;
   const notes = pNotes(pid).slice().reverse(); // älteste zuerst
   if (notes.length < 2) return;
+  if (wish === undefined) wish = (ndOf(pid) || {}).wish || '';
+  wish = String(wish).replace(/\s+/g, ' ').trim().slice(0, 300);
   const list = notes.map((n, i) => `[${i + 1}] ${n.title}: ${noteBody(n).replace(/\s*\n\s*/g, ' ').slice(0, 2500) || '(leer)'}`).join('\n');
   const full = list.length <= ND_FULL;
+  const wishRule = wish ? `\n- Die Person wünscht sich dazu (in ihren eigenen Worten, beachte es, solange nichts Prüfungsrelevantes verloren geht): „${wish}“` : '';
   ndErr = null; ndJob = { pid };
   renderNotes();
   try {
@@ -2894,14 +2904,14 @@ async function makeNoteDoc(pid) {
 - Gliedere nach Themen in einer sinnvollen Reihenfolge, Grundlagen zuerst. Jeder Abschnitt hat einen kurzen Titel.
 - Übernimm ALLE Inhalte der Notizen. Was doppelt ist, nur einmal. Erfinde nichts dazu.
 - text: klare, kurze Sätze. **fett** sparsam, nur für die wichtigsten Fachbegriffe (höchstens ein bis zwei pro Absatz), Aufzählungen mit "- ". Keine Überschriften, keine Tabellen.
-- notizen: die Nummern aller Notizen, deren Inhalt in diesem Abschnitt steckt. Jede Notiz kommt in mindestens einem Abschnitt vor.
+- notizen: die Nummern aller Notizen, deren Inhalt in diesem Abschnitt steckt. Jede Notiz kommt in mindestens einem Abschnitt vor.${wishRule}
 Antworte nur mit JSON: {"abschnitte": [{"titel": "...", "text": "...", "notizen": [1, 2]}]}
 
 Notizen:
 ${list}` : `Sortiere alle Lernnotizen unten nach Themen für das Projekt „${p.name}“${p.desc ? ' (' + p.desc + ')' : ''}.
 - Bilde Abschnitte in einer sinnvollen Reihenfolge, Grundlagen zuerst. Jeder Abschnitt hat einen kurzen Titel.
 - text: ein Satz, worum es in dem Abschnitt geht.
-- notizen: die Nummern der Notizen in diesem Abschnitt, in einer guten Lesereihenfolge. Jede Notiz kommt in genau einem Abschnitt vor.
+- notizen: die Nummern der Notizen in diesem Abschnitt, in einer guten Lesereihenfolge. Jede Notiz kommt in genau einem Abschnitt vor.${wishRule}
 Antworte nur mit JSON: {"abschnitte": [{"titel": "...", "text": "...", "notizen": [1, 2]}]}
 
 Notizen:
@@ -2917,7 +2927,7 @@ ${list}`, { schema: SCHEMA.notedoc, maxTokens: full ? 64000 : 8000, purpose: 'or
     const used = new Set(secs.flatMap(a => a.n)), rest = notes.filter(n => !used.has(n.id)).map(n => n.id);
     if (rest.length) secs.push({ t: 'Weitere Notizen', x: '', n: rest, more: true });
     const h = {}; for (const n of notes) h[n.id] = noteHash(n);
-    put('notedoc', { id: ndIdOf(pid), projectId: pid, full, secs, h, at: Date.now() }, false);
+    put('notedoc', { id: ndIdOf(pid), projectId: pid, full, secs, h, at: Date.now(), ...(wish ? { wish } : {}) }, false);
     ndErrMark(pid, false);
   } catch (e) {
     ndErr = { pid, msg: aiError(e) };
@@ -2926,6 +2936,33 @@ ${list}`, { schema: SCHEMA.notedoc, maxTokens: full ? 64000 : 8000, purpose: 'or
   ndJob = null;
   renderNotes();
   if (ui.tab === 'notes') ndAuto(); // wartete ein anderes Projekt, kommt es jetzt dran
+}
+// Wünsche, die sich oft wiederholen: ein Tipp genügt, eigener Text geht immer
+const WISH_CHIPS = ['Einfacher erklären', 'Kürzer', 'Ausführlicher', 'Mit Beispielen', 'Als Stichpunkte', 'Als Prüfungsschema'];
+const wishChips = id => `<div class="ctopics" role="group" aria-label="Schnell wählen">${WISH_CHIPS.map(w => `<button type="button" data-wish="${esc(w)}" data-for="${id}">${esc(w)}</button>`).join('')}</div>`;
+// Tipp auf einen Vorschlag: kommt ins Feld (mehrere gehen zusammen)
+function wishPick(el) {
+  el.addEventListener('click', e => {
+    const b = e.target.closest('[data-wish]'); if (!b) return;
+    const ta = el.querySelector('#' + b.dataset.for), v = ta.value.trim();
+    const w = b.dataset.wish, low = w[0].toLowerCase() + w.slice(1); // „Mit Beispielen“ wird im Satz zu „mit Beispielen“
+    ta.value = v ? (v.toLowerCase().includes(w.toLowerCase()) ? v : `${v}, ${low}`) : w;
+    ta.dispatchEvent(new Event('input'));
+  });
+}
+// „Neu schreiben …“ unter „Zusammen“: Sie sagt Merki selbst, wie der Text werden soll (vorher ging das nur über den Chat)
+function ndWishSheet(pid) {
+  const doc = ndOf(pid), big = doc && !doc.full;
+  openSheet(`<h2>Notizen neu schreiben</h2>
+    <p class="muted">Sag Merki, wie der Text werden soll. Deine einzelnen Notizen bleiben dabei, wie sie sind.</p>
+    ${wishChips('ndWish')}
+    <div class="field"><label for="ndWish">Dein Wunsch (kann auch leer bleiben)</label><textarea id="ndWish" maxlength="300" style="min-height:80px" placeholder="z. B. einfacher erklären und mit einem Beispiel aus dem Alltag">${esc(doc && doc.wish || '')}</textarea></div>
+    ${big ? '<p class="notice tip">Du hast so viele Notizen, dass Merki sie hier nur nach Themen ordnet. Umschreiben lässt sich jede Notiz einzeln: Notiz öffnen, dann „Umschreiben“.</p>' : ''}
+    <div class="row"><button class="btn" type="button" id="ndGo">${ICON.refresh}Neu schreiben</button><button class="btn alt" type="button" id="ndNo">Abbrechen</button></div>`, el => {
+    wishPick(el);
+    el.querySelector('#ndNo').onclick = closeSheet;
+    el.querySelector('#ndGo').onclick = () => { const w = el.querySelector('#ndWish').value; closeSheet(); makeNoteDoc(pid, w); };
+  });
 }
 function renderAllNote() {
   const pid = ui.pid, notes = pNotes(pid).slice().reverse(), doc = ndOf(pid);
@@ -2945,16 +2982,28 @@ function renderAllNote() {
       : src.length ? `<p class="ad-src"><span>Aus:</span>${src.map(n => `<button type="button" data-open="${esc(n.id)}">${esc(n.title)}</button>`).join('')}</p>` : ''}</section>`;
   };
   const when = doc ? new Date(doc.at).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' }) : '';
-  const sub = job ? `${notes.length} Notizen` : doc ? `${notes.length} Notizen · von Merki geordnet am ${when}` : `${notes.length} ${notes.length === 1 ? 'Notiz' : 'Notizen'}`;
+  const sub = job ? `${notes.length} Notizen` : doc ? `${notes.length} Notizen · von Merki geordnet am ${when}${doc.wish ? ` · Wunsch: „${esc(cut(doc.wish, 60))}“` : ''}` : `${notes.length} ${notes.length === 1 ? 'Notiz' : 'Notizen'}`;
   const other = !!ndJob && !job; // Merki ordnet gerade ein anderes Projekt
   // PDF-Lernzettel: Der Knopf zeigt, ob er gerade gebaut wird oder fertig ist. Haben sich die Notizen seitdem geändert, ist er veraltet.
   const pzk = 'nd:' + pid; let pz = pzJobs.get(pzk);
   if (pz && pz.file && pz.sig !== ndSig(pid)) { pzJobs.delete(pzk); pz = null; }
-  const btn = (canAi && !job ? `<button class="btn alt" type="button" id="ndGen"${other ? ' disabled title="Merki ordnet gerade ein anderes Projekt"' : ''}>${ICON.refresh}${doc ? 'Neu ordnen' : 'Von Merki ordnen lassen'}</button>` : '')
+  const btn = (canAi && !job ? `<button class="btn alt" type="button" id="ndGen"${other ? ' disabled title="Merki ordnet gerade ein anderes Projekt"' : ''}>${ICON.refresh}${doc ? 'Neu schreiben …' : 'Von Merki ordnen lassen'}</button>` : '')
     + (notes.length && !job && MODE === 'server' ? `<button class="btn${pz && pz.file && canShareFiles() ? '' : ' alt'}" type="button" id="ndPdf" data-pz="${pzk}"${pz && !pz.file ? ' disabled' : ''}>${pz ? pzInner(pz) : ICON.pdf + 'PDF-Lernzettel'}</button>` : '');
   let html = `<div class="ad-head"><div><h2>Alle Notizen zusammen</h2><p class="muted">${sub}</p></div>${btn ? `<div class="ad-btns">${btn}</div>` : ''}</div>`;
   if (job) html += `<p class="job" role="status"><span class="spin"></span>Merki fasst deine Notizen zu einem Text zusammen …</p>`;
   if (err) html += `<p class="notice err">${esc(err)}</p>`;
+  // Suche: nur die Abschnitte und Notizen, in denen alle Suchwörter vorkommen
+  const words = searchWords($('#search').value.trim());
+  if (words.length) {
+    const hit = notes.filter(n => noteHit(n, words));
+    const secs = doc && doc.full ? (doc.secs || []).map((a, i) => ({ a, i })).filter(({ a }) => words.every(w => searchNorm(a.t + ' ' + a.x).includes(w))) : [];
+    const k = hit.length + secs.length;
+    html += `<p class="muted" role="status">${k ? `${k} Treffer` : 'Nichts gefunden.'} <button type="button" class="linkbtn" data-showall>Suche löschen</button></p>`;
+    html += secs.map(({ a, i }) => secHtml(a, i)).join('');
+    if (hit.length) html += `<section class="ad-sec">${secs.length ? '<h3>Notizen</h3>' : ''}${hit.map(noteHtml).join('')}</section>`;
+    $('#allNote').innerHTML = html;
+    return;
+  }
   if (doc) {
     const why = [fresh.length ? `${fresh.length === 1 ? '1 Notiz ist' : fresh.length + ' Notizen sind'} neu oder geändert` : '', gone ? `${gone === 1 ? '1 Notiz wurde' : gone + ' Notizen wurden'} gelöscht` : ''].filter(Boolean).join(', ');
     if (why && !job) html += `<p class="notice tip">${why}. ${canAi ? 'Tippe auf „Neu ordnen“, dann bringt Merki alles auf den neuesten Stand.' : ''}</p>`;
@@ -4980,8 +5029,8 @@ function noteView(n) {
   const server = MODE === 'server', mapLabel = on => on ? 'Aus der PDF-Mappe nehmen' : 'In die PDF-Mappe legen';
   openSheet(`<h2>${esc(n.title)}</h2>
     <p class="muted">${sub}</p>
-    <div class="row nv-acts">${canRead() ? `<button class="btn readbtn" type="button" id="lRead" aria-pressed="false">${ICON.sound}Vorlesen</button>` : ''}${aiReady() ? `<button class="btn alt" type="button" id="lAsk">${ICON.ask}Frag Merki</button>` : ''}${server ? `<button class="btn alt" type="button" id="lPdf">${ICON.pdf}PDF</button>` : ''}<button class="btn alt" type="button" id="lMore" aria-label="Mehr" aria-expanded="false" aria-controls="lMoreRow">${ICON.dots}</button></div>
-    <div class="menu" id="lMoreRow" hidden><button type="button" id="lEdit2">${ICON.edit}Bearbeiten</button>${f ? `<button type="button" id="lText">${ICON.file}${lec ? 'Ganze Mitschrift' : 'Datei ansehen'}</button>` : ''}${server ? `<button type="button" id="lMap">${ICON.pdf}<span>${mapLabel(n.pdf)}</span></button>` : ''}<button type="button" class="danger" id="lDel">${ICON.trash}Löschen</button></div>
+    <div class="row nv-acts">${canRead() ? `<button class="btn readbtn" type="button" id="lRead" aria-pressed="false">${ICON.sound}Vorlesen</button>` : ''}${aiReady() ? `<button class="btn alt" type="button" id="lAsk">${ICON.ask}Frag Merki</button><button class="btn alt" type="button" id="lRw">${ICON.refresh}Umschreiben</button>` : ''}${server ? `<button class="btn alt" type="button" id="lPdf">${ICON.pdf}PDF</button>` : ''}<button class="btn alt" type="button" id="lMore" aria-label="Mehr" aria-expanded="false" aria-controls="lMoreRow">${ICON.dots}</button></div>
+    <div class="menu" id="lMoreRow" hidden><button type="button" id="lEdit2">${ICON.edit}Bearbeiten</button>${n.prev ? `<button type="button" id="lPrev">${ICON.undo}Fassung vor dem Umschreiben</button>` : ''}${f ? `<button type="button" id="lText">${ICON.file}${lec ? 'Ganze Mitschrift' : 'Datei ansehen'}</button>` : ''}${server ? `<button type="button" id="lMap">${ICON.pdf}<span>${mapLabel(n.pdf)}</span></button>` : ''}<button type="button" class="danger" id="lDel">${ICON.trash}Löschen</button></div>
     <div class="ntext lec">${md(n.text || '')}</div>${spoken}
     <div class="row"><button class="btn alt" type="button" id="lEdit">${ICON.edit}Bearbeiten</button><button class="btn alt" type="button" id="lClose">Schließen</button></div>`, el => {
     const q = s => el.querySelector(s);
@@ -5006,7 +5055,70 @@ function noteView(n) {
       r.onclick = () => readAloud({ content: n.text }, r);
     }
     const a = q('#lAsk'); if (a) a.onclick = () => { closeSheet(); openPad(n, { ask: true }); };
+    const rw = q('#lRw'); if (rw) rw.onclick = () => { closeSheet(); rewriteNote(n); };
+    // Zwischen der umgeschriebenen und der Fassung davor hin- und herwechseln (nichts geht verloren)
+    const pv = q('#lPrev');
+    if (pv) pv.onclick = () => {
+      const cur = state.notes.find(x => x.id === n.id); if (!cur || !cur.prev) return;
+      closeSheet();
+      put('note', { ...cur, title: cur.prev.title || cur.title, text: cur.prev.text, prev: { title: cur.title, text: cur.text || '' } });
+      toast('Die Fassung davor ist wieder da. Unter „…“ kommst du zurück zur neuen.', 5000);
+    };
     const t = q('#lText'); if (t) t.onclick = () => viewFile(f, 'text');
+  });
+}
+// „Umschreiben“ in einer Notiz: Sie sagt Merki, was anders werden soll (einfacher, kürzer …). Die neue Fassung erscheint
+// erst zur Ansicht und wird nur auf Knopfdruck übernommen. Die alte bleibt als prev und lässt sich zurückholen.
+function rewriteNote(n) {
+  openSheet(`<h2>Notiz umschreiben</h2>
+    <p class="muted">„${esc(n.title)}“. Sag Merki, was anders werden soll. Deine Notiz ändert sich erst, wenn du die neue Fassung übernimmst.</p>
+    ${wishChips('rwWish')}
+    <div class="field"><label for="rwWish">Dein Wunsch</label><textarea id="rwWish" maxlength="400" style="min-height:80px" placeholder="z. B. einfacher erklären, mit einem Beispiel aus dem Alltag"></textarea></div>
+    <p class="notice err" id="rwMsg" role="alert" hidden></p>
+    <div class="row" id="rwRow"><button class="btn" type="button" id="rwGo">${ICON.refresh}Umschreiben</button><button class="btn alt" type="button" id="rwNo">Abbrechen</button></div>
+    <div id="rwOut" hidden><h3 class="sub">Neue Fassung</h3><div class="ntext lec" id="rwText"></div>
+      <div class="row"><button class="btn" type="button" id="rwTake">${ICON.check}Übernehmen</button><button class="btn alt" type="button" id="rwAgain">Nochmal anders</button><button class="btn alt" type="button" id="rwDrop">Verwerfen</button></div></div>`, el => {
+    const q = s => el.querySelector(s);
+    let got = null;
+    wishPick(el);
+    q('#rwWish').addEventListener('input', () => { q('#rwMsg').hidden = true; });
+    q('#rwNo').onclick = q('#rwDrop').onclick = closeSheet;
+    q('#rwAgain').onclick = () => { q('#rwOut').hidden = true; q('#rwRow').hidden = false; q('#rwWish').focus(); };
+    q('#rwGo').onclick = async () => {
+      const wish = q('#rwWish').value.replace(/\s+/g, ' ').trim(), b = q('#rwGo');
+      if (!wish) { q('#rwMsg').textContent = 'Schreib kurz, was anders werden soll, oder tippe oben einen Vorschlag an.'; q('#rwMsg').hidden = false; return q('#rwWish').focus(); }
+      if (!aiReady()) { q('#rwMsg').textContent = aiError({ code: 'offline' }); q('#rwMsg').hidden = false; return; }
+      const cur = state.notes.find(x => x.id === n.id) || n;
+      q('#rwMsg').hidden = true; b.disabled = true; b.innerHTML = '<span class="spin"></span>Merki schreibt …';
+      try {
+        const x = await aiJson(`Schreib die Lernnotiz unten um, so wie die Person es sich wünscht. Ihr Wunsch (in ihren eigenen Worten): „${wish}“
+- Deutsch und fachlich genau. ${levelText()}
+- Erfinde keine Fakten dazu. Beispiele darfst du ergänzen, wenn der Wunsch danach fragt.
+- Lass nichts Prüfungsrelevantes weg, außer der Wunsch verlangt ausdrücklich, kürzer zu werden. Dann bleibt das Wichtigste.
+- Formatierung: Markdown, **fett** sparsam (höchstens ein bis zwei Fachbegriffe pro Absatz), Listen mit "- ", Zwischenüberschriften mit "## ", Tabellen und Diagramme (\`\`\`mermaid … \`\`\`), wenn sie helfen. Farbmarkierungen wie {blau}…{/blau} übernimmst du an denselben Stellen.
+- titel: der bisherige Titel, außer der Wunsch verlangt einen anderen.
+Antworte nur mit JSON: {"titel": "...", "inhalt": "..."}
+
+Titel: ${cur.title}
+Notiz:
+${(cur.text || '').slice(0, 40000)}`, { schema: SCHEMA.voice, maxTokens: 32000, purpose: 'note' });
+        const text = String((x && x.inhalt) || '').trim();
+        if (!text) throw { code: 'invalid_json' };
+        got = { title: String((x && x.titel) || '').trim().slice(0, 120) || cur.title, text: text.slice(0, 80000) };
+        if (!el.isConnected) return;
+        q('#rwText').innerHTML = md(got.text); q('#rwOut').hidden = false; q('#rwRow').hidden = true;
+        drawDiagrams();
+        q('#rwOut').scrollIntoView({ block: 'start', behavior: 'smooth' });
+      } catch (e) {
+        if (el.isConnected) { q('#rwMsg').textContent = aiError(e); q('#rwMsg').hidden = false; }
+      } finally { b.disabled = false; b.innerHTML = `${ICON.refresh}Umschreiben`; }
+    };
+    q('#rwTake').onclick = () => {
+      const cur = state.notes.find(x => x.id === n.id); if (!cur || !got) return;
+      closeSheet();
+      put('note', { ...cur, title: got.title, text: got.text, prev: { title: cur.title, text: cur.text || '' } });
+      toast('Neue Fassung übernommen. Die alte holst du in der Notiz unter „…“ zurück.', 5000);
+    };
   });
 }
 function lectureSheet() {
@@ -6105,6 +6217,12 @@ function grade(c, g) {
 }
 function cardsHome(msg) {
   const all = pCards().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)), due = dueCards(), s = cardStats(all);
+  // Themen der Karten (die meisten zuerst): Ab zwei Themen lässt sich ein Thema für sich lernen, und die Liste steht nach Themen
+  const topics = [...all.reduce((m, c) => c.topic ? m.set(c.topic, (m.get(c.topic) || 0) + 1) : m, new Map())].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'de'));
+  const byTopic = topics.length >= 2, rank = new Map(topics.map(([t], i) => [t, i]));
+  const listed = byTopic ? all.slice().sort((a, b) => (rank.has(a.topic) ? rank.get(a.topic) : 1e6) - (rank.has(b.topic) ? rank.get(b.topic) : 1e6)) : all;
+  let lastTopic = null;
+  const head = c => { if (!byTopic || c.topic === lastTopic) return ''; lastTopic = c.topic; return `<h4 class="ctgroup">${esc(c.topic || 'Ohne Thema')}</h4>`; };
   const a = showArea(`<div class="row" style="justify-content:space-between"><h2>Karteikarten</h2><button class="btn alt" type="button" id="cBack">Zurück</button></div>
     <div class="q">
       <p class="question">${due.length ? `${due.length} ${due.length === 1 ? 'Karte ist' : 'Karten sind'} heute dran` : all.length ? 'Für heute alles wiederholt. Stark!' : 'Noch keine Karteikarten'}</p>
@@ -6115,12 +6233,18 @@ function cardsHome(msg) {
         <button class="btn alt" type="button" id="cAdd">Eigene Karte</button>
       </div>
       <p class="notice err" id="cMsg"${msg ? '' : ' hidden'}>${esc(msg || '')}</p>
+      ${byTopic ? `<div class="ctopics" role="group" aria-label="Ein Thema lernen"><span class="muted">Ein Thema lernen:</span>${topics.slice(0, 30).map(([t, n]) => `<button type="button" data-ctopic="${esc(t)}">${esc(t)}<small>${n}</small></button>`).join('')}</div>` : ''}
     </div>
-    ${all.length ? `<details class="clist"${ui.cardsOpen ? ' open' : ''}><summary>Alle Karten ansehen (${all.length})</summary>${all.length > 8 ? `<input type="search" id="cFind" class="cfind" placeholder="Karte suchen" aria-label="Karte suchen">` : ''}${all.map(c => `<div class="citem" data-ctext="${esc((c.front + ' ' + c.back + ' ' + (c.topic || '')).toLowerCase())}"><div>${c.topic ? `<span class="ctopic">${esc(c.topic)}</span>` : ''}<b>${hlHtml(esc(c.front))}</b><p>${hlHtml(esc(c.back))}</p>
+    ${all.length ? `<details class="clist"${ui.cardsOpen ? ' open' : ''}><summary>Alle Karten ansehen (${all.length})</summary>${all.length > 8 ? `<input type="search" id="cFind" class="cfind" placeholder="Karte suchen" aria-label="Karte suchen">` : ''}${listed.map(c => `${head(c)}<div class="citem" data-ctext="${esc((c.front + ' ' + c.back + ' ' + (c.topic || '')).toLowerCase())}"><div>${c.topic && !byTopic ? `<span class="ctopic">${esc(c.topic)}</span>` : ''}<b>${hlHtml(esc(c.front))}</b><p>${hlHtml(esc(c.back))}</p>
       <div class="boxdots" title="Fortschritt">${[1, 2, 3, 4, 5].map(k => `<i class="${(c.box || 0) >= k ? 'on' : ''}"></i>`).join('')}</div></div>
       <span class="acts"><button type="button" data-cedit="${esc(c.id)}" aria-label="Karte bearbeiten">${ICON.edit}</button><button type="button" data-cdel="${esc(c.id)}" aria-label="Karte löschen">${ICON.trash}</button></span></div>`).join('')}<p class="muted" id="cNone" hidden>Keine Karte gefunden.</p></details>` : ''}`);
   a.querySelector('#cBack').onclick = backHome;
   a.querySelector('#cLearn').onclick = () => reviewCards(dueCards().slice(0, 20));
+  // Ein Thema: alle seine Karten, die fälligen und die noch unsicheren zuerst
+  a.querySelectorAll('[data-ctopic]').forEach(b => b.onclick = () => {
+    const t = b.dataset.ctopic, d = today();
+    reviewCards(pCards().filter(c => c.topic === t).sort((x, y) => ((x.due || '') > d) - ((y.due || '') > d) || (x.box || 0) - (y.box || 0)).slice(0, 30));
+  });
   a.querySelector('#cGen').onclick = generateCards;
   a.querySelector('#cAdd').onclick = () => editCard(null);
   const det = a.querySelector('.clist'); if (det) det.addEventListener('toggle', () => { ui.cardsOpen = det.open; });
@@ -6128,6 +6252,8 @@ function cardsHome(msg) {
   if (find) find.oninput = () => {
     const q = find.value.trim().toLowerCase(); let n = 0;
     a.querySelectorAll('.citem').forEach(x => { const on = !q || x.dataset.ctext.includes(q); x.hidden = !on; if (on) n++; });
+    // Themen-Überschrift nur, wenn darunter noch eine Karte zu sehen ist
+    a.querySelectorAll('.ctgroup').forEach(h => { let x = h.nextElementSibling, any = false; while (x && x.classList.contains('citem')) { if (!x.hidden) any = true; x = x.nextElementSibling; } h.hidden = !any; });
     a.querySelector('#cNone').hidden = n > 0;
   };
   a.querySelectorAll('[data-cedit]').forEach(b => b.onclick = () => { const c = state.cards.find(x => x.id === b.dataset.cedit); if (c) editCard(c); });
@@ -6212,13 +6338,15 @@ function reviewCards(queue) {
     const a = showArea(`<div class="q"${reviewed ? ' data-busy' : ''}><div class="count"><span>Karte ${i + 1} von ${queue.length}</span><span>${known} gewusst</span></div>
       <div class="progress"><i style="width:${(i / queue.length) * 100}%"></i></div>
       <button class="flash${shown ? ' open' : ''}" type="button" id="flash" aria-label="Karte umdrehen"><span class="in">
-        <span class="fs f"><span class="ftop">${c.topic ? esc(c.topic) : 'Frage'}</span>${hlHtml(esc(c.front))}<small>Antwort im Kopf überlegen, dann umdrehen</small></span>
+        <span class="fs f"><span class="ftop">${c.topic ? esc(c.topic) : 'Frage'}</span>${hlHtml(esc(c.front))}<small>Antwort im Kopf überlegen, dann antippen</small></span>
         <span class="fs b"><small>${esc(cut(hlStrip(c.front), 160))}</small><span class="ftop">Antwort</span>${hlHtml(esc(c.back))}</span></span></button>
       <button class="btn" type="button" id="flip"${shown ? ' hidden' : ''}>Umdrehen</button>
       <div class="grade" id="grade"${shown ? '' : ' hidden'}><button class="btn alt bad" type="button" data-g="0">Nicht gewusst</button><button class="btn alt" type="button" data-g="1">Unsicher</button><button class="btn good" type="button" data-g="2">Gewusst</button></div>
     </div><div class="row" style="margin-top:12px"><button class="btn alt" type="button" id="quit">Beenden</button><button class="linkbtn" type="button" id="cEdit">${ICON.edit}Karte bearbeiten</button></div>`);
     const flip = () => { a.querySelector('#flash').classList.add('open'); a.querySelector('#flip').hidden = true; a.querySelector('#grade').hidden = false; };
-    a.querySelector('#flash').onclick = flip; a.querySelector('#flip').onclick = flip;
+    // Antippen dreht die Karte hin und auch wieder zurück zur Frage (die Knöpfe zum Bewerten bleiben dann stehen)
+    a.querySelector('#flash').onclick = () => { const fl = a.querySelector('#flash'); if (fl.classList.contains('open')) fl.classList.remove('open'); else flip(); };
+    a.querySelector('#flip').onclick = flip;
     a.querySelector('#quit').onclick = () => { i = queue.length; step(); };
     a.querySelector('#cEdit').onclick = () => editCard(c, upd => { const open = a.querySelector('#flash').classList.contains('open'); queue[i] = upd; queue.forEach((x, k) => { if (x.id === upd.id) queue[k] = upd; }); step(open); });
     a.querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
@@ -6349,9 +6477,25 @@ function renderExamBox() {
     const keep = box.querySelector('#exDate') ? box.querySelector('#exDate').value : '';
     box.innerHTML = `<div class="panel"><h3 class="sub">${n !== null ? `Die Prüfung war am ${esc(fmtDay(p.examDate, { day: 'numeric', month: 'long' }))}` : 'Wann ist deine Prüfung?'}</h3>
       <p class="muted">Trag den Termin ein, dann zählt Merki die Tage und macht dir einen Lernplan bis dahin.</p>
-      <div class="row"><input type="date" id="exDate" min="${today()}" class="dateinp"><button class="btn" type="button" id="exSave">Speichern</button></div></div>`;
-    if (keep) box.querySelector('#exDate').value = keep;
-    box.querySelector('#exSave').onclick = () => { const v = box.querySelector('#exDate').value; if (!isDate(v) || daysBetween(today(), v) < 0) return box.querySelector('#exDate').focus(); put('project', { ...p, examDate: v }); };
+      <div class="row"><input type="date" id="exDate" min="${today()}" class="dateinp"><button class="btn" type="button" id="exSave">Speichern</button></div>
+      <div class="notice err" id="exMsg" role="alert" hidden></div></div>`;
+    const inp = box.querySelector('#exDate'), msg = box.querySelector('#exMsg');
+    if (keep) inp.value = keep;
+    inp.addEventListener('input', () => { msg.hidden = true; });
+    const save = v => { put('project', { ...p, examDate: v }); toast(`Prüfung am ${fmtDay(v, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} gespeichert`, 3500); };
+    // Vorher passierte bei einem Tag in der Vergangenheit einfach nichts. Die Datumsauswahl am iPad lässt solche Tage aber zu,
+    // und meist ist derselbe Tag im nächsten Jahr gemeint (im November „5. Februar“ gewählt, aber 2026 statt 2027 erwischt)
+    box.querySelector('#exSave').onclick = () => {
+      const v = inp.value;
+      if (!isDate(v)) { msg.textContent = 'Wähle zuerst einen Tag aus.'; msg.hidden = false; return inp.focus(); }
+      if (daysBetween(today(), v) >= 0) return save(v);
+      const [y, m, d] = v.split('-').map(Number);
+      let next = v; for (let k = 1; k < 10 && daysBetween(today(), next) < 0; k++) next = dstr(new Date(y + k, m - 1, d));
+      const long = s => fmtDay(s, { day: 'numeric', month: 'long', year: 'numeric' });
+      msg.innerHTML = `Der ${esc(long(v))} ist schon vorbei. <button class="btn" type="button" id="exNext">${esc(long(next))} speichern</button>`;
+      msg.hidden = false;
+      msg.querySelector('#exNext').onclick = () => save(next);
+    };
     return;
   }
   const t = today();
@@ -7034,7 +7178,8 @@ $('#allNote').addEventListener('click', e => {
   if (o) { const n = state.notes.find(x => x.id === o.dataset.open); if (n) openNote(n); return; }
   const j = e.target.closest('[data-jump]');
   if (j) { const t = document.getElementById('ad-' + j.dataset.jump); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
-  if (e.target.closest('#ndGen')) makeNoteDoc(ui.pid);
+  if (e.target.closest('#ndGen')) { if (ndOf(ui.pid)) ndWishSheet(ui.pid); else makeNoteDoc(ui.pid); return; }
+  if (e.target.closest('[data-showall]')) { $('#search').value = ''; noteFind(false); renderNotes(); return; }
   const z = e.target.closest('#ndPdf'); if (z) { const pid = ui.pid; lernzettel(z, () => notesPdf(pid), () => ndSig(pid)); }
 });
 $('#cards').addEventListener('click', e => {
